@@ -1,0 +1,286 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ========= USER RELATED MODELS =========
+
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique @db.VarChar(50)
+  email     String    @unique @db.VarChar(100)
+  password  String    @db.VarChar(255)
+  phone     String?   @db.VarChar(20)
+  role      Role      @default(user)
+  createdAt DateTime  @default(now())
+
+  addresses Address[]
+  cart      Cart?
+  reviews   Review[]
+  orders    Order[]
+}
+
+model Address {
+  id           Int     @id @default(autoincrement())
+  street       String  @db.VarChar(255)
+  number       String  @db.VarChar(20)
+  complement   String? @db.VarChar(100)
+  neighborhood String  @db.VarChar(100)
+  isDefault    Boolean @default(false)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+// ========= PRODUCT RELATED MODELS =========
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(255)
+  price         Decimal  @db.Decimal(10, 2)
+  description   String?  @db.Text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  images              ProductImage[]
+  cartItems           CartItem[]
+  orderItems          OrderItem[]
+  reviews             Review[]
+  options             ProductOption[]
+  salesReports        ProductSalesReport[]
+  
+  categoryId          Int?
+  category            ProductCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model ProductCategory {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique @db.VarChar(100)
+  products     Product[]
+  salesReports CategorySalesReport[]
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  url       String  @db.VarChar(255)
+  altText   String? @db.VarChar(255)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductOption {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(100)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values    OptionValue[]
+}
+
+model OptionValue {
+  id            Int     @id @default(autoincrement())
+  value         String  @db.VarChar(100)
+  priceModifier Decimal @default(0.00) @db.Decimal(10, 2)
+
+  optionId Int
+  option   ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+
+// ========= CART RELATED MODELS =========
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now())
+
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  selectedOptions Json?
+
+  @@unique([cartId, productId])
+}
+
+
+// ========= ORDER RELATED MODELS =========
+
+model Order {
+  id                   Int       @id @default(autoincrement())
+  totalPrice           Decimal   @db.Decimal(10, 2)
+  status               Status    @default(being_prepared)
+  createdAt            DateTime  @default(now())
+
+  userId               Int
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  shippingStreet       String
+  shippingNumber       String
+  shippingComplement   String?
+  shippingNeighborhood String
+  shippingPhone        String?
+  
+
+  orderItems      OrderItem[]
+  payment         Payment?
+  appliedCoupon   OrderCoupon?
+}
+
+model OrderItem {
+  id                      Int       @id @default(autoincrement())
+  quantity                Int
+  priceAtOrder            Decimal   @db.Decimal(10, 2)
+
+  orderId                 Int
+  order                   Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId               Int
+  product                 Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  selectedOptionsSnapshot Json?
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @db.VarChar(255)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  orderId       Int           @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Coupon {
+  id           Int           @id @default(autoincrement())
+  code         String        @unique @db.VarChar(50)
+  discountType DiscountType
+  value        Decimal       @db.Decimal(10, 2)
+  expiresAt    DateTime?
+  isActive     Boolean       @default(true)
+  maxUses      Int?
+  usedCount    Int           @default(0)
+
+  orders       OrderCoupon[]
+}
+
+model OrderCoupon {
+  id        Int     @id @default(autoincrement())
+
+  orderId   Int     @unique
+  order     Order   @relation(fields: [orderId], references: [id])
+
+  couponId  Int
+  coupon    Coupon  @relation(fields: [couponId], references: [id])
+
+  discountAmount Decimal @db.Decimal(10, 2)
+}
+
+
+// ========= REPORTING MODELS =========
+
+model DailySalesReport {
+  id                Int      @id @default(autoincrement())
+  date              DateTime @unique @db.Date
+  totalSales        Decimal  @db.Decimal(12, 2)
+  orderCount        Int
+  totalItemsSold    Int
+  averageOrderValue Decimal  @db.Decimal(12, 2)
+}
+
+model ProductSalesReport {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date
+  unitsSold    Int
+  totalRevenue Decimal  @db.Decimal(12, 2)
+
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([date, productId])
+}
+
+model CategorySalesReport {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @db.Date
+  unitsSold    Int
+  totalRevenue Decimal  @db.Decimal(12, 2)
+
+  categoryId   Int
+  category     ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([date, categoryId])
+}
+
+
+// ========= ENUMS =========
+
+enum Role {
+  user
+  admin
+  master
+}
+
+enum Status {
+  pending_payment
+  being_prepared
+  on_the_way
+  delivered
+  canceled
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PIX
+  CASH_ON_DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
