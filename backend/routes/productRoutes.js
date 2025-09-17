@@ -98,4 +98,25 @@ router.get('/category/:categoryId', async (req, res) => {
     }
 });
 
+// Rota para adicionar uma nova categoria (apenas para administradores)
+router.post('/categories/add', authenticateToken, authorize('admin'), async (req, res) => {
+    const { name } = req.body;
+    console.log(`✨ POST /api/products/categories/add: Requisição para adicionar nova categoria: ${name}.`);
+    // Validação básica
+    if (!name) {
+        console.warn('⚠️ POST /api/products/categories/add: Nome da categoria ausente.');
+        return res.status(400).json({ message: 'Nome da categoria é obrigatório.' });
+    }
+    try {
+        const newCategory = await prisma.productCategory.create({
+            data: { name },
+        });
+        console.log(`✅ POST /api/products/categories/add: Nova categoria adicionada com sucesso: ${newCategory.name}.`);
+        res.status(201).json(newCategory);
+    } catch (err) {
+        console.error('❌ POST /api/products/categories/add: Erro ao adicionar categoria:', err.message);
+        res.status(500).json({ message: 'Erro ao adicionar categoria.', error: err.message });
+    }
+});
+
 module.exports = router;

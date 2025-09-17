@@ -1,0 +1,225 @@
+const express = require('express');
+const router = express.Router();
+const { authenticateToken, authorize } = require('./authRoutes');
+
+// Exporta uma função que recebe o mercadopago e o prisma como dependências
+module.exports = (mercadopago, prisma) => {
+
+    // Rota para criar um pedido a partir do carrinho e gerar preferência de pagamento
+    router.post('/', authenticateToken, async (req, res) => {
+        const userId = req.user.id;
+        console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}`);
+
+        try {
+            // Encontrar o carrinho e o usuário com seus endereços
+            const [cart, user] = await Promise.all([
+                prisma.cart.findUnique({
+                    where: { userId: userId },
+                    include: {
+                        items: {
+                            include: {
+                                product: true
+                            }
+                        }
+                    }
+                }),
+                prisma.user.findUnique({
+                    where: { id: userId },
+                    include: {
+                        addresses: true
+                    }
+                })
+            ]);
+
+            if (!cart || cart.items.length === 0) {
+                console.warn(`[POST /api/orders] Carrinho do usuário ${userId} está vazio.`);
+                return res.status(400).json({ message: 'Carrinho vazio. Adicione itens antes de criar um pedido.' });
+            }
+
+            // Encontrar o endereço padrão (ou o primeiro, se não houver um padrão)
+            const shippingAddress = user.addresses.find(addr => addr.isDefault) || user.addresses[0];
+            
+            if (!shippingAddress) {
+                return res.status(400).json({ message: 'Nenhum endereço de entrega encontrado para o usuário.' });
+            }
+
+            // Calcular o total do pedido
+            const total = cart.items.reduce((sum, item) => sum + (parseFloat(item.product.price) * item.quantity), 0);
+            
+            // Mapear os itens do carrinho para o formato do Mercado Pago
+            const itemsMp = cart.items.map(item => ({
+                title: item.product.name,
+                unit_price: parseFloat(item.product.price),
+                quantity: item.quantity,
+            }));
+
+            const externalReference = `order-${Date.now()}-${userId}`;
+
+            // Cria a preferência de pagamento no Mercado Pago
+            const preference = {
+                items: itemsMp,
+                payer: {
+                    name: user.username,
+                    email: user.email,
+                },
+                external_reference: externalReference,
+                back_urls: {
+                    success: `${process.env.APP_URL}/payment/success`,
+                    failure: `${process.env.APP_URL}/payment/failure`,
+                    pending: `${process.env.APP_URL}/payment/pending`,
+                },
+                notification_url: `${process.env.APP_URL}/api/orders/notifications`,
+            };
+
+            const mpResponse = await mercadopago.preferences.create(preference);
+            
+            // Salva um "pedido" no banco de dados com status "pendente de pagamento"
+            const newOrder = await prisma.order.create({
+                data: {
+                    total: total,
+                    shippingAddress: `${shippingAddress.street}, ${shippingAddress.number} - ${shippingAddress.neighborhood}`,
+                    status: 'pending_payment',
+                    userId: userId,
+                    merchantOrderId: mpResponse.body.id,
+                    orderItems: {
+                        createMany: {
+                            data: cart.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                priceAtOrder: item.product.price,
+                            }))
+                        }
+                    }
+                },
+            });
+            
+            console.log(`[POST /api/orders] Preferência de pagamento criada com sucesso. Pedido ID: ${newOrder.id}`);
+
+            // Retorna o link de pagamento para o cliente
+            res.status(201).json({
+                message: 'Preferência de pagamento criada com sucesso!',
+                paymentUrl: mpResponse.body.init_point,
+                orderId: newOrder.id
+            });
+
+        } catch (err) {
+            console.error(`[POST /api/orders] Erro ao criar a preferência de pagamento ou o pedido:`, err.message);
+            res.status(500).json({ message: 'Erro ao processar o pagamento.', error: err.message });
+        }
+    });
+
+    // Rota de webhook para receber notificações do Mercado Pago
+    router.post('/notifications', async (req, res) => {
+        const { type, 'data.id': paymentId } = req.body;
+        console.log(`[POST /api/orders/notifications] Notificação recebida. Tipo: ${type}, ID do Pagamento: ${paymentId}`);
+
+        if (type === 'payment') {
+            try {
+                // Busca o status do pagamento no Mercado Pago
+                const paymentInfo = await mercadopago.payment.findById(paymentId);
+                const paymentStatus = paymentInfo.body.status;
+                const merchantOrderId = paymentInfo.body.external_reference;
+                
+                // Encontra e atualiza o pedido no banco de dados com base no ID da preferência
+                const order = await prisma.order.findUnique({ where: { merchantOrderId } });
+                
+                if (order) {
+                    if (paymentStatus === 'approved') {
+                        // Atualiza o status do pedido para 'payment_received'
+                        await prisma.order.update({
+                            where: { id: order.id },
+                            data: { status: 'payment_received' }
+                        });
+
+                        // Esvazia o carrinho do usuário
+                        const cart = await prisma.cart.findUnique({ where: { userId: order.userId } });
+                        if (cart) {
+                            await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+                        }
+
+                        console.log(`[POST /api/orders/notifications] Pagamento aprovado. Pedido ID: ${order.id} atualizado e carrinho esvaziado.`);
+                    } else {
+                        // Trata outros status como 'rejeitado', 'pendente', etc.
+                        console.log(`[POST /api/orders/notifications] Pagamento não aprovado. Pedido ID: ${order.id} mantém status: ${paymentStatus}.`);
+                    }
+                } else {
+                    console.error(`[POST /api/orders/notifications] Pedido com ID de referência '${merchantOrderId}' não encontrado.`);
+                }
+            } catch (err) {
+                console.error(`[POST /api/orders/notifications] Erro ao processar a notificação de pagamento:`, err.message);
+                return res.status(500).json({ message: 'Erro ao processar a notificação.' });
+            }
+        }
+
+        res.status(200).send('OK');
+    });
+
+    // Rota para ver o histórico de pedidos do usuário
+    router.get('/history', authenticateToken, async (req, res) => {
+        const userId = req.user.id;
+        console.log(`[GET /api/orders/history] Recebida requisição para histórico de pedidos. Usuário ID: ${userId}`);
+        try {
+            const orders = await prisma.order.findMany({
+                where: { userId: userId },
+                include: {
+                    orderItems: {
+                        include: {
+                            product: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+            console.log(`[GET /api/orders/history] Histórico de pedidos do usuário ${userId} encontrado com sucesso (${orders.length} pedidos).`);
+            res.status(200).json(orders);
+        } catch (err) {
+            console.error(`[GET /api/orders/history] Erro ao buscar o histórico de pedidos:`, err.message);
+            res.status(500).json({ message: 'Erro ao buscar o histórico de pedidos.', error: err.message });
+        }
+    });
+
+    // Rota para cancelar um pedido
+    router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
+        const { orderId } = req.params;
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        console.log(`[PUT /api/orders/cancel/${orderId}] Requisição de cancelamento de pedido. Usuário ID: ${userId}, Papel: ${userRole}.`);
+
+        try {
+            const order = await prisma.order.findUnique({
+                where: { id: parseInt(orderId) },
+            });
+            if (!order) {
+                console.warn(`[PUT /api/orders/cancel/${orderId}] Pedido não encontrado. Pedido ID: ${orderId}.`);
+                return res.status(404).json({ message: 'Pedido não encontrado.' });
+            }
+
+            // Verifica se o usuário é o dono do pedido ou um administrador
+            if (order.userId !== userId && userRole !== 'admin') {
+                console.warn(`[PUT /api/orders/cancel/${orderId}] Acesso negado. Usuário ID ${userId} tentou cancelar pedido que não lhe pertence.`);
+                return res.status(403).json({ message: 'Acesso negado: você não tem permissão para cancelar este pedido.' });
+            }
+            
+            // Verifica se o status do pedido permite o cancelamento
+            if (order.status === 'on_the_way' || order.status === 'delivered' || order.status === 'canceled') {
+                console.warn(`[PUT /api/orders/cancel/${orderId}] Não é possível cancelar. Status atual: "${order.status}".`);
+                return res.status(400).json({ message: `Não é possível cancelar um pedido com o status "${order.status}".` });
+            }
+
+            const updatedOrder = await prisma.order.update({
+                where: { id: parseInt(orderId) },
+                data: { status: 'canceled' },
+            });
+
+            console.log(`[PUT /api/orders/cancel/${orderId}] Pedido cancelado com sucesso. Pedido ID: ${updatedOrder.id}`);
+            res.status(200).json({ message: 'Pedido cancelado com sucesso!', order: updatedOrder });
+        } catch (err) {
+            console.error(`[PUT /api/orders/cancel/${orderId}] Erro ao cancelar o pedido:`, err.message);
+            res.status(500).json({ message: 'Erro ao cancelar o pedido.', error: err.message });
+        }
+    });
+
+    return router;
+};
