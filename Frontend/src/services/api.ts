@@ -10,6 +10,7 @@ import {
   AddressForm,
   LoginResponse,
   CartResponse,
+  ProductCategory,
   ApiResponse 
 } from '../types';
 
@@ -73,6 +74,11 @@ class ApiService {
     return response.data;
   }
 
+  async getUsers(): Promise<User[]> {
+  const response: AxiosResponse<User[]> = await this.api.get('/auth/users');
+  return response.data;
+}
+
   // Address endpoints
   async addAddress(addressData: AddressForm): Promise<ApiResponse<Address>> {
     const response: AxiosResponse<ApiResponse<Address>> = await this.api.post('/auth/profile/address', addressData);
@@ -117,6 +123,16 @@ class ApiService {
 
   async deleteProduct(id: number): Promise<ApiResponse<any>> {
     const response: AxiosResponse<ApiResponse<any>> = await this.api.delete(`/products/delete/${id}`);
+    return response.data;
+  }
+
+  async addCategory(name: string): Promise<ProductCategory> {
+    const response: AxiosResponse<ProductCategory> = await this.api.post('/products/categories/add', { name });
+    return response.data;
+  }
+
+  async getCategories(): Promise<ProductCategory[]> {
+    const response: AxiosResponse<ProductCategory[]> = await this.api.get('/products/categories');
     return response.data;
   }
 
@@ -166,6 +182,11 @@ class ApiService {
     const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/cancel/${orderId}`);
     return response.data;
   }
+
+  async getOrders(): Promise<Order[]> {
+  const response: AxiosResponse<Order[]> = await this.api.get('/orders/orders');
+  return response.data;
+}
 
   async updateOrderStatus(orderId: number, status: string): Promise<ApiResponse<Order>> {
     const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/status/${orderId}`, {

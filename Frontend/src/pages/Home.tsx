@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // adicione useNavigate
 import { ArrowRight, Star, Truck, Clock, Shield } from 'lucide-react';
 import { Product } from '../types';
 import { apiService } from '../services/api';
 import Loading from '../components/Loading';
+import { useAuth } from '../contexts/AuthContext'; // adicione useAuth
 
 const Home: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redireciona para o login se não houver autenticação
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -154,7 +165,8 @@ const Home: React.FC = () => {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-2xl font-bold text-purple-600">
-                      R$ {product.price.toFixed(2)}
+                      R$ {Number(product.price ?? 0).toFixed(2)}
+
                     </span>
                     <Link
                       to={`/products/${product.id}`}

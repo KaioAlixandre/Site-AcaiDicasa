@@ -197,4 +197,21 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
     }
 });
 
+// Listar todos os pedidos (apenas admin)
+router.get('/orders', authenticateToken, authorize('admin'), async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: true,
+        orderItems: {
+          include: { product: true }
+        }
+      }
+    });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar pedidos.' });
+  }
+});
+
 module.exports = router;

@@ -109,6 +109,25 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Listar todos os usuários (apenas admin)
+router.get('/users', authenticateToken, authorize('admin'), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+        orders: true
+      }
+    });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar usuários.' });
+  }
+});
+
 // Rota para obter o perfil do usuário autenticado
 router.get('/profile', authenticateToken, async (req, res) => {
     const userId = req.user.id;

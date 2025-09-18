@@ -119,4 +119,16 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
     }
 });
 
+router.get('/categories', async (req, res) => {
+    console.log('📂 GET /api/products/categories: Requisição para listar todas as categorias de produtos.');
+    try {
+        const categories = await prisma.productCategory.findMany();
+        console.log(`✅ GET /api/products/categories: Categorias listadas com sucesso (${categories.length} encontradas).`);
+        res.status(200).json(categories);
+    } catch (err) {
+        console.error('❌ GET /api/products/categories: Erro ao buscar categorias:', err.message);
+        res.status(500).json({ message: 'Erro ao buscar categorias.', error: err.message });
+    }
+});
+
 module.exports = router;

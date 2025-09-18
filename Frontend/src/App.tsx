@@ -12,6 +12,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import Orders from './pages/Orders';
+import Admin from './pages/Admin'; 
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/admin" element={<Admin />} /> {/* Rota para a página Admin */}
                 {/* Rotas adicionais serão adicionadas aqui */}
               </Routes>
             </main>
