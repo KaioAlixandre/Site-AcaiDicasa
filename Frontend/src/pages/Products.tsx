@@ -149,9 +149,12 @@ const Products: React.FC = () => {
             {filteredProducts.map((product) => (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Imagem do produto */}
-                <div className="h-48 bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                  <span className="text-6xl">🥤</span>
-                </div>
+                {products.map(prod => (
+                  <div key={prod.id}>
+                    <img src={prod.images?.[0]?.url} alt={prod.name} style={{ maxWidth: 100 }} />
+                    <span>{prod.name}</span>
+                  </div>
+                ))}
 
                 {/* Conteúdo do produto */}
                 <div className="p-6">

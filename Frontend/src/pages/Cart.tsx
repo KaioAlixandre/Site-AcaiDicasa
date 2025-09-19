@@ -89,7 +89,8 @@ const Cart: React.FC = () => {
                         {item.product.description || 'Açaí delicioso e refrescante'}
                       </p>
                       <p className="text-lg font-bold text-purple-600 mt-1">
-                        R$ {item.product.price.toFixed(2)}
+                        R$ {Number(item.product.price ?? 0).toFixed(2)}
+
                       </p>
                     </div>
 

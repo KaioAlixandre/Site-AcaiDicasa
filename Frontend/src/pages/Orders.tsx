@@ -156,7 +156,8 @@ const Orders: React.FC = () => {
                         {formatDate(order.createdAt)}
                       </p>
                       <p className="text-lg font-semibold text-gray-900">
-                        R$ {order.totalPrice.toFixed(2)}
+                       R$ {order.totalPrice != null ? Number(order.totalPrice).toFixed(2) : '--'}
+
                       </p>
                     </div>
                   </div>
@@ -184,7 +185,7 @@ const Orders: React.FC = () => {
                           </div>
                         </div>
                         <p className="text-sm font-medium text-gray-900">
-                          R$ {item.priceAtOrder.toFixed(2)}
+                          R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}
                         </p>
                       </div>
                     ))}
@@ -214,7 +215,7 @@ const Orders: React.FC = () => {
                 <div className="px-6 py-4 border-t border-gray-200">
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-600">
-                      Total: <span className="font-semibold">R$ {order.totalPrice.toFixed(2)}</span>
+                      Total: <span className="font-semibold">R$ {order.totalPrice != null ? Number(order.totalPrice).toFixed(2) : '--'}</span>
                     </div>
                     <div className="flex space-x-2">
                       {order.status === 'pending_payment' && (

@@ -112,7 +112,10 @@ class ApiService {
   }
 
   async createProduct(productData: any): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.post('/products/add', productData);
+    const response: AxiosResponse<Product> = await this.api.post('/products/add', productData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+      
     return response.data;
   }
 
@@ -186,6 +189,11 @@ class ApiService {
   async getOrders(): Promise<Order[]> {
   const response: AxiosResponse<Order[]> = await this.api.get('/orders/orders');
   return response.data;
+}
+
+async advanceOrderStatus(orderId: number, nextStatus: string): Promise<Order> {
+  const response = await this.api.put(`/orders/status/${orderId}`, { status: nextStatus });
+  return response.data.order;
 }
 
   async updateOrderStatus(orderId: number, status: string): Promise<ApiResponse<Order>> {

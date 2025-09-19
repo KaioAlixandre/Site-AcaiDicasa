@@ -3,12 +3,27 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./authRoutes');
+const multer = require('multer');
+const path = require('path');
+
+// Configuração do destino e nome do arquivo
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // pasta onde as imagens serão salvas
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // nome único
+  }
+});
+const upload = multer({ storage });
 
 // Rota para listar todos os produtos
 router.get('/', async (req, res) => {
     console.log('📦 GET /api/products: Requisição para listar todos os produtos.');
     try {
-        const products = await prisma.product.findMany();
+        const products = await prisma.product.findMany({
+            include: { images: true }
+        });
         console.log(`✅ GET /api/products: Produtos listados com sucesso (${products.length} encontrados).`);
         res.json(products);
     } catch (err) {
@@ -18,12 +33,23 @@ router.get('/', async (req, res) => {
 });
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
-router.post('/add', authenticateToken, authorize('admin'), async (req, res) => {
-    const { name, price, description } = req.body;
-    console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${name}.`);
-    try {
+router.post('/add', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
+  const { name, price, description } = req.body;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${name}.`);
+  try {
         const newProduct = await prisma.product.create({
-            data: { name, price, description }
+            data: {
+                name,
+                price: parseFloat(price),
+                description,
+                images: imageUrl
+                  ? { create: [{ url: imageUrl }] }
+                  : undefined
+            },
+            include: {
+                images: true
+            }
         });
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.name}.`);
         res.status(201).json(newProduct);

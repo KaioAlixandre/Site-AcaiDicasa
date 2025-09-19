@@ -12,7 +12,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import Orders from './pages/Orders';
-import Admin from './pages/Admin'; 
+import Admin from './pages/admin/Admin'; 
 
 function App() {
   return (

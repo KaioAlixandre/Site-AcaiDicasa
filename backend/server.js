@@ -35,6 +35,7 @@ connectDB().then(() => {
     app.use('/api/products', productRoutes);
     app.use('/api/cart', cartRoutes);
     app.use('/api/orders', orderRoutes);
+    app.use('/uploads', express.static('uploads')); // Servir arquivos estáticos da pasta uploads
 
     // Rota de teste
     app.get('/', (req, res) => {
