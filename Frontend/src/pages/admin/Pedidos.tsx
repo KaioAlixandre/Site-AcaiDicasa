@@ -20,7 +20,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
           <thead className="border-b border-slate-200 text-slate-500">
             <tr>
               <th className="p-4">Cliente</th>
-              <th className="p-4">Endereço</th>
+              <th className="p-4">Itens</th>
               <th className="p-4">Status</th>
               <th className="p-4 text-right">Total</th>
               <th className="p-4 text-center">Ações</th>
@@ -34,8 +34,12 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                   <div className="text-sm text-slate-500">{new Date(order.createdAt).toLocaleTimeString()}</div>
                 </td>
                 <td className="p-4 text-slate-600">
-                  {order.shippingStreet}, {order.shippingNumber}
-                </td>
+                {order.orderItems.map(item => (
+                  <div key={item.id}>
+                    {item.product?.name || 'Produto'} x {item.quantity}
+                  </div>
+                ))}
+              </td>
                 <td className="p-4">
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full status-${order.status}`}>
                     {order.status}

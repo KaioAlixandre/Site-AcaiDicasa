@@ -214,4 +214,13 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
   }
 });
 
+router.get('/pending-count', authenticateToken, authorize('admin'), async (req, res) => {
+  const count = await prisma.order.count({
+    where: {
+      status: { in: ['pending_payment', 'being_prepared'] }
+    }
+  });
+  res.json({ count });
+});
+
 module.exports = router;

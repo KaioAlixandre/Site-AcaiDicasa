@@ -22,9 +22,9 @@ router.get('/', async (req, res) => {
     console.log('📦 GET /api/products: Requisição para listar todos os produtos.');
     try {
         const products = await prisma.product.findMany({
-            include: { images: true }
+            include: { images: true, category: true }
         });
-        console.log(`✅ GET /api/products: Produtos listados com sucesso (${products.length} encontrados).`);
+        console.log(products); // Veja no terminal se category está preenchido
         res.json(products);
     } catch (err) {
         console.error('❌ GET /api/products: Erro ao buscar produtos:', err.message);
@@ -34,7 +34,8 @@ router.get('/', async (req, res) => {
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
 router.post('/add', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
-  const { name, price, description } = req.body;
+  const { name, price, description, categoryId } = req.body;
+  console.log('Categoria recebida:', categoryId);
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
   console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${name}.`);
   try {
@@ -43,12 +44,14 @@ router.post('/add', authenticateToken, authorize('admin'), upload.single('image'
                 name,
                 price: parseFloat(price),
                 description,
+                categoryId:  parseInt(categoryId),
                 images: imageUrl
                   ? { create: [{ url: imageUrl }] }
                   : undefined
             },
             include: {
-                images: true
+                images: true,
+                category: true
             }
         });
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.name}.`);

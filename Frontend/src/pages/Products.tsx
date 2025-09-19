@@ -14,6 +14,7 @@ const Products: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [storeConfig, setStoreConfig] = useState<any>(null);
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -39,6 +40,7 @@ const Products: React.FC = () => {
       }
     };
 
+    apiService.getStoreConfig().then(setStoreConfig);
     loadData();
   }, []);
 
@@ -82,6 +84,11 @@ const Products: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Nossos Produtos</h1>
+          {storeConfig && (
+            <div className={`mb-4 px-4 py-2 rounded-lg font-semibold text-center ${storeConfig.isOpen ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              Loja {storeConfig.isOpen ? 'Aberta' : 'Fechada'}
+            </div>
+          )}
           <p className="text-lg text-gray-600">
             Descubra nossa variedade de açaí e acompanhamentos deliciosos
           </p>
@@ -151,8 +158,14 @@ const Products: React.FC = () => {
                 {/* Imagem do produto */}
                 {products.map(prod => (
                   <div key={prod.id}>
-                    <img src={prod.images?.[0]?.url} alt={prod.name} style={{ maxWidth: 100 }} />
-                    <span>{prod.name}</span>
+                    {product.images?.[0]?.url && (
+                      <img
+                        src={product.images[0].url}
+                        alt={product.name}
+                        style={{ maxWidth: 100, width: '100%', height: 'auto', objectFit: 'cover' }}
+                        className="mx-auto mb-2"
+                      />
+                    )}
                   </div>
                 ))}
 

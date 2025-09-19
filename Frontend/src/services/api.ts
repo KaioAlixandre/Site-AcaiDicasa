@@ -111,16 +111,17 @@ class ApiService {
     return response.data;
   }
 
-  async createProduct(productData: any): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.post('/products/add', productData, {
+  async createProduct(formData: FormData): Promise<Product> {
+    const response = await this.api.post('/products/add', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-      
     return response.data;
   }
 
-  async updateProduct(id: number, productData: any): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.put(`/products/update/${id}`, productData);
+  async updateProduct(id: number, formData: FormData): Promise<Product> {
+    const response = await this.api.put(`/products/update/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return response.data;
   }
 
@@ -196,12 +197,44 @@ async advanceOrderStatus(orderId: number, nextStatus: string): Promise<Order> {
   return response.data.order;
 }
 
+async getPendingOrders() {
+  const response = await this.api.get('/orders/pending-count');
+  return response.data.count;
+}
+
   async updateOrderStatus(orderId: number, status: string): Promise<ApiResponse<Order>> {
     const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/status/${orderId}`, {
       status,
     });
     return response.data;
   }
+
+  // Insights endpoints
+async getDailySales(date: string) {
+  const response = await this.api.get(`/insights/daily-sales/${date}`);
+  return response.data;
+}
+
+async getProductSales(date: string) {
+  const response = await this.api.get(`/insights/product-sales/${date}`);
+  return response.data;
+}
+
+async getCategorySales(date: string) {
+  const response = await this.api.get(`/insights/category-sales/${date}`);
+  return response.data;
+}
+
+// Store Config endpoints
+async getStoreConfig() {
+  const response = await this.api.get('/store-config');
+  return response.data;
+}
+
+async updateStoreConfig(data: any) {
+  const response = await this.api.put('/store-config', data);
+  return response.data;
+}
 }
 
 export const apiService = new ApiService();

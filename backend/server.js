@@ -12,6 +12,8 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const insightsRoutes = require('./routes/insithsRoutes');
+const storeConfigRoutes = require('./routes/storeConfigRoutes');
 
 // Middlewares
 app.use(cors());
@@ -36,6 +38,8 @@ connectDB().then(() => {
     app.use('/api/cart', cartRoutes);
     app.use('/api/orders', orderRoutes);
     app.use('/uploads', express.static('uploads')); // Servir arquivos estáticos da pasta uploads
+    app.use('/api/insights', insightsRoutes);
+    app.use('/api/store-config', storeConfigRoutes);
 
     // Rota de teste
     app.get('/', (req, res) => {

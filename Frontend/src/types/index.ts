@@ -7,6 +7,10 @@ export interface User {
   role: 'user' | 'admin' | 'master';
   createdAt: string;
   addresses?: Address[];
+  orders?: {
+    totalPrice: number;
+    // other order properties...
+  }[];
 }
 
 export interface Address {
@@ -93,6 +97,10 @@ export interface Order {
   shippingPhone?: string;
   orderItems: OrderItem[];
   payment?: Payment;
+  user?: {
+    username?: string;
+    // other user properties...
+  };
 }
 
 export interface OrderItem {

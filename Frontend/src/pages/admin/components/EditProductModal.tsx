@@ -5,7 +5,7 @@ interface Props {
   categories: ProductCategory[];
   product: Product;
   onClose: () => void;
-  onUpdate: (id: number, data: any) => void;
+  onUpdate: (id: number, formData: FormData) => void;
 }
 
 const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpdate }) => {
@@ -14,12 +14,15 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
     price: product.price.toString(),
     categoryId: product.category?.id?.toString() || '',
     isActive: product.isActive,
-    description: product.description || ''
+    description: product.description || '',
+    image: null as File | null
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
+    if (type === 'file' && e.target instanceof HTMLInputElement) {
+      setForm({ ...form, image: e.target.files?.[0] || null });
+    } else if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
       setForm({ ...form, [name]: e.target.checked });
     } else {
       setForm({ ...form, [name]: value });
@@ -28,13 +31,15 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdate(product.id, {
-      name: form.name,
-      price: parseFloat(form.price),
-      categoryId: Number(form.categoryId),
-      isActive: form.isActive,
-      description: form.description
-    });
+    const formData = new FormData();
+    formData.append('name', form.name);
+    formData.append('price', form.price);
+    formData.append('categoryId', form.categoryId);
+    formData.append('description', form.description);
+    formData.append('isActive', String(form.isActive));
+    if (form.image) formData.append('image', form.image);
+
+    onUpdate(product.id, formData);
   };
 
   return (
@@ -49,6 +54,7 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
             {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
           <textarea name="description" value={form.description} onChange={handleChange} placeholder="Descrição" className="w-full px-3 py-2 border rounded" />
+          <input type="file" name="image" accept="image/*" onChange={handleChange} className="w-full px-3 py-2 border rounded" />
           <div className="flex items-center gap-2">
             <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} />
             <span>Ativo</span>

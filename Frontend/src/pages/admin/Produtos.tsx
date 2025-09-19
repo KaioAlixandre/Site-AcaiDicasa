@@ -4,6 +4,7 @@ import { Product, ProductCategory } from '../../types';
 import AddProductModal from './components/AddProductModal';
 import EditProductModal from './components/EditProductModal';
 import AddCategoryModal from './components/AddCategoryModal';
+import Products from '../Products';
 
 const Produtos: React.FC<{
   products: Product[],

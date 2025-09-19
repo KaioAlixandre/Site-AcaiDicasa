@@ -4,7 +4,7 @@ import { ProductCategory } from '../../../types';
 interface Props {
   categories: ProductCategory[];
   onClose: () => void;
-  onAdd: (data: any) => void;
+  onAdd: (formData: FormData) => void;
 }
 
 const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
@@ -13,27 +13,32 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     price: '',
     categoryId: '',
     isActive: true,
-    description: ''
+    description: '',
+    image: null as File | null
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    let newValue: string | boolean = value;
-    if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
-      newValue = e.target.checked;
+    if (type === 'file' && e.target instanceof HTMLInputElement) {
+      setForm({ ...form, image: e.target.files?.[0] || null });
+    } else if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
+      setForm({ ...form, [name]: e.target.checked });
+    } else {
+      setForm({ ...form, [name]: value });
     }
-    setForm({ ...form, [name]: newValue });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      name: form.name,
-      price: parseFloat(form.price),
-      categoryId: Number(form.categoryId),
-      isActive: form.isActive,
-      description: form.description
-    });
+    const formData = new FormData();
+    formData.append('name', form.name);
+    formData.append('price', form.price);
+    formData.append('categoryId', form.categoryId);
+    formData.append('description', form.description);
+    formData.append('isActive', String(form.isActive));
+    if (form.image) formData.append('image', form.image);
+
+    onAdd(formData);
   };
 
   return (
@@ -48,6 +53,7 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
             {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
           <textarea name="description" value={form.description} onChange={handleChange} placeholder="Descrição" className="w-full px-3 py-2 border rounded" />
+          <input type="file" name="image" accept="image/*" onChange={handleChange} className="w-full px-3 py-2 border rounded" />
           <div className="flex items-center gap-2">
             <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} />
             <span>Ativo</span>
