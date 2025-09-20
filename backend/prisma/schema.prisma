@@ -145,15 +145,21 @@ model Order {
   id                   Int       @id @default(autoincrement())
   totalPrice           Decimal   @db.Decimal(10, 2)
   status               Status    @default(being_prepared)
+  deliveryType         String    @default("delivery") // "delivery" ou "pickup"
+  deliveryFee          Decimal   @default(0) @db.Decimal(10, 2)
   createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   userId               Int
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  shippingStreet       String
-  shippingNumber       String
+  delivererId          Int?
+  deliverer            Deliverer? @relation(fields: [delivererId], references: [id])
+
+  shippingStreet       String?
+  shippingNumber       String?
   shippingComplement   String?
-  shippingNeighborhood String
+  shippingNeighborhood String?
   shippingPhone        String?
   
 
@@ -292,4 +298,17 @@ enum PaymentStatus {
 enum DiscountType {
   PERCENTAGE
   FIXED_AMOUNT
+}
+
+// ========= DELIVERY RELATED MODELS =========
+
+model Deliverer {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  phone     String   @db.VarChar(20)
+  email     String?  @db.VarChar(100)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  
+  orders    Order[]
 }

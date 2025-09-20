@@ -2,7 +2,22 @@ import React from 'react';
 import { Users, TrendingUp } from 'lucide-react';
 import { User } from '../../types';
 
-const Clientes: React.FC<{ user: User[] }> = ({ user }) => (
+const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
+  // Calcular LTV Médio baseado nos dados reais
+  const calculateAverageLTV = () => {
+    if (user.length === 0) return 0;
+    
+    const totalLTV = user.reduce((acc, cliente) => {
+      const clienteLTV = cliente.orders?.reduce((orderAcc, order) => orderAcc + Number(order.totalPrice), 0) || 0;
+      return acc + clienteLTV;
+    }, 0);
+    
+    return totalLTV / user.length;
+  };
+
+  const averageLTV = calculateAverageLTV();
+
+  return (
   <div id="clientes" className="page">
     <header className="mb-8">
       <h2 className="text-3xl font-bold text-slate-800">Clientes</h2>
@@ -24,7 +39,7 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => (
         </div>
         <div>
           <p className="text-slate-500 text-sm">LTV Médio</p>
-          <p className="text-2xl font-bold text-slate-800">R$ 89,50</p>
+          <p className="text-2xl font-bold text-slate-800">R$ {averageLTV.toFixed(2)}</p>
         </div>
       </div>
     </div>
@@ -59,6 +74,7 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => (
       </div>
     </div>
   </div>
-);
+  );
+}
 
 export default Clientes;

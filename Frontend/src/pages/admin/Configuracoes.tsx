@@ -18,7 +18,17 @@ const Configuracoes: React.FC = () => {
   useEffect(() => {
     apiService.getStoreConfig().then((data) => {
       console.log('Configuração recebida:', data);
-      setConfig(data);
+      // Mapear os nomes dos campos do backend para o frontend
+      const mappedData = {
+        ...data,
+        openTime: data.openingTime,
+        closeTime: data.closingTime
+      };
+      console.log('Dados mapeados para o frontend:', mappedData);
+      setConfig(mappedData);
+      setLoading(false);
+    }).catch(error => {
+      console.error('Erro ao carregar configurações:', error);
       setLoading(false);
     });
   }, []);
@@ -45,87 +55,115 @@ const Configuracoes: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await apiService.updateStoreConfig(config);
-    setLoading(false);
-    alert('Configurações salvas com sucesso!');
+    
+    // Mapear os nomes dos campos do frontend para o backend
+    const dataToSend = {
+      ...config,
+      openingTime: config.openTime,
+      closingTime: config.closeTime
+    };
+    
+    console.log('Dados que serão enviados para o backend:', dataToSend);
+    
+    try {
+      await apiService.updateStoreConfig(dataToSend);
+      setLoading(false);
+      alert('Configurações salvas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
+      setLoading(false);
+      alert('Erro ao salvar configurações. Tente novamente.');
+    }
   };
 
-  if (loading || !config) {
-    return <div className="p-8 text-center text-slate-500">Carregando...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-gray-600">Carregando configurações...</div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Erro ao carregar configurações.</p>
+      </div>
+    );
   }
 
   return (
     <div id="configuracoes" className="page">
       <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">Configurações da Loja</h2>
-        <p className="text-slate-500">Defina o horário de funcionamento e o status da loja.</p>
+        <h2 className="text-3xl font-bold text-slate-800">Configurações</h2>
+        <p className="text-slate-500">Configure o funcionamento da sua loja.</p>
       </header>
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-lg font-semibold text-slate-700 mb-2">Status da Loja</label>
-            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-lg">
-              <span className="font-medium text-slate-600">Fechar/Abrir a loja manualmente</span>
-              <label htmlFor="isOpen" className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="isOpen"
-                  name="isOpen"
-                  checked={!!config.isOpen}
-                  onChange={handleChange}
-                  className="sr-only peer"
-                />
-                <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+      <div className="bg-white p-8 rounded-xl shadow-md">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Horário de Abertura
               </label>
+              <input
+                type="time"
+                name="openTime"
+                value={config.openTime || ''}
+                onChange={handleChange}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
             </div>
-            <p className="text-sm text-slate-500 mt-2">Esta opção sobrepõe o horário de funcionamento. Útil para feriados ou imprevistos.</p>
-          </div>
-          <div>
-            <label className="block text-lg font-semibold text-slate-700 mb-2">Horário de Funcionamento</label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="openingTime" className="block text-sm font-medium text-slate-600 mb-1">Abre às</label>
-                <input
-                  type="time"
-                  id="openingTime"
-                  name="openingTime"
-                  value={config.openingTime || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="closingTime" className="block text-sm font-medium text-slate-600 mb-1">Fecha às</label>
-                <input
-                  type="time"
-                  id="closingTime"
-                  name="closingTime"
-                  value={config.closingTime || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Horário de Fechamento
+              </label>
+              <input
+                type="time"
+                name="closeTime"
+                value={config.closeTime || ''}
+                onChange={handleChange}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
             </div>
           </div>
+
           <div>
-            <label className="block text-lg font-semibold text-slate-700 mb-2">Dias de Funcionamento</label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Dias de Funcionamento
+            </label>
+            <div className="grid grid-cols-7 gap-2">
               {diasSemana.map((dia) => (
-                <label key={dia.value} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="checkbox"
-                    checked={config.openDays?.split(',').includes(dia.value)}
-                    onChange={() => handleDayToggle(dia.value)}
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
+                <button
+                  key={dia.value}
+                  type="button"
+                  onClick={() => handleDayToggle(dia.value)}
+                  className={`p-2 text-sm font-medium rounded-lg border transition-colors ${
+                    config.openDays?.split(',').includes(dia.value)
+                      ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
+                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
                   {dia.label}
-                </label>
+                </button>
               ))}
             </div>
           </div>
-          <div className="pt-4 text-right">
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isOpen"
+              name="isOpen"
+              checked={config.isOpen || false}
+              onChange={handleChange}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+            />
+            <label htmlFor="isOpen" className="ml-2 block text-sm text-slate-700">
+              Loja aberta (desmarque para fechar temporariamente)
+            </label>
+          </div>
+
+          <div className="pt-4">
             <button
               type="submit"
               className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors w-full sm:w-auto"

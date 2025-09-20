@@ -24,7 +24,7 @@ const AddAddress: React.FC = () => {
     try {
       const response = await apiService.addAddress(form);
       setUser(response.user); // Atualiza o contexto com o usuário atualizado
-      navigate('/checkout'); // Redireciona para o checkout após adicionar endereço
+      navigate('/add-phone'); // Redireciona para a página de adicionar telefone após adicionar endereço
     } catch (err) {
       alert('Erro ao cadastrar endereço!');
     }

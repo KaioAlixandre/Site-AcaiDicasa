@@ -47,13 +47,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await apiService.login({ email, password });
       
+      // Salvar token no localStorage ANTES de fazer outras requisições
+      localStorage.setItem('token', response.token);
       setToken(response.token);
       
       // Carregar perfil completo com endereços
       const userProfile = await apiService.getProfile();
       setUser(userProfile);
       
-      localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(userProfile));
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao fazer login');

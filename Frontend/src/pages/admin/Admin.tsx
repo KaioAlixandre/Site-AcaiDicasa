@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Pencil, Trash2, LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut,
-  DollarSign, ShoppingBag, Loader, Award, TrendingUp, Eye, RotateCw, ArrowRightCircle, Sprout, Plus, Printer
+  DollarSign, ShoppingBag, Loader, Award, TrendingUp, Eye, RotateCw, ArrowRightCircle, Sprout, Plus, Printer, Truck
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
@@ -10,12 +10,15 @@ import Pedidos from './Pedidos';
 import Produtos from './Produtos';
 import Clientes from './Cliente';
 import Configuracoes from './Configuracoes';
+import Entregadores from './Entregadores';
+import DelivererSelectionModal from './components/DelivererSelectionModal';
 
 const pages = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
   { id: 'pedidos', label: 'Pedidos', icon: <ShoppingCart /> },
   { id: 'produtos', label: 'Produtos', icon: <Package /> },
   { id: 'clientes', label: 'Clientes', icon: <Users /> },
+  { id: 'entregadores', label: 'Entregadores', icon: <Truck /> },
   { id: 'configuracoes', label: 'Configurações', icon: <Settings /> }
 ];
 
@@ -28,6 +31,10 @@ const Admin: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [user, setUser] = useState<User[]>([]); // Simulação de usuário logado
   const [orders, setOrders] = useState<Order[]>([]); // Estado para pedidos
+  
+  // Estados do modal de seleção de entregador
+  const [showDelivererModal, setShowDelivererModal] = useState(false);
+  const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<Order | null>(null);
 
   useEffect(() => {
     if (activePage === 'produtos') {
@@ -90,8 +97,30 @@ interface AdvanceStatusOrder {
 
 const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => {
   const nextStatus = getNextStatus(order.status);
+  
+  // Se está mudando de "being_prepared" para "on_the_way", mostrar modal de seleção de entregador
+  if (order.status === 'being_prepared' && nextStatus === 'on_the_way') {
+    setSelectedOrderForDelivery(order as Order);
+    setShowDelivererModal(true);
+    return;
+  }
+  
+  // Para outros casos, avançar status normalmente
   await apiService.advanceOrderStatus(order.id, nextStatus);
   setOrders(await apiService.getOrders());
+};
+
+const handleDelivererSelected = async (delivererId: number) => {
+  if (!selectedOrderForDelivery) return;
+  
+  try {
+    await apiService.advanceOrderStatus(selectedOrderForDelivery.id, 'on_the_way', delivererId);
+    setOrders(await apiService.getOrders());
+    setShowDelivererModal(false);
+    setSelectedOrderForDelivery(null);
+  } catch (error) {
+    console.error('Erro ao atribuir entregador:', error);
+  }
 };
 
   return (
@@ -129,7 +158,7 @@ const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => 
       {/* Main Content */}
       <main className="ml-64 flex-1 p-6 md:p-8 overflow-y-auto">
         {/* Dashboard */}
-        {activePage === 'dashboard' && <Dashboard user={user} />}
+        {activePage === 'dashboard' && <Dashboard />}
 
         {/* Pedidos */}
         {activePage === 'pedidos' && <Pedidos orders={orders} handleAdvanceStatus={handleAdvanceStatus} />}
@@ -156,9 +185,22 @@ const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => 
         {/* Clientes */}
         {activePage === 'clientes' && <Clientes user={user} />}
 
+        {/* Entregadores */}
+        {activePage === 'entregadores' && <Entregadores />}
+
         {/* Configurações */}
         {activePage === 'configuracoes' && <Configuracoes />}
       </main>
+
+      {/* Modal de Seleção de Entregador */}
+      <DelivererSelectionModal
+        isOpen={showDelivererModal}
+        onClose={() => setShowDelivererModal(false)}
+        onSelect={handleDelivererSelected}
+        orderId={selectedOrderForDelivery?.id || 0}
+        customerName={selectedOrderForDelivery?.user?.username || 'Cliente'}
+      />
+
       <style>{`
         .sidebar-item.active {
           background-color: #4f46e5;

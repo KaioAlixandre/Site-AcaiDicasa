@@ -172,8 +172,14 @@ class ApiService {
   }
 
   // Order endpoints
-  async createOrder(p0: { items: CartItem[]; paymentMethod: string; addressId: number | undefined; }): Promise<ApiResponse<Order>> {
-    const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders', p0);
+  async createOrder(orderData: { 
+    items: CartItem[]; 
+    paymentMethod: string; 
+    addressId: number | undefined; 
+    deliveryType?: string;
+    deliveryFee?: number;
+  }): Promise<ApiResponse<Order>> {
+    const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders', orderData);
     return response.data;
   }
 
@@ -192,9 +198,12 @@ class ApiService {
   return response.data;
 }
 
-async advanceOrderStatus(orderId: number, nextStatus: string): Promise<Order> {
-  const response = await this.api.put(`/orders/status/${orderId}`, { status: nextStatus });
-  return response.data.order;
+async advanceOrderStatus(orderId: number, nextStatus: string, delivererId?: number): Promise<Order> {
+  const response = await this.api.put(`/orders/${orderId}`, { 
+    status: nextStatus,
+    ...(delivererId && { delivererId })
+  });
+  return response.data;
 }
 
 async getPendingOrders() {
@@ -202,9 +211,10 @@ async getPendingOrders() {
   return response.data.count;
 }
 
-  async updateOrderStatus(orderId: number, status: string): Promise<ApiResponse<Order>> {
-    const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/status/${orderId}`, {
+  async updateOrderStatus(orderId: number, status: string, delivererId?: number): Promise<ApiResponse<Order>> {
+    const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/${orderId}`, {
       status,
+      ...(delivererId && { delivererId }),
     });
     return response.data;
   }
@@ -233,6 +243,32 @@ async getStoreConfig() {
 
 async updateStoreConfig(data: any) {
   const response = await this.api.put('/store-config', data);
+  return response.data;
+}
+
+// Deliverer methods
+async getDeliverers() {
+  const response = await this.api.get('/deliverers');
+  return response.data;
+}
+
+async createDeliverer(data: { name: string; phone: string; email?: string }) {
+  const response = await this.api.post('/deliverers', data);
+  return response.data;
+}
+
+async updateDeliverer(id: number, data: { name: string; phone: string; email?: string; isActive?: boolean }) {
+  const response = await this.api.put(`/deliverers/${id}`, data);
+  return response.data;
+}
+
+async deleteDeliverer(id: number) {
+  const response = await this.api.delete(`/deliverers/${id}`);
+  return response.data;
+}
+
+async toggleDelivererStatus(id: number) {
+  const response = await this.api.patch(`/deliverers/${id}/toggle`);
   return response.data;
 }
 }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart, Clock } from 'lucide-react';
 import { Product, ProductCategory } from '../types';
 import { apiService } from '../services/api';
 import { useCart } from '../contexts/CartContext';
+import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
 
 const Products: React.FC = () => {
@@ -14,16 +15,25 @@ const Products: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
-  const [storeConfig, setStoreConfig] = useState<any>(null);
+  const [storeStatus, setStoreStatus] = useState<any>(null);
   const { addItem } = useCart();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const productsData = await apiService.getProducts();
+        const [productsData, config] = await Promise.all([
+          apiService.getProducts(),
+          apiService.getStoreConfig()
+        ]);
         
         setProducts(productsData);
         setFilteredProducts(productsData);
+        
+        // Verificar status da loja
+        if (config) {
+          const status = checkStoreStatus(config);
+          setStoreStatus(status);
+        }
         
         // Criar categorias fictícias baseadas nos produtos
         const uniqueCategories = Array.from(
@@ -40,7 +50,6 @@ const Products: React.FC = () => {
       }
     };
 
-    apiService.getStoreConfig().then(setStoreConfig);
     loadData();
   }, []);
 
@@ -64,6 +73,12 @@ const Products: React.FC = () => {
   }, [products, searchTerm, selectedCategory]);
 
   const handleAddToCart = async (productId: number) => {
+    // Verificar se a loja está aberta antes de adicionar ao carrinho
+    if (storeStatus && !storeStatus.isOpen) {
+      alert(`Não é possível adicionar produtos: ${storeStatus.reason}\n${storeStatus.nextOpenTime || ''}`);
+      return;
+    }
+
     try {
       setAddingToCart(productId);
       await addItem(productId, 1);
@@ -84,15 +99,30 @@ const Products: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Nossos Produtos</h1>
-          {storeConfig && (
-            <div className={`mb-4 px-4 py-2 rounded-lg font-semibold text-center ${storeConfig.isOpen ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              Loja {storeConfig.isOpen ? 'Aberta' : 'Fechada'}
-            </div>
-          )}
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 mb-4">
             Descubra nossa variedade de açaí e acompanhamentos deliciosos
           </p>
         </div>
+
+        {/* Status da Loja */}
+        {storeStatus && (
+          <div className={`mb-6 p-4 rounded-lg ${storeStatus.isOpen ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'}`}>
+            <div className="flex items-center">
+              <Clock className={`h-5 w-5 mr-2 ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`} />
+              <span className={`font-semibold ${storeStatus.isOpen ? 'text-green-800' : 'text-red-800'}`}>
+                {storeStatus.isOpen ? '🟢 Loja Aberta - Você pode fazer pedidos!' : '🔴 Loja Fechada - Pedidos indisponíveis'}
+              </span>
+            </div>
+            {!storeStatus.isOpen && (
+              <div className="mt-2">
+                <p className="text-red-700 text-sm">{storeStatus.reason}</p>
+                {storeStatus.nextOpenTime && (
+                  <p className="text-red-600 text-sm font-medium mt-1">{storeStatus.nextOpenTime}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filtros e Busca */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -194,11 +224,18 @@ const Products: React.FC = () => {
                     </Link>
                     <button
                       onClick={() => handleAddToCart(product.id)}
-                      disabled={addingToCart === product.id}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      disabled={addingToCart === product.id || (storeStatus && !storeStatus.isOpen)}
+                      className={`px-4 py-2 rounded-lg transition-colors disabled:cursor-not-allowed flex items-center justify-center ${
+                        storeStatus && !storeStatus.isOpen
+                          ? 'bg-gray-400 text-gray-200'
+                          : 'bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50'
+                      }`}
+                      title={storeStatus && !storeStatus.isOpen ? 'Loja fechada' : ''}
                     >
                       {addingToCart === product.id ? (
                         <div className="spinner w-4 h-4"></div>
+                      ) : storeStatus && !storeStatus.isOpen ? (
+                        '🔒'
                       ) : (
                         <ShoppingCart size={16} />
                       )}
@@ -209,14 +246,6 @@ const Products: React.FC = () => {
             ))}
           </div>
         )}
-
-        {/* Botão para adicionar mais produtos (admin) */}
-        <div className="mt-8 text-center">
-          <button className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
-            <Plus size={20} className="mr-2" />
-            Adicionar Novo Produto
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Clock } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/api';
+import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
 
 const Cart: React.FC = () => {
   const { items, total, updateItem, removeItem, clearCart, loading } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [storeConfig, setStoreConfig] = useState<any>(null);
+  const [storeStatus, setStoreStatus] = useState<any>(null);
+
+  useEffect(() => {
+    const loadStoreConfig = async () => {
+      try {
+        const config = await apiService.getStoreConfig();
+        setStoreConfig(config);
+        
+        if (config) {
+          const status = checkStoreStatus(config);
+          setStoreStatus(status);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações da loja:', error);
+      }
+    };
+
+    loadStoreConfig();
+  }, []);
 
   const handleQuantityChange = async (cartItemId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -21,6 +43,12 @@ const Cart: React.FC = () => {
   const handleCheckout = () => {
     if (!user) {
       navigate('/login');
+      return;
+    }
+
+    // Verificar se a loja está aberta
+    if (storeStatus && !storeStatus.isOpen) {
+      alert(`Não é possível finalizar o pedido: ${storeStatus.reason}\n${storeStatus.nextOpenTime || ''}`);
       return;
     }
 
@@ -69,6 +97,26 @@ const Cart: React.FC = () => {
             {items.length} item(s) no seu carrinho
           </p>
         </div>
+
+        {/* Status da Loja */}
+        {storeStatus && (
+          <div className={`mb-6 p-4 rounded-lg ${storeStatus.isOpen ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'}`}>
+            <div className="flex items-center">
+              <Clock className={`h-5 w-5 mr-2 ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`} />
+              <span className={`font-semibold ${storeStatus.isOpen ? 'text-green-800' : 'text-red-800'}`}>
+                {storeStatus.isOpen ? '🟢 Loja Aberta' : '🔴 Loja Fechada'}
+              </span>
+            </div>
+            {!storeStatus.isOpen && (
+              <div className="mt-2">
+                <p className="text-red-700 text-sm">{storeStatus.reason}</p>
+                {storeStatus.nextOpenTime && (
+                  <p className="text-red-600 text-sm font-medium mt-1">{storeStatus.nextOpenTime}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Itens */}
@@ -159,17 +207,11 @@ const Cart: React.FC = () => {
                     R$ {total.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Taxa de entrega</span>
-                  <span className="font-semibold">
-                    R$ 5,00
-                  </span>
-                </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
                     <span className="text-purple-600">
-                      R$ {(total + 3).toFixed(2)}
+                      R$ {(total).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -177,9 +219,14 @@ const Cart: React.FC = () => {
 
               <button
                 onClick={handleCheckout}
-                className="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+                disabled={storeStatus && !storeStatus.isOpen}
+                className={`w-full font-semibold py-3 px-4 rounded-lg transition-colors ${
+                  storeStatus && !storeStatus.isOpen
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
               >
-                Finalizar Pedido
+                {storeStatus && !storeStatus.isOpen ? 'Loja Fechada' : 'Finalizar Pedido'}
               </button>
 
               <Link

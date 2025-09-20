@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const AddPhone: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { refreshUserProfile } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiService.updatePhone(phone); // Implemente esse método no seu serviço API
+      await apiService.updatePhone(phone);
+      await refreshUserProfile(); // Atualizar perfil do usuário
       alert('Telefone cadastrado com sucesso!');
-      navigate('/checkout'); // Ou para onde desejar após cadastro
+      navigate('/checkout'); // Voltar para o checkout
     } catch (err) {
       alert('Erro ao cadastrar telefone!');
     }
@@ -23,6 +26,9 @@ const AddPhone: React.FC = () => {
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow">
       <h2 className="text-2xl font-bold mb-6 text-center">Cadastrar Telefone</h2>
+      <p className="text-gray-600 mb-6 text-center">
+        Para finalizar seu pedido, precisamos do seu número de telefone para contato.
+      </p>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <input
           name="phone"
@@ -30,7 +36,7 @@ const AddPhone: React.FC = () => {
           onChange={e => setPhone(e.target.value)}
           placeholder="Telefone (ex: (99) 99999-9999)"
           required
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
           type="submit"
@@ -45,7 +51,4 @@ const AddPhone: React.FC = () => {
 };
 
 export default AddPhone;
-
-// Removido exemplo de uso de 'user' pois não está definido neste arquivo.
-// Se necessário, obtenha o usuário do contexto ou props antes de acessar seus endereços.
 

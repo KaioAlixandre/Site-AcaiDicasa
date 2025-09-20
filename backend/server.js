@@ -7,13 +7,16 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = 3001;
 
-// Importar as rotas
-const authRoutes = require('./routes/authRoutes');
+// Importar as rotas organizadas (principais)
+const authRoutes = require('./routes/authRoutes'); // Ajustado para importar o diretório
 const productRoutes = require('./routes/productRoutes');
-const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-const insightsRoutes = require('./routes/insithsRoutes');
-const storeConfigRoutes = require('./routes/storeConfigRoutes');
+const delivererRoutes = require('./routes/delivererRoutes');
+
+// Rotas ainda não organizadas
+const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
+const insightsRoutes = require('./routes/insithsRoutes'); // TODO: Organizar
+const storeConfigRoutes = require('./routes/storeConfigRoutes'); // TODO: Organizar
 
 // Middlewares
 app.use(cors());
@@ -32,14 +35,17 @@ const connectDB = async () => {
 
 // Conectar ao banco de dados e iniciar o servidor
 connectDB().then(() => {
-    // Conectar as rotas
+    // Conectar as rotas organizadas
     app.use('/api/auth', authRoutes.router);
     app.use('/api/products', productRoutes);
-    app.use('/api/cart', cartRoutes);
     app.use('/api/orders', orderRoutes);
-    app.use('/uploads', express.static('uploads')); // Servir arquivos estáticos da pasta uploads
+    app.use('/api/deliverers', delivererRoutes);
+    app.use('/api/cart', cartRoutes);
     app.use('/api/insights', insightsRoutes);
     app.use('/api/store-config', storeConfigRoutes);
+    
+    // Servir arquivos estáticos da pasta uploads
+    app.use('/uploads', express.static('uploads'));
 
     // Rota de teste
     app.get('/', (req, res) => {

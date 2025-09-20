@@ -88,6 +88,7 @@ export interface Order {
   id: number;
   totalPrice: number;
   status: OrderStatus;
+  deliveryType?: string;
   createdAt: string;
   userId: number;
   shippingStreet: string;
@@ -225,4 +226,14 @@ export interface CartContextType {
   removeItem: (cartItemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
   loading: boolean;
+}
+
+// Deliverer related types
+export interface Deliverer {
+  id: number;
+  name: string;
+  phone: string;
+  email?: string;
+  isActive: boolean;
+  createdAt: string;
 }

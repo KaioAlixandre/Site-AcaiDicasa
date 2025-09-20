@@ -4,6 +4,7 @@ import apiService from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { AddressForm } from '../types';
+import { checkStoreStatus } from '../utils/storeUtils';
 
 const paymentMethods = [
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD' },
@@ -11,34 +12,14 @@ const paymentMethods = [
   { label: 'Dinheiro na Entrega', value: 'CASH_ON_DELIVERY' },
 ];
 
-const PIX_KEY = 'chave-pix@seudominio.com'; // Troque pela sua chave PIX
 
-function formatWhatsAppMessage(order: any, user: any) {
-  const itens = (order.orderItems || []).map((item: any) =>
-    `• ${item.product.name} x ${item.quantity}`
-  ).join('\n');
-  return (
-    `Olá! Gostaria de confirmar meu pedido:\n\n` +
-    `Pedido Nº: ${order.id}\n` +
-    `Itens:\n${itens}\n\n` +
-    `Total: R$ ${Number(order.totalPrice).toFixed(2)}\n` +
-    `Forma de pagamento: PIX\n` +
-    `Chave PIX: ${PIX_KEY}\n\n` +
-    `Após o pagamento, envio o comprovante aqui.\n\n` +
-    `Obrigado!`
-  );
-}
 
-function getWhatsAppLink(phone: string, message: string) {
-  // Remove caracteres não numéricos do telefone
-  const cleanPhone = '99996458528';
-  return `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`;
-}
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart } = useCart();
   const { user, refreshUserProfile } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' ou 'pickup'
   const [loading, setLoading] = useState(false);
   const [pixInfo, setPixInfo] = useState<any>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -50,14 +31,42 @@ const Checkout: React.FC = () => {
     isDefault: true
   });
   const [addressLoading, setAddressLoading] = useState(false);
+  const [storeConfig, setStoreConfig] = useState<any>(null);
   const navigate = useNavigate();
 
-  // Verificar se o usuário tem endereços cadastrados
+  const deliveryFee = 5.00; // Taxa de entrega
+  const finalTotal = deliveryType === 'delivery' ? total + deliveryFee : total;
+
+  // Verificar se a loja está aberta
   useEffect(() => {
-    if (user && (!user.addresses || user.addresses.length === 0)) {
+    const loadStoreConfig = async () => {
+      try {
+        const config = await apiService.getStoreConfig();
+        setStoreConfig(config);
+        
+        if (config) {
+          const status = checkStoreStatus(config);
+          if (!status.isOpen) {
+            alert(`A loja está fechada: ${status.reason}\n${status.nextOpenTime || ''}`);
+            navigate('/cart');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar configurações da loja:', error);
+      }
+    };
+
+    loadStoreConfig();
+  }, [navigate]);
+
+  // Verificar se o usuário tem endereços cadastrados (apenas para entrega)
+  useEffect(() => {
+    if (user && deliveryType === 'delivery' && (!user.addresses || user.addresses.length === 0)) {
       setShowAddressForm(true);
+    } else if (deliveryType === 'pickup') {
+      setShowAddressForm(false);
     }
-  }, [user]);
+  }, [user, deliveryType]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
@@ -69,8 +78,9 @@ const Checkout: React.FC = () => {
     try {
       await apiService.addAddress(addressForm);
       await refreshUserProfile();
-      setShowAddressForm(false);
       alert('Endereço cadastrado com sucesso!');
+      // Redirecionar para adicionar telefone
+      navigate('/add-phone');
     } catch (error) {
       alert('Erro ao cadastrar endereço!');
     }
@@ -91,18 +101,16 @@ const Checkout: React.FC = () => {
         setLoading(false);
         return;
       }
-      const order = await apiService.createOrder({
+      await apiService.createOrder({
         items,
         paymentMethod, // <-- este campo é obrigatório!
-        addressId: user.addresses?.[0]?.id,
+        addressId: deliveryType === 'delivery' ? user.addresses?.[0]?.id : undefined,
+        deliveryType,
+        deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
       });
       clearCart();
       alert('Pedido realizado com sucesso!');
-      if (paymentMethod === 'PIX') {
-        setPixInfo(order);
-      } else {
-        navigate('/orders');
-      }
+      navigate('/orders');
     } catch (err: any) {
       alert('Erro ao finalizar pedido!\n' + (err?.response?.data?.message || err.message));
       
@@ -111,9 +119,6 @@ const Checkout: React.FC = () => {
   };
 
   if (pixInfo) {
-    const message = formatWhatsAppMessage(pixInfo, user);
-    const whatsappLink = user && user.phone ? getWhatsAppLink(user.phone, message) : '#';
-
     return (
       <div className="max-w-lg mx-auto mt-10 bg-white p-8 rounded-xl shadow text-center">
         <h2 className="text-2xl font-bold mb-6">Finalize seu Pedido</h2>
@@ -195,6 +200,36 @@ const Checkout: React.FC = () => {
       <h2 className="text-2xl font-bold mb-6 text-center">Finalizar Pedido</h2>
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
+          <label className="block text-lg font-semibold mb-2">Tipo de Entrega</label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="deliveryType"
+                value="delivery"
+                checked={deliveryType === 'delivery'}
+                onChange={() => setDeliveryType('delivery')}
+                className="h-4 w-4"
+              />
+              <span>Entrega em casa</span>
+              <span className="text-sm text-gray-600">(+ R$ {deliveryFee.toFixed(2)} taxa de entrega)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="deliveryType"
+                value="pickup"
+                checked={deliveryType === 'pickup'}
+                onChange={() => setDeliveryType('pickup')}
+                className="h-4 w-4"
+              />
+              <span>Retirada no local</span>
+              <span className="text-sm text-green-600">(sem taxa)</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
           <label className="block text-lg font-semibold mb-2">Forma de Pagamento</label>
           <div className="space-y-2">
             {paymentMethods.map((method) => (
@@ -222,9 +257,21 @@ const Checkout: React.FC = () => {
               </li>
             ))}
           </ul>
-          <div className="flex justify-between font-bold text-xl">
-            <span>Total:</span>
-            <span>R$ {Number(total).toFixed(2)}</span>
+          <div className="border-t pt-2">
+            <div className="flex justify-between text-sm">
+              <span>Subtotal:</span>
+              <span>R$ {Number(total).toFixed(2)}</span>
+            </div>
+            {deliveryType === 'delivery' && (
+              <div className="flex justify-between text-sm">
+                <span>Taxa de entrega:</span>
+                <span>R$ {deliveryFee.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-xl mt-2 border-t pt-2">
+              <span>Total:</span>
+              <span>R$ {finalTotal.toFixed(2)}</span>
+            </div>
           </div>
         </div>
         <button

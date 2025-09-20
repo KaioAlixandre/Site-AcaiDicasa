@@ -1,6 +1,30 @@
 import React from 'react';
-import { Printer, ArrowRightCircle, RotateCw } from 'lucide-react';
+import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin } from 'lucide-react';
 import { Order } from '../../types';
+
+// Função para traduzir status para português
+const getStatusInPortuguese = (status: string) => {
+  const statusMap: { [key: string]: string } = {
+    'pending_payment': 'Pagamento Pendente',
+    'being_prepared': 'Sendo Preparado',
+    'on_the_way': 'A Caminho',
+    'delivered': 'Entregue',
+    'canceled': 'Cancelado'
+  };
+  return statusMap[status] || status;
+};
+
+// Função para obter estilo do status
+const getStatusStyle = (status: string) => {
+  const statusStyles: { [key: string]: string } = {
+    'pending_payment': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+    'being_prepared': 'bg-blue-100 text-blue-800 border border-blue-200',
+    'on_the_way': 'bg-purple-100 text-purple-800 border border-purple-200',
+    'delivered': 'bg-green-100 text-green-800 border border-green-200',
+    'canceled': 'bg-red-100 text-red-800 border border-red-200'
+  };
+  return statusStyles[status] || 'bg-gray-100 text-gray-800 border border-gray-200';
+};
 
 const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) => void }> = ({ orders, handleAdvanceStatus }) => (
   <div id="pedidos" className="page">
@@ -21,6 +45,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
             <tr>
               <th className="p-4">Cliente</th>
               <th className="p-4">Itens</th>
+              <th className="p-4">Tipo</th>
               <th className="p-4">Status</th>
               <th className="p-4 text-right">Total</th>
               <th className="p-4 text-center">Ações</th>
@@ -41,8 +66,23 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                 ))}
               </td>
                 <td className="p-4">
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full status-${order.status}`}>
-                    {order.status}
+                  <div className="flex items-center gap-2">
+                    {order.deliveryType === 'delivery' ? (
+                      <>
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-600">Entrega</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-600">Retirada</span>
+                      </>
+                    )}
+                  </div>
+                </td>
+                <td className="p-4">
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyle(order.status)}`}>
+                    {getStatusInPortuguese(order.status)}
                   </span>
                 </td>
                 <td className="p-4 text-right font-medium text-slate-800">

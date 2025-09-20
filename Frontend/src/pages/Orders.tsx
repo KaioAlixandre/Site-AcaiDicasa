@@ -1,14 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import { Package, Clock, CheckCircle, XCircle, Truck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Order } from '../types';
 import { apiService } from '../services/api';
 import Loading from '../components/Loading';
 
+interface ToastMessage {
+  id: number;
+  message: string;
+  type: 'success' | 'error';
+}
+
 const Orders: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelingOrders, setCancelingOrders] = useState<Set<number>>(new Set());
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      loadOrders();
+    }
+  }, [user]);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const id = Date.now();
+    const newToast = { id, message, type };
+    setToasts(prev => [...prev, newToast]);
+    
+    // Remover toast após 5 segundos
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 5000);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
 
   useEffect(() => {
     if (user) {
@@ -24,6 +53,39 @@ const Orders: React.FC = () => {
       console.error('Erro ao carregar pedidos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: number) => {
+    // Confirmar cancelamento
+    const confirmed = window.confirm(
+      'Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // Adicionar pedido à lista de cancelamentos em progresso
+      setCancelingOrders(prev => new Set([...prev, orderId]));
+      
+      // Chamar API para cancelar pedido
+      await apiService.cancelOrder(orderId);
+      
+      // Atualizar lista de pedidos
+      await loadOrders();
+      
+      // Mostrar mensagem de sucesso
+      showToast('Pedido cancelado com sucesso!', 'success');
+    } catch (error) {
+      console.error('Erro ao cancelar pedido:', error);
+      showToast('Erro ao cancelar pedido. Tente novamente.', 'error');
+    } finally {
+      // Remover pedido da lista de cancelamentos em progresso
+      setCancelingOrders(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orderId);
+        return newSet;
+      });
     }
   };
 
@@ -219,8 +281,12 @@ const Orders: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       {order.status === 'pending_payment' && (
-                        <button className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-                          Cancelar Pedido
+                        <button 
+                          onClick={() => handleCancelOrder(order.id)}
+                          disabled={cancelingOrders.has(order.id)}
+                          className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-400 disabled:cursor-not-allowed"
+                        >
+                          {cancelingOrders.has(order.id) ? 'Cancelando...' : 'Cancelar Pedido'}
                         </button>
                       )}
                       <button className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
@@ -233,6 +299,35 @@ const Orders: React.FC = () => {
             ))}
           </div>
         )}
+      </div>
+      
+      {/* Toast Messages */}
+      <div className="fixed bottom-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`p-4 rounded-lg shadow-lg text-white max-w-sm ${
+              toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {toast.type === 'success' ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <XCircle size={16} />
+                )}
+                <span className="text-sm font-medium">{toast.message}</span>
+              </div>
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="text-white hover:text-gray-200"
+              >
+                <XCircle size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
