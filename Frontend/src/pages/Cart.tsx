@@ -23,6 +23,14 @@ const Cart: React.FC = () => {
       navigate('/login');
       return;
     }
+
+    //Verificar se o usuário tem endereço cadastrado
+    if (!user.addresses || user.addresses.length === 0) {
+    navigate('/add-address'); // Rota para adicionar endereço
+    return;
+  }
+
+  // Se tudo ok, vai para o checkout
     navigate('/checkout');
   };
 
@@ -167,7 +175,7 @@ const Cart: React.FC = () => {
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
                     <span className="text-purple-600">
-                      R$ {(total + 5).toFixed(2)}
+                      R$ {(total + 3).toFixed(2)}
                     </span>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ const Dashboard: React.FC = () => {
   const [daily, setDaily] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [pendingOrders, setPendingOrders] = useState<number>(0);
+  
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'

@@ -2,11 +2,38 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes'); // Importa o middleware 'authorize'
+const { authenticateToken, authorize } = require('./authRoutes');
+const axios = require('axios');
+
+// Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
+async function sendWhatsAppMessageZApi(phone, message) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const zapApiToken = process.env.zapApiToken // SEU TOKEN
+  const zapApiInstance = process.env.zapApiInstance // SUA INSTANCIA
+  const zapApiClientToken = process.env.zapApiClientToken// Usando o token como client-token
+  const zapApiUrl = `https://api.z-api.io/instances/${zapApiInstance}/token/${zapApiToken}/send-text`;
+
+  await axios.post(
+    zapApiUrl,
+    {
+      phone: `55${cleanPhone}`,
+      message
+    },
+    {
+      headers: {
+        'client-token': zapApiClientToken
+      }
+    }
+  );
+}
 
 // Rota para criar um pedido a partir do carrinho
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
+    const { paymentMethod } = req.body;
+    if (!paymentMethod) {
+        return res.status(400).json({ message: 'Forma de pagamento não informada.' });
+    }
     console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}`);
 
     try {
@@ -89,6 +116,32 @@ router.post('/', authenticateToken, async (req, res) => {
         });
 
         console.log(`[POST /api/orders] Pedido ID ${newOrder.id} criado com sucesso para o usuário ${userId}.`);
+        
+        // Enviar mensagem via WhatsApp se o pagamento for por PIX
+        const userData = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+        if (paymentMethod === 'PIX' && userData.phone) {
+            const itens = cart.items.map(item =>
+                `• ${item.product.name} x ${item.quantity}`
+            ).join('\n');
+            const message =
+                `Olá! Gostaria de confirmar seu pedido:\n\n` +
+                `Pedido Nº: ${newOrder.id}\n` +
+                `Itens:\n${itens}\n\n` +
+                `Total: R$ ${newOrder.totalPrice}\n` +
+                `Forma de pagamento: PIX\n` +
+                `Chave PIX: chave-pix@seudominio.com\n\n` +
+                `Após o pagamento, por favor envie o comprovante aqui.\n\n` +
+                `Obrigado!`;
+
+            try {
+              await sendWhatsAppMessageZApi(userData.phone, message);
+              console.log('Mensagem enviada para:', userData.phone);
+            } catch (err) {
+              console.error('Erro ao enviar mensagem via Z-API:', err.response?.data || err.message);
+            }
+        }
+
         res.status(201).json({ message: 'Pedido criado com sucesso!', order: newOrder });
     } catch (err) {
         console.error(`[POST /api/orders] Erro ao criar o pedido para o usuário ${userId}:`, err.message);

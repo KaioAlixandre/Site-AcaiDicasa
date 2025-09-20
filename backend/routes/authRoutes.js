@@ -174,7 +174,20 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
             },
         });
         console.log(`✨ [POST /api/auth/profile/address] Novo endereço cadastrado com sucesso. ID: ${newAddress.id}`);
-        res.status(201).json({ message: 'Endereço cadastrado com sucesso!', address: newAddress });
+
+        // Buscar o usuário atualizado com todos os endereços
+        const userProfile = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+                addresses: true,
+                phone: true,
+            },
+        });
+        res.status(201).json({ message: 'Endereço cadastrado com sucesso!', user: userProfile });
     } catch (err) {
         console.error(`❌ [POST /api/auth/profile/address] Erro ao cadastrar o endereço para o usuário ${userId}:`, err.message);
         res.status(500).json({ message: 'Erro ao cadastrar o endereço.', error: err.message });

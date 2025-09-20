@@ -38,6 +38,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.single('image'
   console.log('Categoria recebida:', categoryId);
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
   console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${name}.`);
+  console.log('Arquivo recebido:', req.file);
   try {
         const newProduct = await prisma.product.create({
             data: {

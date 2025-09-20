@@ -156,18 +156,14 @@ const Products: React.FC = () => {
             {filteredProducts.map((product) => (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Imagem do produto */}
-                {products.map(prod => (
-                  <div key={prod.id}>
-                    {product.images?.[0]?.url && (
-                      <img
-                        src={product.images[0].url}
-                        alt={product.name}
-                        style={{ maxWidth: 100, width: '100%', height: 'auto', objectFit: 'cover' }}
-                        className="mx-auto mb-2"
-                      />
-                    )}
-                  </div>
-                ))}
+                {product.images?.[0]?.url && (
+                  <img
+                    src={`http://localhost:3001${product.images[0].url}`}
+                    alt={product.name}
+                    style={{ maxWidth: 100, width: '100%', height: 'auto', objectFit: 'cover' }}
+                    className="mx-auto mb-2"
+                  />
+                )}
 
                 {/* Conteúdo do produto */}
                 <div className="p-6">

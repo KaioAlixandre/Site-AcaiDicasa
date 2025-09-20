@@ -13,6 +13,9 @@ import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import Orders from './pages/Orders';
 import Admin from './pages/admin/Admin'; 
+import AddAddress from './pages/AddAddress';
+import AddPhone from './pages/AddPhone';
+import Checkout from './pages/Checkout';
 
 function App() {
   return (
@@ -32,7 +35,10 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/orders" element={<Orders />} />
-                <Route path="/admin" element={<Admin />} /> {/* Rota para a página Admin */}
+                <Route path="/admin" element={<Admin />} /> 
+                <Route path="/add-address" element={<AddAddress />} />
+                <Route path="/add-phone" element={<AddPhone />} />
+                <Route path="/checkout" element={<Checkout />} />
                 {/* Rotas adicionais serão adicionadas aqui */}
               </Routes>
             </main>

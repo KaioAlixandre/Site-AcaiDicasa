@@ -80,10 +80,10 @@ class ApiService {
 }
 
   // Address endpoints
-  async addAddress(addressData: AddressForm): Promise<ApiResponse<Address>> {
-    const response: AxiosResponse<ApiResponse<Address>> = await this.api.post('/auth/profile/address', addressData);
-    return response.data;
-  }
+  async addAddress(addressData: AddressForm): Promise<{ user: User }> {
+  const response = await this.api.post('/auth/profile/address', addressData);
+  return response.data;
+}
 
   async getAddresses(): Promise<Address[]> {
     const response: AxiosResponse<Address[]> = await this.api.get('/auth/profile/addresses');
@@ -172,8 +172,8 @@ class ApiService {
   }
 
   // Order endpoints
-  async createOrder(): Promise<ApiResponse<Order>> {
-    const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders');
+  async createOrder(p0: { items: CartItem[]; paymentMethod: string; addressId: number | undefined; }): Promise<ApiResponse<Order>> {
+    const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders', p0);
     return response.data;
   }
 
