@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { AddressForm } from '../types';
 
 const paymentMethods = [
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD' },
@@ -36,11 +37,45 @@ function getWhatsAppLink(phone: string, message: string) {
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, refreshUserProfile } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [loading, setLoading] = useState(false);
   const [pixInfo, setPixInfo] = useState<any>(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState<AddressForm>({
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    isDefault: true
+  });
+  const [addressLoading, setAddressLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Verificar se o usuário tem endereços cadastrados
+  useEffect(() => {
+    if (user && (!user.addresses || user.addresses.length === 0)) {
+      setShowAddressForm(true);
+    }
+  }, [user]);
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
+  };
+
+  const handleAddressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddressLoading(true);
+    try {
+      await apiService.addAddress(addressForm);
+      await refreshUserProfile();
+      setShowAddressForm(false);
+      alert('Endereço cadastrado com sucesso!');
+    } catch (error) {
+      alert('Erro ao cadastrar endereço!');
+    }
+    setAddressLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +134,58 @@ const Checkout: React.FC = () => {
         <div className="mt-6 text-lg font-semibold text-green-700">
           Obrigado por comprar conosco! 💜
         </div>
+      </div>
+    );
+  }
+
+  // Se não tem endereço, mostrar formulário de endereço
+  if (showAddressForm) {
+    return (
+      <div className="max-w-lg mx-auto mt-10 bg-white p-8 rounded-xl shadow">
+        <h2 className="text-2xl font-bold mb-6 text-center">Cadastrar Endereço</h2>
+        <p className="text-gray-600 mb-6 text-center">
+          Para finalizar seu pedido, precisamos do seu endereço de entrega.
+        </p>
+        <form className="space-y-4" onSubmit={handleAddressSubmit}>
+          <input
+            name="street"
+            value={addressForm.street}
+            onChange={handleAddressChange}
+            placeholder="Rua"
+            required
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            name="number"
+            value={addressForm.number}
+            onChange={handleAddressChange}
+            placeholder="Número"
+            required
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            name="complement"
+            value={addressForm.complement}
+            onChange={handleAddressChange}
+            placeholder="Complemento (opcional)"
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            name="neighborhood"
+            value={addressForm.neighborhood}
+            onChange={handleAddressChange}
+            placeholder="Bairro"
+            required
+            className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-3 rounded font-semibold hover:bg-indigo-700 transition-colors"
+            disabled={addressLoading}
+          >
+            {addressLoading ? 'Salvando...' : 'Salvar Endereço'}
+          </button>
+        </form>
       </div>
     );
   }

@@ -6,7 +6,7 @@ import { apiService } from '../services/api';
 import Loading from '../components/Loading';
 
 const Profile: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUserProfile } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPhone, setEditingPhone] = useState(false);
@@ -60,6 +60,8 @@ const Profile: React.FC = () => {
         neighborhood: '',
         isDefault: false
       });
+      // Atualizar o perfil do usuário com os novos endereços
+      await refreshUserProfile();
       loadAddresses();
     } catch (error) {
       console.error('Erro ao adicionar endereço:', error);

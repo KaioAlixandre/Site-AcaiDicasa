@@ -21,10 +21,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (storedToken && storedUser) {
         try {
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
           
-          // Verificar se o token ainda é válido
-          await apiService.getProfile();
+          // Verificar se o token ainda é válido e carregar perfil completo
+          const userProfile = await apiService.getProfile();
+          setUser(userProfile);
+          
+          // Atualizar o usuário no localStorage com dados completos
+          localStorage.setItem('user', JSON.stringify(userProfile));
         } catch (error) {
           // Token inválido, limpar storage
           localStorage.removeItem('token');
@@ -45,10 +48,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await apiService.login({ email, password });
       
       setToken(response.token);
-      setUser(response.user);
+      
+      // Carregar perfil completo com endereços
+      const userProfile = await apiService.getProfile();
+      setUser(userProfile);
       
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('user', JSON.stringify(userProfile));
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao fazer login');
     } finally {
@@ -74,6 +80,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const refreshUserProfile = async () => {
+    try {
+      const userProfile = await apiService.getProfile();
+      setUser(userProfile);
+      localStorage.setItem('user', JSON.stringify(userProfile));
+    } catch (error) {
+      console.error('Erro ao atualizar perfil do usuário:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -82,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     loading,
     setUser, // Add setUser to match AuthContextType
+    refreshUserProfile, // Add refresh function
   };
 
   return (

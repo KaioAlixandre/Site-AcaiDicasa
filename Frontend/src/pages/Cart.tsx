@@ -24,13 +24,7 @@ const Cart: React.FC = () => {
       return;
     }
 
-    //Verificar se o usuário tem endereço cadastrado
-    if (!user.addresses || user.addresses.length === 0) {
-    navigate('/add-address'); // Rota para adicionar endereço
-    return;
-  }
-
-  // Se tudo ok, vai para o checkout
+    // Vai direto para o checkout - a verificação de endereço será feita lá
     navigate('/checkout');
   };
 

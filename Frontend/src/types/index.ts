@@ -214,6 +214,7 @@ export interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  refreshUserProfile: () => Promise<void>;
 }
 
 export interface CartContextType {
