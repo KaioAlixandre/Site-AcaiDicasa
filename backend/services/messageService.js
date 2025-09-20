@@ -1,4 +1,37 @@
 // Serviço para envio de mensagens (WhatsApp/SMS)
+const axios = require('axios');
+
+// Função para enviar mensagem via WhatsApp usando a Z-API
+async function sendWhatsAppMessageZApi(phone, message) {
+  try {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const zapApiToken = process.env.zapApiToken; // SEU TOKEN
+    const zapApiInstance = process.env.zapApiInstance; // SUA INSTANCIA
+    const zapApiClientToken = process.env.zapApiClientToken; // Token do cliente
+    const zapApiUrl = `https://api.z-api.io/instances/${zapApiInstance}/token/${zapApiToken}/send-text`;
+
+    console.log(`📱 [Z-API] Enviando mensagem para: 55${cleanPhone}`);
+
+    const response = await axios.post(
+      zapApiUrl,
+      {
+        phone: `55${cleanPhone}`,
+        message
+      },
+      {
+        headers: {
+          'client-token': zapApiClientToken
+        }
+      }
+    );
+
+    console.log('✅ [Z-API] Mensagem enviada com sucesso:', response.status);
+    return { success: true, response: response.data };
+  } catch (error) {
+    console.error('❌ [Z-API] Erro ao enviar mensagem:', error.response?.data || error.message);
+    return { success: false, error: error.message };
+  }
+}
 
 const sendDeliveryNotifications = async (order, deliverer) => {
   try {
@@ -49,22 +82,52 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 Obrigado pela preferência! 🍋✨
     `.trim();
 
-    console.log('📱 Enviando notificações...');
+    console.log('📱 Enviando notificações via Z-API...');
     console.log('📨 Para entregador:', deliverer?.name || 'N/A', '(' + (deliverer?.phone || 'N/A') + ')');
-    console.log('📨 Para cliente:', order.user?.username || 'N/A', '(' + (order.user?.phone || 'N/A') + ')');
+    console.log('📨 Para cliente:', order.user?.username || 'N/A', '(' + (order.user?.phone || order.shippingPhone || 'N/A') + ')');
     
-    // TODO: Implementar integração real com WhatsApp API ou SMS
-    // Por enquanto, apenas loga as mensagens
-    console.log('\n🚚 MENSAGEM PARA ENTREGADOR:');
-    console.log(delivererMessage);
-    console.log('\n👤 MENSAGEM PARA CLIENTE:');
-    console.log(customerMessage);
-    console.log('\n✅ Notificações "enviadas" com sucesso!');
+    const results = {
+      deliverer: { success: false },
+      customer: { success: false }
+    };
+
+    // Enviar mensagem para o entregador
+    if (deliverer?.phone) {
+      console.log('\n🚚 ENVIANDO MENSAGEM PARA ENTREGADOR:');
+      console.log(delivererMessage);
+      results.deliverer = await sendWhatsAppMessageZApi(deliverer.phone, delivererMessage);
+    } else {
+      console.log('⚠️ Telefone do entregador não disponível');
+    }
+
+    // Enviar mensagem para o cliente
+    const customerPhone = order.user?.phone || order.shippingPhone;
+    if (customerPhone) {
+      console.log('\n👤 ENVIANDO MENSAGEM PARA CLIENTE:');
+      console.log(customerMessage);
+      results.customer = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível');
+    }
+
+    // Log dos resultados
+    if (results.deliverer.success) {
+      console.log('✅ Mensagem para entregador enviada com sucesso!');
+    } else {
+      console.log('❌ Falha ao enviar mensagem para entregador');
+    }
+
+    if (results.customer.success) {
+      console.log('✅ Mensagem para cliente enviada com sucesso!');
+    } else {
+      console.log('❌ Falha ao enviar mensagem para cliente');
+    }
 
     return {
-      success: true,
+      success: results.deliverer.success || results.customer.success,
       delivererMessage,
-      customerMessage
+      customerMessage,
+      results
     };
 
   } catch (error) {
@@ -77,5 +140,6 @@ Obrigado pela preferência! 🍋✨
 };
 
 module.exports = {
-  sendDeliveryNotifications
+  sendDeliveryNotifications,
+  sendWhatsAppMessageZApi
 };
