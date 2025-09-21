@@ -91,7 +91,19 @@ router.get('/profile', authenticateToken, async (req, res) => {
                 email: true,
                 role: true,
                 phone: true,
-                addresses: true
+                address: {
+                    select: {
+                        id: true,
+                        street: true,
+                        number: true,
+                        complement: true,
+                        neighborhood: true,
+                        isDefault: true
+                    },
+                    orderBy: {
+                        isDefault: 'desc'
+                    }
+                }
             }
         });
         console.log(`✅ [GET /auth/profile] Perfil encontrado para usuário: ${user.username}`);
@@ -120,6 +132,23 @@ router.get('/users', authenticateToken, authorize('admin'), async (req, res) => 
     } catch (err) {
         console.error('❌ [GET /auth/users] Erro interno ao buscar usuários:', err);
         res.status(500).json({ error: 'Erro ao buscar usuários.' });
+    }
+});
+
+// GET /auth/profile/addresses - Listar endereços do usuário
+router.get('/profile/addresses', authenticateToken, async (req, res) => {
+    console.log(`🏠 [GET /auth/profile/addresses] Buscando endereços do usuário ID: ${req.user.id}`);
+    
+    try {
+        const addresses = await prisma.address.findMany({
+            where: { userId: req.user.id },
+            orderBy: { isDefault: 'desc' }
+        });
+        console.log(`✅ [GET /auth/profile/addresses] ${addresses.length} endereços encontrados`);
+        res.json(addresses);
+    } catch (err) {
+        console.error('❌ [GET /auth/profile/addresses] Erro interno ao buscar endereços:', err);
+        res.status(500).json({ error: 'Erro ao buscar endereços.' });
     }
 });
 
@@ -159,7 +188,7 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
         const updatedUser = await prisma.user.findUnique({
             where: { id: userId },
             include: { 
-                addresses: true
+                address: true
             }
         });
 
@@ -244,7 +273,7 @@ router.put('/profile/phone', authenticateToken, async (req, res) => {
                 email: true,
                 phone: true,
                 role: true,
-                addresses: true
+                address: true
             }
         });
 

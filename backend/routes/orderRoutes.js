@@ -43,7 +43,7 @@ router.post('/', authenticateToken, async (req, res) => {
             prisma.cart.findUnique({
                 where: { userId: userId },
                 include: {
-                    items: {
+                    cartitem: {
                         include: {
                             product: true
                         }
@@ -53,12 +53,12 @@ router.post('/', authenticateToken, async (req, res) => {
             prisma.user.findUnique({
                 where: { id: userId },
                 include: {
-                    addresses: true
+                    address: true
                 }
             })
         ]);
 
-        if (!cart || cart.items.length === 0) {
+        if (!cart || cart.cartitem.length === 0) {
             console.warn(`[POST /api/orders] Carrinho do usuário ${userId} está vazio.`);
             return res.status(400).json({ message: 'Carrinho vazio. Adicione itens antes de criar um pedido.' });
         }
@@ -66,7 +66,7 @@ router.post('/', authenticateToken, async (req, res) => {
         // Para entrega, verificar se tem endereço
         let shippingAddress = null;
         if (deliveryType === 'delivery') {
-            shippingAddress = user.addresses.find(addr => addr.isDefault) || user.addresses[0];
+            shippingAddress = user.address.find(addr => addr.isDefault) || user.address[0];
             
             if (!shippingAddress) {
                 console.warn(`[POST /api/orders] Usuário ${userId} não possui endereço de entrega cadastrado.`);
@@ -78,7 +78,7 @@ router.post('/', authenticateToken, async (req, res) => {
         }
         
         // Calcular o preço total do pedido (incluindo taxa de entrega)
-        const subtotalPrice = cart.items.reduce((acc, item) => {
+        const subtotalPrice = cart.cartitem.reduce((acc, item) => {
             return acc + (item.quantity * item.product.price);
         }, 0);
         
@@ -99,13 +99,14 @@ router.post('/', authenticateToken, async (req, res) => {
                     status: initialStatus,
                     deliveryType: deliveryType,
                     deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
+                    updatedAt: new Date(),
                     shippingStreet: shippingAddress?.street || null,
                     shippingNumber: shippingAddress?.number || null,
                     shippingComplement: shippingAddress?.complement || null,
                     shippingNeighborhood: shippingAddress?.neighborhood || null,
-                    orderItems: {
+                    orderitem: {
                         createMany: {
-                            data: cart.items.map(item => ({
+                            data: cart.cartitem.map(item => ({
                                 productId: item.productId,
                                 quantity: item.quantity,
                                 priceAtOrder: item.product.price,
@@ -114,12 +115,12 @@ router.post('/', authenticateToken, async (req, res) => {
                     }
                 },
                 include: {
-                    orderItems: true
+                    orderitem: true
                 }
             });
 
             // 2. Esvaziar o carrinho do usuário
-            await tx.cartItem.deleteMany({
+            await tx.cartitem.deleteMany({
                 where: { cartId: cart.id }
             });
 
@@ -132,7 +133,7 @@ router.post('/', authenticateToken, async (req, res) => {
         const userData = await prisma.user.findUnique({ where: { id: req.user.id } });
 
         if ((paymentMethod === 'PIX' || paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') && userData.phone) {
-            const itens = cart.items.map(item =>
+            const itens = cart.cartitem.map(item =>
                 `• ${item.product.name} x ${item.quantity}`
             ).join('\n');
             
@@ -215,7 +216,7 @@ router.get('/history', authenticateToken, async (req, res) => {
         const orders = await prisma.order.findMany({
             where: { userId: userId },
             include: {
-                orderItems: {
+                orderitem: {
                     include: {
                         product: true
                     }
@@ -268,7 +269,7 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                 updatedAt: new Date()
             },
             include: {
-                orderItems: {
+                orderitem: {
                     include: {
                         product: true
                     }
@@ -374,7 +375,7 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                 updatedAt: new Date()
             },
             include: {
-                orderItems: {
+                orderitem: {
                     include: {
                         product: true
                     }
@@ -455,7 +456,10 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
 
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
-            data: { status: 'canceled' },
+            data: { 
+                status: 'canceled',
+                updatedAt: new Date()
+            },
         });
 
         console.log(`[PUT /api/orders/cancel/${orderId}] Pedido cancelado com sucesso. Pedido ID: ${updatedOrder.id}`);
@@ -479,7 +483,7 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
             phone: true
           }
         },
-        orderItems: {
+        orderitem: {
           include: { product: true }
         }
       }

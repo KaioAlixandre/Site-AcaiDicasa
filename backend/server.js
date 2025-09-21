@@ -18,6 +18,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
 const insightsRoutes = require('./routes/insithsRoutes'); // TODO: Organizar
 const storeConfigRoutes = require('./routes/storeConfigRoutes'); // TODO: Organizar
+const complementsRoutes = require('./routes/complementsRoutes'); // TODO: Organizar
 
 // Middlewares
 app.use(cors());
@@ -45,6 +46,7 @@ connectDB().then(() => {
     app.use('/api/cart', cartRoutes);
     app.use('/api/insights', insightsRoutes);
     app.use('/api/store-config', storeConfigRoutes);
+    app.use('/api/complements', complementsRoutes);
     
     // Servir arquivos estáticos da pasta uploads
     app.use('/uploads', express.static('uploads'));

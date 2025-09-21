@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
     console.log('📦 GET /api/products: Requisição para listar todos os produtos.');
     try {
         const products = await prisma.product.findMany({
-            include: { images: true, category: true }
+            include: { productimage: true, productcategory: true }
         });
         console.log(products); // Veja no terminal se category está preenchido
         res.json(products);
@@ -51,8 +51,8 @@ router.post('/add', authenticateToken, authorize('admin'), upload.single('image'
                   : undefined
             },
             include: {
-                images: true,
-                category: true
+                productimage: true,
+                productcategory: true
             }
         });
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.name}.`);
@@ -90,8 +90,8 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('
             where: { id: parseInt(id) },
             data: updateData,
             include: {
-                images: true,
-                category: true
+                productimage: true,
+                productcategory: true
             }
         });
 
@@ -115,8 +115,8 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('
         const finalProduct = await prisma.product.findUnique({
             where: { id: parseInt(id) },
             include: {
-                images: true,
-                category: true
+                productimage: true,
+                productcategory: true
             }
         });
 
@@ -185,7 +185,7 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
         return res.status(400).json({ message: 'Nome da categoria é obrigatório.' });
     }
     try {
-        const newCategory = await prisma.productCategory.create({
+        const newCategory = await prisma.productcategory.create({
             data: { name },
         });
         console.log(`✅ POST /api/products/categories/add: Nova categoria adicionada com sucesso: ${newCategory.name}.`);
@@ -199,7 +199,7 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
 router.get('/categories', async (req, res) => {
     console.log('📂 GET /api/products/categories: Requisição para listar todas as categorias de produtos.');
     try {
-        const categories = await prisma.productCategory.findMany();
+        const categories = await prisma.productcategory.findMany();
         console.log(`✅ GET /api/products/categories: Categorias listadas com sucesso (${categories.length} encontradas).`);
         res.status(200).json(categories);
     } catch (err) {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Pencil, Trash2, LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut,
-  DollarSign, ShoppingBag, Loader, Award, TrendingUp, Eye, RotateCw, ArrowRightCircle, Sprout, Plus, Printer, Truck
+  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
@@ -11,12 +10,14 @@ import Produtos from './Produtos';
 import Clientes from './Cliente';
 import Configuracoes from './Configuracoes';
 import Entregadores from './Entregadores';
+import Complementos from './Complementos';
 import DelivererSelectionModal from './components/DelivererSelectionModal';
 
 const pages = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
   { id: 'pedidos', label: 'Pedidos', icon: <ShoppingCart /> },
   { id: 'produtos', label: 'Produtos', icon: <Package /> },
+  { id: 'complementos', label: 'Complementos', icon: <Plus /> },
   { id: 'clientes', label: 'Clientes', icon: <Users /> },
   { id: 'entregadores', label: 'Entregadores', icon: <Truck /> },
   { id: 'configuracoes', label: 'Configurações', icon: <Settings /> }
@@ -196,6 +197,9 @@ const handleDelivererSelected = async (delivererId: number) => {
             handleDelete={handleDelete}
           />
         )}
+
+        {/* Complementos */}
+        {activePage === 'complementos' && <Complementos />}
 
         {/* Clientes */}
         {activePage === 'clientes' && <Clientes user={user} />}

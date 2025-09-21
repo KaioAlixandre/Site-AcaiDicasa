@@ -93,7 +93,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     });
 
     // 5. Produtos mais vendidos
-    const topProducts = await prisma.orderItem.groupBy({
+    const topProducts = await prisma.orderitem.groupBy({
       by: ['productId'],
       where: {
         order: {

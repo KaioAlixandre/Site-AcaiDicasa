@@ -19,7 +19,7 @@ router.post('/add', authenticateToken, async (req, res) => {
     try {
         let cart = await prisma.cart.findUnique({
             where: { userId: userId },
-            include: { items: true }
+            include: { cartitem: true }
         });
 
         if (!cart) {
@@ -31,7 +31,7 @@ router.post('/add', authenticateToken, async (req, res) => {
             });
         }
 
-        const existingCartItem = await prisma.cartItem.findUnique({
+        const existingCartItem = await prisma.cartitem.findUnique({
             where: {
                 cartId_productId: {
                     cartId: cart.id,
@@ -41,14 +41,14 @@ router.post('/add', authenticateToken, async (req, res) => {
         });
 
         if (existingCartItem) {
-            const updatedItem = await prisma.cartItem.update({
+            const updatedItem = await prisma.cartitem.update({
                 where: { id: existingCartItem.id },
                 data: { quantity: existingCartItem.quantity + quantity },
             });
             console.log(`🔄 [POST /api/cart/add] Quantidade do item no carrinho atualizada. Item ID: ${updatedItem.id}`);
             return res.status(200).json({ message: 'Quantidade do item atualizada com sucesso.', cartItem: updatedItem });
         } else {
-            const newCartItem = await prisma.cartItem.create({
+            const newCartItem = await prisma.cartitem.create({
                 data: {
                     cartId: cart.id,
                     productId: productId,
@@ -73,7 +73,7 @@ router.get('/', authenticateToken, async (req, res) => {
         const cart = await prisma.cart.findUnique({
             where: { userId: userId },
             include: {
-                items: {
+                cartitem: {
                     include: {
                         product: true
                     }
@@ -86,14 +86,14 @@ router.get('/', authenticateToken, async (req, res) => {
             return res.status(200).json({ items: [], cartTotal: 0 });
         }
 
-        const cartItemsWithTotals = cart.items.map(item => ({
+        const cartItemsWithTotals = cart.cartitem.map(item => ({
             ...item,
             totalPrice: item.quantity * item.product.price
         }));
 
         const cartTotal = cartItemsWithTotals.reduce((total, item) => total + item.totalPrice, 0);
 
-        console.log(`✅ [GET /api/cart] Carrinho do usuário ${userId} encontrado com ${cart.items.length} itens.`);
+        console.log(`✅ [GET /api/cart] Carrinho do usuário ${userId} encontrado com ${cart.cartitem.length} itens.`);
         res.status(200).json({
             items: cartItemsWithTotals,
             cartTotal: cartTotal
@@ -116,7 +116,7 @@ router.put('/update/:cartItemId', authenticateToken, async (req, res) => {
     }
 
     try {
-        const updatedItem = await prisma.cartItem.update({
+        const updatedItem = await prisma.cartitem.update({
             where: { id: parseInt(cartItemId) },
             data: { quantity: parseInt(quantity) },
         });
@@ -134,7 +134,7 @@ router.delete('/remove/:cartItemId', authenticateToken, async (req, res) => {
     console.log(`🗑️ [DELETE /api/cart/remove/${cartItemId}] Requisição para remover item. Item ID: ${cartItemId}.`);
 
     try {
-        await prisma.cartItem.delete({
+        await prisma.cartitem.delete({
             where: { id: parseInt(cartItemId) },
         });
         console.log(`✅ [DELETE /api/cart/remove/${cartItemId}] Item removido do carrinho com sucesso.`);
@@ -160,7 +160,7 @@ router.delete('/clear', authenticateToken, async (req, res) => {
             return res.status(200).json({ message: 'Carrinho já está vazio.' });
         }
 
-        await prisma.cartItem.deleteMany({
+        await prisma.cartitem.deleteMany({
             where: { cartId: cart.id },
         });
 

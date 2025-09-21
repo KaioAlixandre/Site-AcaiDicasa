@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const authModule = require('./authRoutes');
+const { authenticateToken, authorize } = authModule;
 
 console.log('🚀 [StoreConfigRoutes] Módulo de rotas de configuração da loja carregado');
 
@@ -11,14 +12,16 @@ router.get('/', async (req, res) => {
   console.log('🔍 [GET /api/store-config] Iniciando busca da configuração da loja');
   console.log('🔑 [GET /api/store-config] Headers recebidos:', req.headers);
   console.log('🔐 [GET /api/store-config] Authorization header:', req.headers.authorization);
+  console.log('🔧 [GET /api/store-config] Verificando instância do prisma:', !!prisma);
+  console.log('🔧 [GET /api/store-config] Verificando modelo storeconfig:', !!prisma.storeconfig);
   
   try {
     console.log('📋 [GET /api/store-config] Procurando configuração existente no banco...');
-    let config = await prisma.storeConfig.findFirst();
+    let config = await prisma.storeconfig.findFirst();
     
     if (!config) {
       console.log('⚠️ [GET /api/store-config] Nenhuma configuração encontrada, criando configuração padrão...');
-      config = await prisma.storeConfig.create({
+      config = await prisma.storeconfig.create({
         data: {
           isOpen: true,
           openingTime: '08:00',
@@ -69,7 +72,7 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
   
   try {
     console.log('💾 [PUT /api/store-config] Executando upsert no banco de dados...');
-    const config = await prisma.storeConfig.upsert({
+    const config = await prisma.storeconfig.upsert({
       where: { id: 1 },
       update: { isOpen, openingTime, closingTime, openDays },
       create: { isOpen, openingTime, closingTime, openDays }

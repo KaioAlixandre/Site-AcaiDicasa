@@ -54,6 +54,14 @@ model categorysalesreport {
   @@index([categoryId], map: "CategorySalesReport_categoryId_fkey")
 }
 
+model complement {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model coupon {
   id           Int                 @id @default(autoincrement())
   code         String              @unique(map: "Coupon_code_key") @db.VarChar(50)
@@ -235,7 +243,7 @@ model storeconfig {
   openingTime String   @db.VarChar(5)
   closingTime String   @db.VarChar(5)
   openDays    String   @db.VarChar(20)
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
 }
 
 model user {

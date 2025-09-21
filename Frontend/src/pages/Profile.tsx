@@ -42,13 +42,13 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     console.log('🎯 useEffect - User disponível:', !!user);
-    console.log('🎯 useEffect - User addresses:', user?.addresses);
+    console.log('🎯 useEffect - User addresses:', user?.address);
     
     if (user) {
       // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
-      if (user.addresses && Array.isArray(user.addresses) && user.addresses.length > 0) {
+      if (user.address && Array.isArray(user.address) && user.address.length > 0) {
         console.log('🔄 Usando endereços do perfil do usuário');
-        setAddresses(user.addresses);
+        setAddresses(user.address);
         setLoading(false);
       } else {
         // Caso contrário, tentar carregar via API
@@ -78,9 +78,9 @@ const Profile: React.FC = () => {
       setError('Erro ao carregar endereços. Tentando usar dados do perfil...');
       
       // Tentar carregar endereços do perfil do usuário como fallback
-      if (user?.addresses && Array.isArray(user.addresses)) {
+      if (user?.address && Array.isArray(user.address)) {
         console.log('🔄 Usando endereços do perfil do usuário como fallback');
-        setAddresses(user.addresses);
+        setAddresses(user.address);
         setError(null);
       } else {
         setAddresses([]);
@@ -635,7 +635,7 @@ const Profile: React.FC = () => {
                           <h4 className="font-semibold text-gray-700 mb-2">ℹ️ Informações de Debug:</h4>
                           <div className="space-y-1 text-gray-600">
                             <p>• Usuário ID: {user?.id}</p>
-                            <p>• Endereços no perfil: {user?.addresses?.length || 0}</p>
+                            <p>• Endereços no perfil: {user?.address?.length || 0}</p>
                             <p>• Estado loading: {loading ? 'true' : 'false'}</p>
                             <p>• Erro: {error || 'Nenhum'}</p>
                           </div>

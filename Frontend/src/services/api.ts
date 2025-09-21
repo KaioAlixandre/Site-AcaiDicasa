@@ -284,6 +284,37 @@ async toggleDelivererStatus(id: number) {
   return response.data;
 }
 
+  // ========== COMPLEMENTS METHODS ==========
+  async getComplements(includeInactive = false): Promise<any[]> {
+    const response = await this.api.get(`/complements${includeInactive ? '?includeInactive=true' : ''}`);
+    return response.data;
+  }
+
+  async getComplementById(id: number): Promise<any> {
+    const response = await this.api.get(`/complements/${id}`);
+    return response.data;
+  }
+
+  async createComplement(data: { name: string; isActive: boolean }): Promise<any> {
+    const response = await this.api.post('/complements', data);
+    return response.data;
+  }
+
+  async updateComplement(id: number, data: { name?: string; isActive?: boolean }): Promise<any> {
+    const response = await this.api.put(`/complements/${id}`, data);
+    return response.data;
+  }
+
+  async deleteComplement(id: number): Promise<any> {
+    const response = await this.api.delete(`/complements/${id}`);
+    return response.data;
+  }
+
+  async toggleComplementStatus(id: number): Promise<any> {
+    const response = await this.api.patch(`/complements/${id}/toggle`);
+    return response.data;
+  }
+
   // ========== DASHBOARD METHODS ==========
   async getDashboardMetrics() {
     const response = await this.api.get('/dashboard/metrics');

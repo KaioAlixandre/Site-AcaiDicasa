@@ -6,7 +6,7 @@ export interface User {
   phone?: string;
   role: 'user' | 'admin' | 'master';
   createdAt: string;
-  addresses?: Address[];
+  address?: Address[];
   orders?: {
     totalPrice: number;
     // other order properties...
@@ -96,7 +96,7 @@ export interface Order {
   shippingComplement?: string;
   shippingNeighborhood: string;
   shippingPhone?: string;
-  orderItems: OrderItem[];
+  orderitem: OrderItem[];
   payment?: Payment;
   user?: {
     username?: string;

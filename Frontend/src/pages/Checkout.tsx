@@ -76,7 +76,7 @@ const Checkout: React.FC = () => {
   useEffect(() => {
     if (user && deliveryType === 'delivery') {
       // Verificar se o usuário não tem endereço
-      if (!user.addresses || user.addresses.length === 0) {
+      if (!user.address || user.address.length === 0) {
         console.log('Usuário não tem endereço, redirecionando para AddAddress');
         navigate('/add-address');
         return;
@@ -132,7 +132,7 @@ const Checkout: React.FC = () => {
       await apiService.createOrder({
         items,
         paymentMethod, // <-- este campo é obrigatório!
-        addressId: deliveryType === 'delivery' ? user.addresses?.[0]?.id : undefined,
+        addressId: deliveryType === 'delivery' ? user.address?.[0]?.id : undefined,
         deliveryType,
         deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
       });

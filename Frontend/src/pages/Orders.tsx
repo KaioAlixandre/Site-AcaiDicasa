@@ -91,7 +91,7 @@ const Orders: React.FC = () => {
   };
 
   const getOrderSummary = (order: Order) => {
-    const totalItems = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = order.orderitem.reduce((sum, item) => sum + item.quantity, 0);
     const deliveryInfo = getDeliveryTypeInfo(order.deliveryType);
     return { totalItems, deliveryInfo };
   };
@@ -470,7 +470,7 @@ const Orders: React.FC = () => {
 
                     {/* Lista de itens - limitada quando não expandida */}
                     <div className="space-y-3">
-                      {(isExpanded ? order.orderItems : order.orderItems.slice(0, 2)).map((item) => (
+                      {(isExpanded ? order.orderitem : order.orderitem.slice(0, 2)).map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-4">
                             <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-md">
@@ -493,10 +493,10 @@ const Orders: React.FC = () => {
                         </div>
                       ))}
                       
-                      {!isExpanded && order.orderItems.length > 2 && (
+                      {!isExpanded && order.orderitem.length > 2 && (
                         <div className="text-center py-2">
                           <p className="text-sm text-gray-500">
-                            + {order.orderItems.length - 2} item(s) adicional(is)
+                            + {order.orderitem.length - 2} item(s) adicional(is)
                           </p>
                         </div>
                       )}
@@ -559,7 +559,7 @@ const Orders: React.FC = () => {
                           <div className="flex justify-between">
                             <span className="text-gray-700">Subtotal dos itens:</span>
                             <span className="text-gray-900">
-                              R$ {order.orderItems.reduce((sum, item) => 
+                              R$ {order.orderitem.reduce((sum, item) => 
                                 sum + (Number(item.priceAtOrder ?? 0) * item.quantity), 0
                               ).toFixed(2)}
                             </span>

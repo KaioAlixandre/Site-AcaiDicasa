@@ -283,7 +283,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                       </div>
                     </td>
                     <td className="p-4 text-slate-600">
-                      {order.orderItems.map(item => (
+                      {order.orderitem.map(item => (
                         <div key={item.id}>
                           {item.product?.name || 'Produto'} x {item.quantity}
                         </div>
