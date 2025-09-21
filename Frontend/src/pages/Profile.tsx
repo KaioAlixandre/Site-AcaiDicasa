@@ -26,6 +26,7 @@ const Profile: React.FC = () => {
   const { user, loading: authLoading, refreshUserProfile } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editingPhone, setEditingPhone] = useState(false);
   const [newPhone, setNewPhone] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -38,17 +39,51 @@ const Profile: React.FC = () => {
   });
 
   useEffect(() => {
+    console.log('🎯 useEffect - User disponível:', !!user);
+    console.log('🎯 useEffect - User addresses:', user?.addresses);
+    
     if (user) {
-      loadAddresses();
+      // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
+      if (user.addresses && Array.isArray(user.addresses) && user.addresses.length > 0) {
+        console.log('🔄 Usando endereços do perfil do usuário');
+        setAddresses(user.addresses);
+        setLoading(false);
+      } else {
+        // Caso contrário, tentar carregar via API
+        loadAddresses();
+      }
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const loadAddresses = async () => {
     try {
+      console.log('🔍 Carregando endereços do usuário...');
+      setError(null);
       const addressesData = await apiService.getAddresses();
-      setAddresses(addressesData);
+      console.log('📋 Endereços carregados:', addressesData);
+      
+      if (Array.isArray(addressesData)) {
+        setAddresses(addressesData);
+        console.log(`✅ ${addressesData.length} endereços carregados com sucesso`);
+      } else {
+        console.warn('⚠️ Dados de endereços não são um array:', addressesData);
+        setAddresses([]);
+      }
     } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
+      console.error('❌ Erro ao carregar endereços:', error);
+      setError('Erro ao carregar endereços. Tentando usar dados do perfil...');
+      
+      // Tentar carregar endereços do perfil do usuário como fallback
+      if (user?.addresses && Array.isArray(user.addresses)) {
+        console.log('🔄 Usando endereços do perfil do usuário como fallback');
+        setAddresses(user.addresses);
+        setError(null);
+      } else {
+        setAddresses([]);
+        setError('Não foi possível carregar os endereços');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +103,7 @@ const Profile: React.FC = () => {
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('➕ Adicionando novo endereço:', newAddress);
       await apiService.addAddress(newAddress);
       setShowAddressForm(false);
       setNewAddress({
@@ -77,11 +113,17 @@ const Profile: React.FC = () => {
         neighborhood: '',
         isDefault: false
       });
-      // Atualizar o perfil do usuário com os novos endereços
+      
+      // Recarregar endereços após adicionar
+      console.log('🔄 Recarregando endereços após adição...');
+      await loadAddresses();
+      
+      // Atualizar o perfil do usuário
       await refreshUserProfile();
-      loadAddresses();
+      console.log('✅ Endereço adicionado com sucesso');
     } catch (error) {
-      console.error('Erro ao adicionar endereço:', error);
+      console.error('❌ Erro ao adicionar endereço:', error);
+      setError('Erro ao adicionar endereço. Tente novamente.');
     }
   };
 
@@ -305,17 +347,37 @@ const Profile: React.FC = () => {
                       Meus Endereços
                     </h2>
                   </div>
-                  <button
-                    onClick={() => setShowAddressForm(true)}
-                    className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Novo Endereço</span>
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={loadAddresses}
+                      disabled={loading}
+                      className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20 disabled:opacity-50"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Recarregar</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddressForm(true)}
+                      className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Novo Endereço</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="p-6">
+                {/* Mensagem de erro */}
+                {error && (
+                  <div className="mb-4 bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                    <div className="flex items-center space-x-2 text-red-800">
+                      <X className="w-5 h-5" />
+                      <span className="font-medium">{error}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Formulário de novo endereço */}
                 {showAddressForm && (
                   <div className="mb-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200/50 overflow-hidden">
@@ -421,90 +483,112 @@ const Profile: React.FC = () => {
                 )}
 
                 {/* Lista de endereços */}
-                <div className="space-y-4">
-                  {addresses.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <MapPin className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum endereço cadastrado</h3>
-                      <p className="text-gray-600 mb-6">Adicione um endereço para facilitar suas compras</p>
-                      <button
-                        onClick={() => setShowAddressForm(true)}
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg flex items-center space-x-2 mx-auto"
-                      >
-                        <Plus className="w-5 h-5" />
-                        <span>Adicionar Primeiro Endereço</span>
-                      </button>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                      <MapPin className="w-10 h-10 text-blue-400" />
                     </div>
-                  ) : (
-                    addresses.map((address) => (
-                      <div key={address.id} className="group relative bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 hover:shadow-lg">
-                        {/* Badge de Endereço Padrão */}
-                        {address.isDefault && (
-                          <div className="absolute -top-3 -right-3">
-                            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg flex items-center space-x-1">
-                              <Star className="w-3 h-3" />
-                              <span>PADRÃO</span>
-                            </div>
-                          </div>
-                        )}
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Carregando endereços...</h3>
+                    <p className="text-gray-600">Aguarde enquanto buscamos seus endereços</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addresses.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <MapPin className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum endereço cadastrado</h3>
+                        <p className="text-gray-600 mb-6">Adicione um endereço para facilitar suas compras</p>
                         
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            {/* Endereço Principal */}
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-md">
-                                <Home className="w-5 h-5 text-white" />
+                        {/* Debug info */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-sm text-left max-w-md mx-auto">
+                          <h4 className="font-semibold text-gray-700 mb-2">ℹ️ Informações de Debug:</h4>
+                          <div className="space-y-1 text-gray-600">
+                            <p>• Usuário ID: {user?.id}</p>
+                            <p>• Endereços no perfil: {user?.addresses?.length || 0}</p>
+                            <p>• Estado loading: {loading ? 'true' : 'false'}</p>
+                            <p>• Erro: {error || 'Nenhum'}</p>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => setShowAddressForm(true)}
+                          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg flex items-center space-x-2 mx-auto"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span>Adicionar Primeiro Endereço</span>
+                        </button>
+                      </div>
+                    ) : (
+                      addresses.map((address) => (
+                        <div key={address.id} className="group relative bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 hover:shadow-lg">
+                          {/* Badge de Endereço Padrão */}
+                          {address.isDefault && (
+                            <div className="absolute -top-3 -right-3">
+                              <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg flex items-center space-x-1">
+                                <Star className="w-3 h-3" />
+                                <span>PADRÃO</span>
                               </div>
-                              <div>
-                                <h4 className="font-bold text-gray-900 text-lg">
+                            </div>
+                          )}
+                          
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {/* Endereço Principal */}
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-md">
+                                  <Home className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-gray-900 text-lg">
+                                    {address.street}, {address.number}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    {address.neighborhood}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* Complemento */}
+                              {address.complement && (
+                                <div className="ml-13 mb-3">
+                                  <p className="text-sm text-gray-700 bg-gray-100 rounded-lg px-3 py-1 inline-block">
+                                    📍 {address.complement}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Endereço Completo */}
+                              <div className="ml-13 text-sm text-gray-600">
+                                <p className="font-medium">Endereço completo:</p>
+                                <p className="bg-gray-50 rounded-lg px-3 py-2 mt-1">
                                   {address.street}, {address.number}
-                                </h4>
-                                <p className="text-sm text-gray-600">
+                                  {address.complement && `, ${address.complement}`}
+                                  <br />
                                   {address.neighborhood}
                                 </p>
                               </div>
                             </div>
                             
-                            {/* Complemento */}
-                            {address.complement && (
-                              <div className="ml-13 mb-3">
-                                <p className="text-sm text-gray-700 bg-gray-100 rounded-lg px-3 py-1 inline-block">
-                                  📍 {address.complement}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {/* Endereço Completo */}
-                            <div className="ml-13 text-sm text-gray-600">
-                              <p className="font-medium">Endereço completo:</p>
-                              <p className="bg-gray-50 rounded-lg px-3 py-2 mt-1">
-                                {address.street}, {address.number}
-                                {address.complement && `, ${address.complement}`}
-                                <br />
-                                {address.neighborhood}
-                              </p>
+                            {/* Ações */}
+                            <div className="flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm border border-blue-200 hover:border-blue-300">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 shadow-sm border border-red-200 hover:border-red-300">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <button className="p-3 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 shadow-sm border border-purple-200 hover:border-purple-300">
+                                <Eye className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
-                          
-                          {/* Ações */}
-                          <div className="flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm border border-blue-200 hover:border-blue-300">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 shadow-sm border border-red-200 hover:border-red-300">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <button className="p-3 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 shadow-sm border border-purple-200 hover:border-purple-300">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
