@@ -30,6 +30,8 @@ const Profile: React.FC = () => {
   const [editingPhone, setEditingPhone] = useState(false);
   const [newPhone, setNewPhone] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
   const [newAddress, setNewAddress] = useState({
     street: '',
     number: '',
@@ -124,6 +126,105 @@ const Profile: React.FC = () => {
     } catch (error) {
       console.error('❌ Erro ao adicionar endereço:', error);
       setError('Erro ao adicionar endereço. Tente novamente.');
+    }
+  };
+
+  const handleEditAddress = (address: Address) => {
+    console.log('✏️ Editando endereço:', address);
+    setEditingAddress(address);
+    setNewAddress({
+      street: address.street,
+      number: address.number,
+      complement: address.complement || '',
+      neighborhood: address.neighborhood,
+      isDefault: address.isDefault
+    });
+    setShowAddressForm(true);
+  };
+
+  const handleUpdateAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAddress) return;
+
+    try {
+      console.log('🔄 Atualizando endereço:', editingAddress.id, newAddress);
+      await apiService.updateAddress(editingAddress.id, newAddress);
+      setShowAddressForm(false);
+      setEditingAddress(null);
+      setNewAddress({
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        isDefault: false
+      });
+      
+      // Recarregar endereços após atualizar
+      console.log('🔄 Recarregando endereços após atualização...');
+      await loadAddresses();
+      
+      // Atualizar o perfil do usuário
+      await refreshUserProfile();
+      setError(null);
+      console.log('✅ Endereço atualizado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao atualizar endereço:', error);
+      setError('Erro ao atualizar endereço. Tente novamente.');
+    }
+  };
+
+  const cancelEdit = () => {
+    console.log('❌ Cancelando edição de endereço');
+    setEditingAddress(null);
+    setShowAddressForm(false);
+    setNewAddress({
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      isDefault: false
+    });
+    setError(null);
+  };
+
+  const handleDeleteAddress = async (address: Address) => {
+    setAddressToDelete(address);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+
+    try {
+      console.log('🗑️ Excluindo endereço:', addressToDelete.id);
+      setError(null);
+      
+      const result = await apiService.deleteAddress(addressToDelete.id);
+      
+      // Atualizar a lista local com os endereços retornados
+      setAddresses(result.addresses);
+      
+      // Recarregar o perfil do usuário
+      await refreshUserProfile();
+      
+      console.log('✅ Endereço excluído com sucesso');
+      
+      // Fechar o modal
+      setAddressToDelete(null);
+      
+    } catch (error: any) {
+      console.error('❌ Erro ao excluir endereço:', error);
+      
+      // Tratar diferentes tipos de erro
+      if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Não é possível excluir este endereço.');
+      } else if (error.response?.status === 404) {
+        setError('Endereço não encontrado.');
+      } else {
+        setError('Erro ao excluir endereço. Tente novamente.');
+      }
+      
+      // Fechar o modal mesmo em caso de erro
+      setAddressToDelete(null);
     }
   };
 
@@ -357,7 +458,17 @@ const Profile: React.FC = () => {
                       <span>Recarregar</span>
                     </button>
                     <button
-                      onClick={() => setShowAddressForm(true)}
+                      onClick={() => {
+                        setEditingAddress(null);
+                        setNewAddress({
+                          street: '',
+                          number: '',
+                          complement: '',
+                          neighborhood: '',
+                          isDefault: false
+                        });
+                        setShowAddressForm(true);
+                      }}
                       className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20"
                     >
                       <Plus className="w-4 h-4" />
@@ -378,17 +489,26 @@ const Profile: React.FC = () => {
                   </div>
                 )}
 
-                {/* Formulário de novo endereço */}
+                {/* Formulário de endereço */}
                 {showAddressForm && (
                   <div className="mb-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200/50 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-3">
                       <h3 className="text-lg font-bold text-white flex items-center">
-                        <Plus className="w-5 h-5 mr-2" />
-                        Adicionar Novo Endereço
+                        {editingAddress ? (
+                          <>
+                            <Edit className="w-5 h-5 mr-2" />
+                            Editar Endereço
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5 mr-2" />
+                            Adicionar Novo Endereço
+                          </>
+                        )}
                       </h3>
                     </div>
                     
-                    <form onSubmit={handleAddAddress} className="p-6">
+                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="p-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div className="md:col-span-2">
                           <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
@@ -465,7 +585,7 @@ const Profile: React.FC = () => {
                       <div className="flex justify-end space-x-3">
                         <button
                           type="button"
-                          onClick={() => setShowAddressForm(false)}
+                          onClick={cancelEdit}
                           className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold transition-all duration-200 border border-gray-200"
                         >
                           Cancelar
@@ -474,8 +594,17 @@ const Profile: React.FC = () => {
                           type="submit"
                           className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 font-semibold transition-all duration-200 shadow-lg flex items-center space-x-2"
                         >
-                          <Plus className="w-4 h-4" />
-                          <span>Salvar Endereço</span>
+                          {editingAddress ? (
+                            <>
+                              <Edit className="w-4 h-4" />
+                              <span>Atualizar Endereço</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" />
+                              <span>Salvar Endereço</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </form>
@@ -573,13 +702,24 @@ const Profile: React.FC = () => {
                             
                             {/* Ações */}
                             <div className="flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm border border-blue-200 hover:border-blue-300">
+                              <button 
+                                onClick={() => handleEditAddress(address)}
+                                title="Editar endereço"
+                                className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm border border-blue-200 hover:border-blue-300"
+                              >
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 shadow-sm border border-red-200 hover:border-red-300">
+                              <button 
+                                onClick={() => handleDeleteAddress(address)}
+                                title="Excluir endereço"
+                                className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 shadow-sm border border-red-200 hover:border-red-300"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                              <button className="p-3 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 shadow-sm border border-purple-200 hover:border-purple-300">
+                              <button 
+                                title="Visualizar detalhes"
+                                className="p-3 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 shadow-sm border border-purple-200 hover:border-purple-300"
+                              >
                                 <Eye className="w-4 h-4" />
                               </button>
                             </div>
@@ -594,6 +734,89 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmação para Excluir Endereço */}
+      {addressToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* Header do Modal */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  Excluir Endereço
+                </h3>
+              </div>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-700 mb-4">
+                  Tem certeza que deseja excluir este endereço?
+                </p>
+                
+                {/* Visualização do Endereço */}
+                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <Home className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="font-bold text-gray-900">
+                        {addressToDelete.street}, {addressToDelete.number}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {addressToDelete.neighborhood}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {addressToDelete.complement && (
+                    <div className="ml-8">
+                      <p className="text-sm text-gray-700">
+                        📍 {addressToDelete.complement}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {addressToDelete.isDefault && (
+                    <div className="ml-8 mt-2">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                        🌟 Endereço Padrão
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>⚠️ Atenção:</strong> Esta ação não pode ser desfeita.
+                  {addressToDelete.isDefault && ' Um novo endereço será definido como padrão automaticamente.'}
+                </p>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setAddressToDelete(null)}
+                  className="flex-1 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold transition-all duration-200 border border-gray-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteAddress}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 font-semibold transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -95,6 +95,11 @@ class ApiService {
     return response.data;
   }
 
+  async deleteAddress(addressId: number): Promise<{ message: string; addresses: Address[] }> {
+    const response: AxiosResponse<{ message: string; addresses: Address[] }> = await this.api.delete(`/auth/profile/address/${addressId}`);
+    return response.data;
+  }
+
   // Product endpoints
   async getProducts(): Promise<Product[]> {
     const response: AxiosResponse<Product[]> = await this.api.get('/products');
