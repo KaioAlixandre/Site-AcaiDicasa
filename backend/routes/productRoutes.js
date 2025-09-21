@@ -64,17 +64,64 @@ router.post('/add', authenticateToken, authorize('admin'), upload.single('image'
 });
 
 // Rota para atualizar um produto existente (apenas para administradores)
-router.put('/update/:id', authenticateToken, authorize('admin'), async (req, res) => {
+router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
     const { id } = req.params;
-    const { name, price, description } = req.body;
+    const { name, price, description, categoryId, isActive } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
+    console.log('Dados recebidos:', { name, price, description, categoryId, isActive });
+    console.log('Arquivo de imagem:', req.file);
+    
     try {
+        // Prepare the update data
+        const updateData = {
+            name,
+            price: parseFloat(price),
+            description,
+            isActive: isActive === 'true' || isActive === true
+        };
+
+        // Add categoryId if provided
+        if (categoryId) {
+            updateData.categoryId = parseInt(categoryId);
+        }
+
         const updatedProduct = await prisma.product.update({
             where: { id: parseInt(id) },
-            data: { name, price, description }
+            data: updateData,
+            include: {
+                images: true,
+                category: true
+            }
         });
+
+        // If new image is uploaded, update the product images
+        if (imageUrl) {
+            // Delete existing images
+            await prisma.productImage.deleteMany({
+                where: { productId: parseInt(id) }
+            });
+            
+            // Create new image
+            await prisma.productImage.create({
+                data: {
+                    url: imageUrl,
+                    productId: parseInt(id)
+                }
+            });
+        }
+
+        // Fetch the updated product with all relations
+        const finalProduct = await prisma.product.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                images: true,
+                category: true
+            }
+        });
+
         console.log(`✅ PUT /api/products/update/${id}: Produto ${id} atualizado com sucesso.`);
-        res.json(updatedProduct);
+        res.json(finalProduct);
     } catch (err) {
         console.error(`❌ PUT /api/products/update/${id}: Erro ao atualizar produto:`, err.message);
         res.status(500).json({ message: 'Erro ao atualizar produto.', error: err.message });
