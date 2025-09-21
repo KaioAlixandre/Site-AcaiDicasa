@@ -3,7 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./authRoutes');
-const { sendDeliveryNotifications, sendPickupNotification } = require('../services/messageService');
+const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification } = require('../services/messageService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -249,6 +249,23 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
     }
 
     try {
+        // Buscar o pedido atual primeiro para comparar o status
+        const currentOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: {
+                payment: {
+                    select: {
+                        method: true
+                    }
+                }
+            }
+        });
+
+        if (!currentOrder) {
+            console.error(`[PUT /api/orders/status/${orderId}] Erro: Pedido não encontrado.`);
+            return res.status(404).json({ message: 'Pedido não encontrado.' });
+        }
+
         // Verificar se o entregador existe e está ativo (se fornecido)
         if (delivererId) {
             const deliverer = await prisma.deliverer.findUnique({
@@ -291,6 +308,17 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                 }
             }
         });
+
+        // Enviar notificação de pagamento confirmado se mudou de "pending_payment" para "being_prepared" (PIX)
+        if (currentOrder.status === 'pending_payment' && status === 'being_prepared') {
+            try {
+                console.log('💳 Enviando notificação de pagamento confirmado...');
+                await sendPaymentConfirmationNotification(updatedOrder);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
+                // Não falha a operação se as notificações falharem
+            }
+        }
 
         // Enviar notificações se o status mudou para "on_the_way" e há um entregador
         if (status === 'on_the_way' && updatedOrder.deliverer) {
@@ -397,6 +425,17 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                 }
             }
         });
+
+        // Enviar notificação de pagamento confirmado se mudou de "pending_payment" para "being_prepared" (PIX)
+        if (existingOrder.status === 'pending_payment' && dbStatus === 'being_prepared') {
+            try {
+                console.log('💳 Enviando notificação de pagamento confirmado...');
+                await sendPaymentConfirmationNotification(order);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
+                // Não falha a operação se as notificações falharem
+            }
+        }
 
         // Enviar notificações baseadas no tipo de pedido e status
         if (dbStatus === 'on_the_way' && order.deliverer && order.deliveryType === 'delivery') {

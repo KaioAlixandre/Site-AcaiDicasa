@@ -206,8 +206,78 @@ Obrigado pela preferência! 🍋✨
   }
 };
 
+// Serviço para notificação de pagamento confirmado (PIX)
+const sendPaymentConfirmationNotification = async (order) => {
+  try {
+    console.log('💳 [MessageService] Enviando notificação de pagamento confirmado');
+    console.log('📋 [MessageService] Dados do pedido:', {
+      id: order.id,
+      totalPrice: order.totalPrice,
+      user: order.user?.username,
+      deliveryType: order.deliveryType
+    });
+
+    const customerMessage = `
+🍋 AÇAÍ DA CASA - Pagamento Confirmado! ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎉 Seu PIX foi confirmado com sucesso!
+
+📋 Pedido #${order.id}
+💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+🍽️ Itens: ${order.orderitem?.map(item => `${item.quantity}x ${item.product?.name || 'Produto'}`).join(', ') || 'Itens não disponíveis'}
+
+👨‍🍳 Seu pedido já está em preparo!
+${order.deliveryType === 'delivery' ? 
+  `🚚 Será entregue em: ${order.shippingStreet}, ${order.shippingNumber}${order.shippingComplement ? ` - ${order.shippingComplement}` : ''} - ${order.shippingNeighborhood}` :
+  '🏪 Aguarde a notificação para retirada'
+}
+
+⏰ Tempo estimado: 30-45 minutos
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📞 Dúvidas? Entre em contato conosco!
+Obrigado pela preferência! 🍋✨
+    `.trim();
+
+    console.log('📱 Enviando notificação de pagamento confirmado via Z-API...');
+    
+    // Enviar mensagem para o cliente
+    const customerPhone = order.user?.phone || order.shippingPhone;
+    if (customerPhone) {
+      console.log('\n💳 ENVIANDO NOTIFICAÇÃO DE PAGAMENTO CONFIRMADO:');
+      console.log(customerMessage);
+      const result = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+      
+      if (result.success) {
+        console.log('✅ Notificação de pagamento confirmado enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar notificação de pagamento confirmado');
+      }
+
+      return {
+        success: result.success,
+        customerMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível para notificação de pagamento');
+      return {
+        success: false,
+        error: 'Telefone do cliente não disponível'
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 module.exports = {
   sendDeliveryNotifications,
   sendPickupNotification,
+  sendPaymentConfirmationNotification,
   sendWhatsAppMessageZApi
 };
