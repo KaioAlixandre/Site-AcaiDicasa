@@ -3,7 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./authRoutes');
-const { sendDeliveryNotifications } = require('../services/messageService');
+const { sendDeliveryNotifications, sendPickupNotification } = require('../services/messageService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -241,7 +241,7 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
     console.log(`[PUT /api/orders/status/${orderId}] Recebida requisição de admin para atualizar status para: "${status}"`);
 
     // Adicione uma validação para garantir que o status é válido
-    const validStatuses = ['pending_payment', 'being_prepared', 'on_the_way', 'delivered', 'canceled'];
+    const validStatuses = ['pending_payment', 'being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered', 'canceled'];
     if (!validStatuses.includes(status)) {
         console.warn(`[PUT /api/orders/status/${orderId}] Tentativa de usar status inválido: "${status}".`);
         return res.status(400).json({ message: 'Status inválido. Por favor, use um dos seguintes: ' + validStatuses.join(', ') });
@@ -347,7 +347,7 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
         }
 
         // Validar status se fornecido
-        const validStatuses = ['pending_payment', 'being_prepared', 'on_the_way', 'delivered', 'canceled'];
+        const validStatuses = ['pending_payment', 'being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered', 'canceled'];
         if (dbStatus && !validStatuses.includes(dbStatus)) {
             console.warn(`[PUT /api/orders/${orderId}] Status inválido: "${dbStatus}".`);
             return res.status(400).json({ message: 'Status inválido' });
@@ -397,14 +397,22 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             }
         });
 
-        // Enviar notificações se o status mudou para "on_the_way" e há um entregador
-        if (dbStatus === 'on_the_way' && order.deliverer) {
+        // Enviar notificações baseadas no tipo de pedido e status
+        if (dbStatus === 'on_the_way' && order.deliverer && order.deliveryType === 'delivery') {
+            // Notificação para entrega com entregador
             try {
                 console.log('📱 Enviando notificações de entrega...');
                 await sendDeliveryNotifications(order, order.deliverer);
             } catch (error) {
-                console.error('❌ Erro ao enviar notificações:', error);
-                // Não falha a operação se as notificações falharem
+                console.error('❌ Erro ao enviar notificações de entrega:', error);
+            }
+        } else if (dbStatus === 'ready_for_pickup' && order.deliveryType === 'pickup') {
+            // Notificação para retirada
+            try {
+                console.log('🏪 Enviando notificação de retirada...');
+                await sendPickupNotification(order);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de retirada:', error);
             }
         }
 

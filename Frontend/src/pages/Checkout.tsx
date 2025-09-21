@@ -61,12 +61,27 @@ const Checkout: React.FC = () => {
 
   // Verificar se o usuário tem endereços cadastrados (apenas para entrega)
   useEffect(() => {
-    if (user && deliveryType === 'delivery' && (!user.addresses || user.addresses.length === 0)) {
-      setShowAddressForm(true);
+    if (user && deliveryType === 'delivery') {
+      // Verificar se o usuário não tem endereço
+      if (!user.addresses || user.addresses.length === 0) {
+        console.log('Usuário não tem endereço, redirecionando para AddAddress');
+        navigate('/add-address');
+        return;
+      }
+      
+      // Verificar se o usuário não tem telefone
+      if (!user.phone || user.phone.trim() === '') {
+        console.log('Usuário não tem telefone, redirecionando para AddPhone');
+        navigate('/add-phone');
+        return;
+      }
+      
+      // Se chegou aqui, o usuário tem endereço e telefone
+      setShowAddressForm(false);
     } else if (deliveryType === 'pickup') {
       setShowAddressForm(false);
     }
-  }, [user, deliveryType]);
+  }, [user, deliveryType, navigate]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });

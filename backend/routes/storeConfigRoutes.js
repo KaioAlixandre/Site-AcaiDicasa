@@ -6,9 +6,11 @@ const { authenticateToken, authorize } = require('./authRoutes');
 
 console.log('🚀 [StoreConfigRoutes] Módulo de rotas de configuração da loja carregado');
 
-// Buscar configuração da loja
-router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
+// Buscar configuração da loja - Acessível para todos (não requer admin)
+router.get('/', async (req, res) => {
   console.log('🔍 [GET /api/store-config] Iniciando busca da configuração da loja');
+  console.log('🔑 [GET /api/store-config] Headers recebidos:', req.headers);
+  console.log('🔐 [GET /api/store-config] Authorization header:', req.headers.authorization);
   
   try {
     console.log('📋 [GET /api/store-config] Procurando configuração existente no banco...');

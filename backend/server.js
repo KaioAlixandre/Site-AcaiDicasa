@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes'); // Ajustado para importar o d
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const delivererRoutes = require('./routes/delivererRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Rotas ainda não organizadas
 const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
@@ -40,6 +41,7 @@ connectDB().then(() => {
     app.use('/api/products', productRoutes);
     app.use('/api/orders', orderRoutes);
     app.use('/api/deliverers', delivererRoutes);
+    app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/cart', cartRoutes);
     app.use('/api/insights', insightsRoutes);
     app.use('/api/store-config', storeConfigRoutes);

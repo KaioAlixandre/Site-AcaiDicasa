@@ -54,7 +54,7 @@ const Admin: React.FC = () => {
 
 useEffect(() => {
   if (activePage === 'pedidos') {
-    apiService.getOrders().then(setOrders);
+    apiService.getOrdersAdmin().then(setOrders);
   }
 }, [activePage]);
 
@@ -84,19 +84,34 @@ useEffect(() => {
     }
   };
 
-  const statusList = ['pending_payment', 'being_prepared', 'on_the_way', 'delivered', 'canceled'];
-const getNextStatus = (current: string) => {
-  const idx = statusList.indexOf(current);
-  return idx >= 0 && idx < statusList.length - 2 ? statusList[idx + 1] : statusList[idx];
+
+const getNextStatus = (current: string, deliveryType: string = 'delivery') => {
+  if (current === 'being_prepared') {
+    // Para retirada: being_prepared -> ready_for_pickup
+    if (deliveryType === 'pickup') {
+      return 'ready_for_pickup';
+    }
+    // Para entrega: being_prepared -> on_the_way
+    return 'on_the_way';
+  }
+  
+  // Para outros status, seguir ordem normal
+  const statusFlow = deliveryType === 'pickup' 
+    ? ['pending_payment', 'being_prepared', 'ready_for_pickup', 'delivered', 'canceled']
+    : ['pending_payment', 'being_prepared', 'on_the_way', 'delivered', 'canceled'];
+    
+  const idx = statusFlow.indexOf(current);
+  return idx >= 0 && idx < statusFlow.length - 2 ? statusFlow[idx + 1] : statusFlow[idx];
 };
 
 interface AdvanceStatusOrder {
   id: number;
   status: string;
+  deliveryType?: string;
 }
 
 const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => {
-  const nextStatus = getNextStatus(order.status);
+  const nextStatus = getNextStatus(order.status, order.deliveryType);
   
   // Se está mudando de "being_prepared" para "on_the_way", mostrar modal de seleção de entregador
   if (order.status === 'being_prepared' && nextStatus === 'on_the_way') {
@@ -107,7 +122,7 @@ const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => 
   
   // Para outros casos, avançar status normalmente
   await apiService.advanceOrderStatus(order.id, nextStatus);
-  setOrders(await apiService.getOrders());
+  setOrders(await apiService.getOrdersAdmin());
 };
 
 const handleDelivererSelected = async (delivererId: number) => {
@@ -115,7 +130,7 @@ const handleDelivererSelected = async (delivererId: number) => {
   
   try {
     await apiService.advanceOrderStatus(selectedOrderForDelivery.id, 'on_the_way', delivererId);
-    setOrders(await apiService.getOrders());
+    setOrders(await apiService.getOrdersAdmin());
     setShowDelivererModal(false);
     setSelectedOrderForDelivery(null);
   } catch (error) {

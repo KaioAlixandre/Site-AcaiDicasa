@@ -193,10 +193,17 @@ class ApiService {
     return response.data;
   }
 
+  // Order endpoints - Admin
+  async getOrdersAdmin(): Promise<Order[]> {
+    const response: AxiosResponse<Order[]> = await this.api.get('/orders/orders');
+    return response.data;
+  }
+
+  // Order endpoints - User
   async getOrders(): Promise<Order[]> {
-  const response: AxiosResponse<Order[]> = await this.api.get('/orders/orders');
-  return response.data;
-}
+    const response: AxiosResponse<Order[]> = await this.api.get('/orders/history');
+    return response.data;
+  }
 
 async advanceOrderStatus(orderId: number, nextStatus: string, delivererId?: number): Promise<Order> {
   const response = await this.api.put(`/orders/${orderId}`, { 
@@ -271,6 +278,17 @@ async toggleDelivererStatus(id: number) {
   const response = await this.api.patch(`/deliverers/${id}/toggle`);
   return response.data;
 }
+
+  // ========== DASHBOARD METHODS ==========
+  async getDashboardMetrics() {
+    const response = await this.api.get('/dashboard/metrics');
+    return response.data;
+  }
+
+  async getSalesHistory() {
+    const response = await this.api.get('/dashboard/sales-history');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

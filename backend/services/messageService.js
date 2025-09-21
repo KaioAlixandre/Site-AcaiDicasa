@@ -33,6 +33,73 @@ async function sendWhatsAppMessageZApi(phone, message) {
   }
 }
 
+// Serviço para notificação de pedido pronto para retirada
+const sendPickupNotification = async (order) => {
+  try {
+    console.log('🏪 [MessageService] Enviando notificação de retirada');
+    console.log('📋 [MessageService] Dados do pedido:', {
+      id: order.id,
+      totalPrice: order.totalPrice,
+      user: order.user?.username,
+      deliveryType: order.deliveryType
+    });
+
+    // Construir endereço da loja (pode vir de configurações)
+    const storeAddress = "Rua da Loja, 123 - Centro"; // TODO: Pegar das configurações da loja
+
+    const customerMessage = `
+🍋 AÇAÍ DA CASA - Pedido Pronto para Retirada! 🏪
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎉 Seu pedido #${order.id} está pronto!
+
+📍 Retire em: ${storeAddress}
+💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+🍽️ Itens: ${order.orderItems?.map(item => `${item.quantity}x ${item.product?.name || 'Produto'}`).join(', ') || 'Itens não disponíveis'}
+
+⏰ Horário de funcionamento: 8h às 18h
+💵 ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📞 Dúvidas? Entre em contato conosco!
+Obrigado pela preferência! 🍋✨
+    `.trim();
+
+    console.log('📱 Enviando notificação de retirada via Z-API...');
+    
+    // Enviar mensagem para o cliente
+    const customerPhone = order.user?.phone || order.shippingPhone;
+    if (customerPhone) {
+      console.log('\n🏪 ENVIANDO NOTIFICAÇÃO DE RETIRADA:');
+      console.log(customerMessage);
+      const result = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+      
+      if (result.success) {
+        console.log('✅ Notificação de retirada enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar notificação de retirada');
+      }
+
+      return {
+        success: result.success,
+        customerMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível para notificação de retirada');
+      return {
+        success: false,
+        error: 'Telefone do cliente não disponível'
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificação de retirada:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 const sendDeliveryNotifications = async (order, deliverer) => {
   try {
     console.log('📱 [MessageService] Iniciando envio de notificações');
@@ -141,5 +208,6 @@ Obrigado pela preferência! 🍋✨
 
 module.exports = {
   sendDeliveryNotifications,
+  sendPickupNotification,
   sendWhatsAppMessageZApi
 };

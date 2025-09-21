@@ -7,6 +7,7 @@ const getStatusInPortuguese = (status: string) => {
   const statusMap: { [key: string]: string } = {
     'pending_payment': 'Pagamento Pendente',
     'being_prepared': 'Sendo Preparado',
+    'ready_for_pickup': 'Pronto para Retirada',
     'on_the_way': 'A Caminho',
     'delivered': 'Entregue',
     'canceled': 'Cancelado'
@@ -19,6 +20,7 @@ const getStatusStyle = (status: string) => {
   const statusStyles: { [key: string]: string } = {
     'pending_payment': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
     'being_prepared': 'bg-blue-100 text-blue-800 border border-blue-200',
+    'ready_for_pickup': 'bg-orange-100 text-orange-800 border border-orange-200',
     'on_the_way': 'bg-purple-100 text-purple-800 border border-purple-200',
     'delivered': 'bg-green-100 text-green-800 border border-green-200',
     'canceled': 'bg-red-100 text-red-800 border border-red-200'

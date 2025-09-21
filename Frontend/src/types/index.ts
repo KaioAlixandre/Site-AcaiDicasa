@@ -157,7 +157,7 @@ export interface Review {
 
 // Enums
 export type Role = 'user' | 'admin' | 'master';
-export type OrderStatus = 'pending_payment' | 'being_prepared' | 'on_the_way' | 'delivered' | 'canceled';
+export type OrderStatus = 'pending_payment' | 'being_prepared' | 'ready_for_pickup' | 'on_the_way' | 'delivered' | 'canceled';
 export type PaymentMethod = 'CREDIT_CARD' | 'PIX' | 'CASH_ON_DELIVERY';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
@@ -236,4 +236,52 @@ export interface Deliverer {
   email?: string;
   isActive: boolean;
   createdAt: string;
+}
+
+// Dashboard related types
+export interface DailyMetrics {
+  revenue: number;
+  sales: number;
+  ticketAverage: number;
+  revenueChange: number;
+  ordersChange: number;
+}
+
+export interface WeeklyData {
+  day: string;
+  revenue: number;
+  orders: number;
+  date: string;
+}
+
+export interface WeeklyMetrics {
+  revenue: number;
+  data: WeeklyData[];
+}
+
+export interface TopProduct {
+  id: number;
+  name: string;
+  price: number;
+  quantitySold: number;
+  orderCount: number;
+}
+
+export interface OrderStatusCount {
+  status: string;
+  count: number;
+}
+
+export interface DashboardMetrics {
+  daily: DailyMetrics;
+  weekly: WeeklyMetrics;
+  topProducts: TopProduct[];
+  pendingOrders: number;
+  todayOrdersStatus: OrderStatusCount[];
+}
+
+export interface SalesHistory {
+  date: string;
+  revenue: number;
+  orders: number;
 }
