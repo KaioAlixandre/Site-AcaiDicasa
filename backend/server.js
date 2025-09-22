@@ -48,6 +48,10 @@ connectDB().then(() => {
     app.use('/api/store-config', storeConfigRoutes);
     app.use('/api/complements', complementsRoutes);
     
+    // Rota de debug temporária
+    const debugRoutes = require('./routes/debugRoutes');
+    app.use('/api', debugRoutes);
+    
     // Servir arquivos estáticos da pasta uploads
     app.use('/uploads', express.static('uploads'));
 

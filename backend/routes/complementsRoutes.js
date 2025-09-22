@@ -4,8 +4,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Middlewares de autenticação e autorização
-const authenticateToken = require('../middleware/auth');
-const authorize = require('../middleware/authorize');
+const { authenticateToken, authorize } = require('./authRoutes');
 
 // 🍓 GET - Listar todos os complementos (apenas ativos por padrão)
 router.get('/', async (req, res) => {
@@ -53,7 +52,12 @@ router.get('/:id', async (req, res) => {
 // ➕ POST - Criar novo complemento (APENAS ADMIN)
 router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
   const { name, isActive = true } = req.body;
-  console.log(`➕ POST /complements - Admin ${req.user.username} criando complemento: ${name}`);
+  console.log(`➕ POST /complements - Usuário autenticado:`, {
+    id: req.user?.id,
+    username: req.user?.username,
+    role: req.user?.role
+  });
+  console.log(`➕ POST /complements - Criando complemento: ${name}`);
   
   try {
     // Validação
