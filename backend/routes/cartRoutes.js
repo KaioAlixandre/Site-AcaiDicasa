@@ -87,13 +87,25 @@ router.get('/', authenticateToken, async (req, res) => {
         }
 
         const cartItemsWithTotals = cart.cartitem.map(item => {
-            // Verificar se é açaí personalizado
+            // Verificar se é produto personalizado
             let itemPrice = item.product.price; // Preço padrão
             
-            if (item.selectedOptions && item.selectedOptions.customAcai) {
-                // Se for açaí personalizado, usar o valor escolhido pelo usuário
-                itemPrice = item.selectedOptions.customAcai.value;
-                console.log(`🎨 Item personalizado encontrado: ${item.product.name} - Valor customizado: R$ ${itemPrice}`);
+            if (item.selectedOptions) {
+                // Verificar açaí personalizado
+                if (item.selectedOptions.customAcai) {
+                    itemPrice = item.selectedOptions.customAcai.value;
+                    console.log(`🎨 Açaí personalizado encontrado: ${item.product.name} - Valor customizado: R$ ${itemPrice}`);
+                }
+                // Verificar sorvete personalizado
+                else if (item.selectedOptions.customSorvete) {
+                    itemPrice = item.selectedOptions.customSorvete.value;
+                    console.log(`🍦 Sorvete personalizado encontrado: ${item.product.name} - Valor customizado: R$ ${itemPrice}`);
+                }
+                // Verificar outros produtos personalizados
+                else if (item.selectedOptions.customProduct) {
+                    itemPrice = item.selectedOptions.customProduct.value;
+                    console.log(`🎨 Produto personalizado encontrado: ${item.product.name} - Valor customizado: R$ ${itemPrice}`);
+                }
             }
             
             return {
@@ -184,6 +196,146 @@ router.delete('/clear', authenticateToken, async (req, res) => {
 });
 
 // Rota para adicionar açaí personalizado ao carrinho
+router.post('/add-custom-acai', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    const { value, selectedComplements, complementNames, quantity } = req.body;
+
+    console.log(`➡️ [POST /api/cart/add-custom-acai] Requisição para adicionar açaí personalizado. Usuário ID: ${userId}, Valor: R$${value}, Quantidade: ${quantity}.`);
+
+    if (!value || !quantity) {
+        console.warn('⚠️ [POST /api/cart/add-custom-acai] Falha: Valor ou quantidade ausente.');
+        return res.status(400).json({ message: 'Valor e quantidade são obrigatórios.' });
+    }
+
+    try {
+        // Buscar o produto "Açaí Personalizado"
+        const customAcaiProduct = await prisma.product.findFirst({
+            where: { name: 'Açaí Personalizado' }
+        });
+
+        if (!customAcaiProduct) {
+            console.error('❌ [POST /api/cart/add-custom-acai] Produto "Açaí Personalizado" não encontrado.');
+            return res.status(404).json({ message: 'Produto açaí personalizado não encontrado.' });
+        }
+
+        // Buscar ou criar carrinho
+        let cart = await prisma.cart.findUnique({
+            where: { userId: userId },
+            include: { cartitem: true }
+        });
+
+        if (!cart) {
+            console.log(`🛒 [POST /api/cart/add-custom-acai] Criando novo carrinho para usuário ${userId}.`);
+            cart = await prisma.cart.create({
+                data: { userId: userId },
+            });
+        }
+
+        // Criar estrutura de opções personalizadas
+        const selectedOptions = {
+            customAcai: {
+                value: value,
+                selectedComplements: selectedComplements || [],
+                complementNames: complementNames || []
+            }
+        };
+
+        // Adicionar item do açaí personalizado ao carrinho
+        // Cada açaí personalizado é único, então sempre criar novo item
+        const cartItem = await prisma.cartitem.create({
+            data: {
+                cartId: cart.id,
+                productId: customAcaiProduct.id,
+                quantity: quantity,
+                selectedOptions: selectedOptions
+            }
+        });
+
+        console.log(`✅ [POST /api/cart/add-custom-acai] Açaí personalizado adicionado com sucesso. Item ID: ${cartItem.id}`);
+        res.status(201).json({ 
+            message: 'Açaí personalizado adicionado ao carrinho com sucesso.', 
+            cartItem: cartItem 
+        });
+
+    } catch (err) {
+        console.error(`❌ [POST /api/cart/add-custom-acai] Erro ao adicionar açaí personalizado para o usuário ${userId}:`, err.message);
+        res.status(500).json({ message: 'Erro ao adicionar açaí personalizado ao carrinho.', error: err.message });
+    }
+});
+
+// Rota genérica para adicionar produtos personalizados ao carrinho
+router.post('/add-custom-product', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    const { productName, value, selectedComplements, complementNames, quantity } = req.body;
+
+    console.log(`➡️ [POST /api/cart/add-custom-product] Requisição para adicionar ${productName}. Usuário ID: ${userId}, Valor: R$${value}, Quantidade: ${quantity}.`);
+
+    if (!productName || !value || !quantity) {
+        console.warn('⚠️ [POST /api/cart/add-custom-product] Falha: Nome do produto, valor ou quantidade ausente.');
+        return res.status(400).json({ message: 'Nome do produto, valor e quantidade são obrigatórios.' });
+    }
+
+    try {
+        // Buscar o produto personalizado
+        const customProduct = await prisma.product.findFirst({
+            where: { name: productName }
+        });
+
+        if (!customProduct) {
+            console.error(`❌ [POST /api/cart/add-custom-product] Produto "${productName}" não encontrado.`);
+            return res.status(404).json({ message: `Produto ${productName} não encontrado.` });
+        }
+
+        // Buscar ou criar carrinho
+        let cart = await prisma.cart.findUnique({
+            where: { userId: userId },
+            include: { cartitem: true }
+        });
+
+        if (!cart) {
+            console.log(`🛒 [POST /api/cart/add-custom-product] Criando novo carrinho para usuário ${userId}.`);
+            cart = await prisma.cart.create({
+                data: { userId: userId },
+            });
+        }
+
+        // Determinar o tipo de produto para o selectedOptions
+        const productType = productName.toLowerCase().includes('açaí') ? 'customAcai' : 
+                           productName.toLowerCase().includes('sorvete') ? 'customSorvete' : 'customProduct';
+
+        // Criar estrutura de opções personalizadas
+        const selectedOptions = {
+            [productType]: {
+                value: value,
+                selectedComplements: selectedComplements || [],
+                complementNames: complementNames || []
+            }
+        };
+
+        // Adicionar item do produto personalizado ao carrinho
+        // Cada produto personalizado é único, então sempre criar novo item
+        const cartItem = await prisma.cartitem.create({
+            data: {
+                cartId: cart.id,
+                productId: customProduct.id,
+                quantity: quantity,
+                selectedOptions: selectedOptions
+            }
+        });
+
+        console.log(`✅ [POST /api/cart/add-custom-product] ${productName} adicionado com sucesso. Item ID: ${cartItem.id}`);
+        res.status(201).json({ 
+            message: `${productName} adicionado ao carrinho com sucesso.`, 
+            cartItem: cartItem 
+        });
+
+    } catch (err) {
+        console.error(`❌ [POST /api/cart/add-custom-product] Erro ao adicionar ${productName} para o usuário ${userId}:`, err.message);
+        res.status(500).json({ message: `Erro ao adicionar ${productName} ao carrinho.`, error: err.message });
+    }
+});
+
+// Rota para adicionar açaí personalizado ao carrinho (mantida para compatibilidade)
 router.post('/add-custom-acai', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { value, selectedComplements, complementNames, quantity } = req.body;

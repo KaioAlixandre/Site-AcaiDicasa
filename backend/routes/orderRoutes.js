@@ -79,10 +79,16 @@ router.post('/', authenticateToken, async (req, res) => {
         
         // Calcular o preço total do pedido (incluindo taxa de entrega)
         const subtotalPrice = cart.cartitem.reduce((acc, item) => {
-            // Verificar se é açaí personalizado
+            // Verificar se é produto personalizado
             let itemPrice = item.product.price;
-            if (item.selectedOptions && item.selectedOptions.customAcai) {
-                itemPrice = item.selectedOptions.customAcai.value;
+            if (item.selectedOptions) {
+                if (item.selectedOptions.customAcai) {
+                    itemPrice = item.selectedOptions.customAcai.value;
+                } else if (item.selectedOptions.customSorvete) {
+                    itemPrice = item.selectedOptions.customSorvete.value;
+                } else if (item.selectedOptions.customProduct) {
+                    itemPrice = item.selectedOptions.customProduct.value;
+                }
             }
             return acc + (item.quantity * itemPrice);
         }, 0);
@@ -112,10 +118,16 @@ router.post('/', authenticateToken, async (req, res) => {
                     orderitem: {
                         createMany: {
                             data: cart.cartitem.map(item => {
-                                // Verificar se é açaí personalizado
+                                // Verificar se é produto personalizado
                                 let itemPrice = item.product.price;
-                                if (item.selectedOptions && item.selectedOptions.customAcai) {
-                                    itemPrice = item.selectedOptions.customAcai.value;
+                                if (item.selectedOptions) {
+                                    if (item.selectedOptions.customAcai) {
+                                        itemPrice = item.selectedOptions.customAcai.value;
+                                    } else if (item.selectedOptions.customSorvete) {
+                                        itemPrice = item.selectedOptions.customSorvete.value;
+                                    } else if (item.selectedOptions.customProduct) {
+                                        itemPrice = item.selectedOptions.customProduct.value;
+                                    }
                                 }
                                 
                                 return {

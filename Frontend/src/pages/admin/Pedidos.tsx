@@ -284,8 +284,11 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                     </td>
                     <td className="p-4 text-slate-600">
                       {order.orderitem.map(item => {
-                        // Verificar se é açaí personalizado
+                        // Verificar se é produto personalizado
                         const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                        const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
+                        const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
+                        const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
                         
                         return (
                           <div key={item.id} className="mb-2 last:mb-0">
@@ -293,22 +296,26 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                               <span className="font-medium">
                                 {item.product?.name || 'Produto'} x {item.quantity}
                               </span>
-                              {isCustomAcai && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 font-medium">
-                                  🎨 Personalizado R$ {Number(isCustomAcai.value).toFixed(2)}
+                              {customData && (
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  isCustomAcai ? 'bg-purple-100 text-purple-800' :
+                                  isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} Personalizado R$ {Number(customData.value).toFixed(2)}
                                 </span>
                               )}
                             </div>
-                            {isCustomAcai && isCustomAcai.complementNames && isCustomAcai.complementNames.length > 0 && (
+                            {customData && customData.complementNames && customData.complementNames.length > 0 && (
                               <div className="mt-1 ml-4">
                                 <span className="text-xs text-slate-500">Complementos: </span>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {isCustomAcai.complementNames.map((complement: string, idx: number) => (
+                                  {customData.complementNames.map((complement: string, idx: number) => (
                                     <span 
                                       key={idx}
                                       className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
                                     >
-                                      🍓 {complement}
+                                      {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} {complement}
                                     </span>
                                   ))}
                                 </div>

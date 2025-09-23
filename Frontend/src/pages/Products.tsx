@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
 import CustomAcaiModal from '../components/CustomAcaiModal';
+import CustomProductModal from '../components/CustomProductModal';
 
 const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -20,6 +21,7 @@ const Products: React.FC = () => {
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [showCustomAcaiModal, setShowCustomAcaiModal] = useState(false);
+  const [showCustomSorveteModal, setShowCustomSorveteModal] = useState(false);
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -325,6 +327,61 @@ const Products: React.FC = () => {
               </div>
             </div>
 
+            {/* Card Sorvete Personalizado - Destacado */}
+            <div 
+              className={`group bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-600 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border-4 border-blue-300 ${
+                viewType === 'list' ? 'flex items-center' : ''
+              }`}
+            >
+              <div className={`${viewType === 'list' ? 'w-48 h-32' : 'h-56'} bg-gradient-to-br from-cyan-400 to-blue-500 relative overflow-hidden`}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-6xl">🍦</div>
+                </div>
+                <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                  PERSONALIZE
+                </div>
+              </div>
+              
+              <div className={`p-6 flex-1 ${viewType === 'list' ? 'flex justify-between items-center' : ''}`}>
+                <div className={viewType === 'list' ? 'flex-1' : ''}>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    🍦 Sorvete Personalizado
+                  </h3>
+                  <p className="text-blue-100 text-sm mb-4">
+                    Escolha o valor que deseja gastar e todos os complementos que quiser!
+                  </p>
+                  <div className="flex items-center gap-2 text-blue-200 text-sm mb-4">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span>Monte do seu jeito</span>
+                  </div>
+                </div>
+                
+                <div className={viewType === 'list' ? 'ml-6' : ''}>
+                  <div className="mb-4">
+                    <span className="text-blue-200 text-sm">A partir de</span>
+                    <div className="text-2xl font-bold text-white">R$ 6,00</div>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowCustomSorveteModal(true)}
+                    disabled={storeStatus && !storeStatus.isOpen}
+                    className="w-full bg-white text-blue-600 font-bold py-3 px-6 rounded-2xl 
+                             hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl 
+                             disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                    title={storeStatus && !storeStatus.isOpen ? 'Loja fechada' : 'Personalizar sorvete'}
+                  >
+                    {storeStatus && !storeStatus.isOpen ? (
+                      <>🔒 Fechado</>
+                    ) : (
+                      <>
+                        🎨 Personalizar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Produtos Normais */}
             {filteredProducts.map((product) => (
               <div 
@@ -443,6 +500,13 @@ const Products: React.FC = () => {
       <CustomAcaiModal 
         isOpen={showCustomAcaiModal} 
         onClose={() => setShowCustomAcaiModal(false)} 
+      />
+
+      {/* Modal do Sorvete Personalizado */}
+      <CustomProductModal 
+        isOpen={showCustomSorveteModal} 
+        onClose={() => setShowCustomSorveteModal(false)} 
+        productType="sorvete"
       />
     </div>
   );

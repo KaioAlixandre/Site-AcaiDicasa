@@ -225,6 +225,7 @@ export interface CartContextType {
   total: number;
   addItem: (productId: number, quantity: number) => Promise<void>;
   addCustomAcai: (customAcai: CustomAcai, quantity: number) => Promise<void>;
+  addCustomProduct: (productName: string, selectedOptions: any, quantity: number) => Promise<void>;
   updateItem: (cartItemId: number, quantity: number) => Promise<void>;
   removeItem: (cartItemId: number) => Promise<void>;
   clearCart: () => Promise<void>;

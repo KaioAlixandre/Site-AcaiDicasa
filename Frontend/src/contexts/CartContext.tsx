@@ -62,6 +62,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
+  const addCustomProduct = async (productName: string, customProduct: any, quantity: number) => {
+    try {
+      setLoading(true);
+      await apiService.addCustomProductToCart(productName, customProduct, quantity);
+      await loadCart(); // Recarregar carrinho após adicionar produto personalizado
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao adicionar produto personalizado ao carrinho');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateItem = async (cartItemId: number, quantity: number) => {
     try {
       setLoading(true);
@@ -104,6 +116,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     total,
     addItem,
     addCustomAcai,
+    addCustomProduct,
     updateItem,
     removeItem,
     clearCart,
