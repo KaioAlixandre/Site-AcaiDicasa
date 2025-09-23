@@ -124,7 +124,16 @@ router.get('/users', authenticateToken, authorize('admin'), async (req, res) => 
                 username: true,
                 email: true,
                 role: true,
-                createdAt: true
+                phone: true,
+                createdAt: true,
+                order: {
+                    select: {
+                        id: true,
+                        totalPrice: true,
+                        status: true,
+                        createdAt: true
+                    }
+                }
             }
         });
         console.log(`✅ [GET /auth/users] ${users.length} usuários encontrados`);

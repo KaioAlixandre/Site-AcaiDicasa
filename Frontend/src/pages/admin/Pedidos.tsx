@@ -283,11 +283,40 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                       </div>
                     </td>
                     <td className="p-4 text-slate-600">
-                      {order.orderitem.map(item => (
-                        <div key={item.id}>
-                          {item.product?.name || 'Produto'} x {item.quantity}
-                        </div>
-                      ))}
+                      {order.orderitem.map(item => {
+                        // Verificar se é açaí personalizado
+                        const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                        
+                        return (
+                          <div key={item.id} className="mb-2 last:mb-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {item.product?.name || 'Produto'} x {item.quantity}
+                              </span>
+                              {isCustomAcai && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 font-medium">
+                                  🎨 Personalizado R$ {Number(isCustomAcai.value).toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            {isCustomAcai && isCustomAcai.complementNames && isCustomAcai.complementNames.length > 0 && (
+                              <div className="mt-1 ml-4">
+                                <span className="text-xs text-slate-500">Complementos: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {isCustomAcai.complementNames.map((complement: string, idx: number) => (
+                                    <span 
+                                      key={idx}
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
+                                    >
+                                      🍓 {complement}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">

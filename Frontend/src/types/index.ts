@@ -7,9 +7,11 @@ export interface User {
   role: 'user' | 'admin' | 'master';
   createdAt: string;
   address?: Address[];
-  orders?: {
+  order?: {
+    id: number;
     totalPrice: number;
-    // other order properties...
+    status: string;
+    createdAt: string;
   }[];
 }
 
@@ -222,6 +224,7 @@ export interface CartContextType {
   items: CartItem[];
   total: number;
   addItem: (productId: number, quantity: number) => Promise<void>;
+  addCustomAcai: (customAcai: CustomAcai, quantity: number) => Promise<void>;
   updateItem: (cartItemId: number, quantity: number) => Promise<void>;
   removeItem: (cartItemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -284,4 +287,28 @@ export interface SalesHistory {
   date: string;
   revenue: number;
   orders: number;
+}
+
+// Complement types (açaí complements without individual pricing)
+export interface Complement {
+  id: number;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Custom Açaí types (customer chooses value and complements)
+export interface CustomAcai {
+  id?: number;
+  value: number; // Valor escolhido pelo cliente (ex: R$ 20.00)
+  selectedComplements: number[]; // IDs dos complementos selecionados
+  complementNames?: string[]; // Nomes dos complementos (para exibição)
+}
+
+export interface CustomAcaiCartItem {
+  id: number;
+  quantity: number;
+  customAcai: CustomAcai;
+  totalPrice: number; // = customAcai.value * quantity
 }

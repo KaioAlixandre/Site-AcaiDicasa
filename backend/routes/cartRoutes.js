@@ -86,10 +86,21 @@ router.get('/', authenticateToken, async (req, res) => {
             return res.status(200).json({ items: [], cartTotal: 0 });
         }
 
-        const cartItemsWithTotals = cart.cartitem.map(item => ({
-            ...item,
-            totalPrice: item.quantity * item.product.price
-        }));
+        const cartItemsWithTotals = cart.cartitem.map(item => {
+            // Verificar se é açaí personalizado
+            let itemPrice = item.product.price; // Preço padrão
+            
+            if (item.selectedOptions && item.selectedOptions.customAcai) {
+                // Se for açaí personalizado, usar o valor escolhido pelo usuário
+                itemPrice = item.selectedOptions.customAcai.value;
+                console.log(`🎨 Item personalizado encontrado: ${item.product.name} - Valor customizado: R$ ${itemPrice}`);
+            }
+            
+            return {
+                ...item,
+                totalPrice: item.quantity * itemPrice
+            };
+        });
 
         const cartTotal = cartItemsWithTotals.reduce((total, item) => total + item.totalPrice, 0);
 
@@ -169,6 +180,74 @@ router.delete('/clear', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error(`❌ [DELETE /api/cart/clear] Erro ao esvaziar o carrinho para o usuário ${userId}:`, err.message);
         res.status(500).json({ message: 'Erro ao esvaziar o carrinho.', error: err.message });
+    }
+});
+
+// Rota para adicionar açaí personalizado ao carrinho
+router.post('/add-custom-acai', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    const { value, selectedComplements, complementNames, quantity } = req.body;
+
+    console.log(`➡️ [POST /api/cart/add-custom-acai] Requisição para adicionar açaí personalizado. Usuário ID: ${userId}, Valor: R$${value}, Quantidade: ${quantity}.`);
+
+    if (!value || !quantity) {
+        console.warn('⚠️ [POST /api/cart/add-custom-acai] Falha: Valor ou quantidade ausente.');
+        return res.status(400).json({ message: 'Valor e quantidade são obrigatórios.' });
+    }
+
+    try {
+        // Buscar o produto "Açaí Personalizado"
+        const customAcaiProduct = await prisma.product.findFirst({
+            where: { name: 'Açaí Personalizado' }
+        });
+
+        if (!customAcaiProduct) {
+            console.error('❌ [POST /api/cart/add-custom-acai] Produto "Açaí Personalizado" não encontrado.');
+            return res.status(404).json({ message: 'Produto açaí personalizado não encontrado.' });
+        }
+
+        // Buscar ou criar carrinho
+        let cart = await prisma.cart.findUnique({
+            where: { userId: userId },
+            include: { cartitem: true }
+        });
+
+        if (!cart) {
+            console.log(`🛒 [POST /api/cart/add-custom-acai] Criando novo carrinho para usuário ${userId}.`);
+            cart = await prisma.cart.create({
+                data: { userId: userId },
+            });
+        }
+
+        // Criar estrutura de opções personalizadas
+        const selectedOptions = {
+            customAcai: {
+                value: value,
+                selectedComplements: selectedComplements || [],
+                complementNames: complementNames || []
+            }
+        };
+
+        // Adicionar item do açaí personalizado ao carrinho
+        // Cada açaí personalizado é único, então sempre criar novo item
+        const cartItem = await prisma.cartitem.create({
+            data: {
+                cartId: cart.id,
+                productId: customAcaiProduct.id,
+                quantity: quantity,
+                selectedOptions: selectedOptions
+            }
+        });
+
+        console.log(`✅ [POST /api/cart/add-custom-acai] Açaí personalizado adicionado com sucesso. Item ID: ${cartItem.id}`);
+        res.status(201).json({ 
+            message: 'Açaí personalizado adicionado ao carrinho com sucesso.', 
+            cartItem: cartItem 
+        });
+
+    } catch (err) {
+        console.error(`❌ [POST /api/cart/add-custom-acai] Erro ao adicionar açaí personalizado para o usuário ${userId}:`, err.message);
+        res.status(500).json({ message: 'Erro ao adicionar açaí personalizado ao carrinho.', error: err.message });
     }
 });
 

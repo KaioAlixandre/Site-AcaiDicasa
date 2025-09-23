@@ -470,28 +470,56 @@ const Orders: React.FC = () => {
 
                     {/* Lista de itens - limitada quando não expandida */}
                     <div className="space-y-3">
-                      {(isExpanded ? order.orderitem : order.orderitem.slice(0, 2)).map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-md">
-                              <span className="text-2xl">🥤</span>
+                      {(isExpanded ? order.orderitem : order.orderitem.slice(0, 2)).map((item) => {
+                        // Verificar se é açaí personalizado
+                        const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                        
+                        return (
+                          <div key={item.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                            <div className="flex items-start space-x-4 flex-1">
+                              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+                                <span className="text-2xl">{isCustomAcai ? '🍓' : '🥤'}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="font-semibold text-gray-900 text-lg">{item.product.name}</p>
+                                  {isCustomAcai && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 font-medium">
+                                      🎨 Personalizado
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-1">Quantidade: {item.quantity}</p>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  Preço unitário: R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}
+                                </p>
+                                
+                                {isCustomAcai && isCustomAcai.complementNames && isCustomAcai.complementNames.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-600 mb-1">Complementos:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {isCustomAcai.complementNames.map((complement: string, idx: number) => (
+                                        <span 
+                                          key={idx}
+                                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
+                                        >
+                                          🍓 {complement}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-gray-900 text-lg">{item.product.name}</p>
-                              <p className="text-sm text-gray-600">Quantidade: {item.quantity}</p>
-                              <p className="text-xs text-gray-500">
-                                Preço unitário: R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}
+                            <div className="text-right ml-4 flex-shrink-0">
+                              <p className="text-lg font-bold text-gray-900">
+                                R$ {(Number(item.priceAtOrder ?? 0) * item.quantity).toFixed(2)}
                               </p>
+                              <p className="text-xs text-gray-500">Subtotal</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-gray-900">
-                              R$ {(Number(item.priceAtOrder ?? 0) * item.quantity).toFixed(2)}
-                            </p>
-                            <p className="text-xs text-gray-500">Subtotal</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       
                       {!isExpanded && order.orderitem.length > 2 && (
                         <div className="text-center py-2">

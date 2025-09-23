@@ -159,6 +159,16 @@ class ApiService {
     return response.data;
   }
 
+  async addCustomAcaiToCart(customAcai: any, quantity: number): Promise<ApiResponse<CartItem>> {
+    const response: AxiosResponse<ApiResponse<CartItem>> = await this.api.post('/cart/add-custom-acai', {
+      value: customAcai.value,
+      selectedComplements: customAcai.selectedComplements,
+      complementNames: customAcai.complementNames,
+      quantity,
+    });
+    return response.data;
+  }
+
   async updateCartItem(cartItemId: number, quantity: number): Promise<ApiResponse<CartItem>> {
     const response: AxiosResponse<ApiResponse<CartItem>> = await this.api.put(`/cart/update/${cartItemId}`, {
       quantity,

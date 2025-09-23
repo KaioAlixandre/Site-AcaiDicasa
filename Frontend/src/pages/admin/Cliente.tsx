@@ -8,7 +8,7 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
     if (user.length === 0) return 0;
     
     const totalLTV = user.reduce((acc, cliente) => {
-      const clienteLTV = cliente.orders?.reduce((orderAcc, order) => orderAcc + Number(order.totalPrice), 0) || 0;
+      const clienteLTV = cliente.order?.reduce((orderAcc, order) => orderAcc + Number(order.totalPrice), 0) || 0;
       return acc + clienteLTV;
     }, 0);
     
@@ -16,6 +16,8 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
   };
 
   const averageLTV = calculateAverageLTV();
+
+  console.log('🔍 Debug - Dados dos usuários:', user);
 
   return (
   <div id="clientes" className="page">
@@ -56,19 +58,24 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {user.map(user => (
-              <tr key={user.id} className="hover:bg-slate-50">
-                <td className="p-4 font-medium text-slate-800">{user.username}</td>
-                <td className="p-4 text-slate-600">{user.phone || '-'}</td>
-                <td className="p-4 text-center text-slate-600">{user.orders?.length || 0}</td>
-                <td className="p-4 text-right font-medium text-slate-800">
-                  R$ {user.orders?.reduce((acc, order) => acc + Number(order.totalPrice), 0).toFixed(2)}
-                </td>
-                <td className="p-4 text-center">
-                  <button className="text-indigo-600 hover:text-indigo-800">Detalhes</button>
-                </td>
-              </tr>
-            ))}
+            {user.map(cliente => {
+              const totalGasto = cliente.order?.reduce((acc, order) => acc + Number(order.totalPrice), 0) || 0;
+              const totalPedidos = cliente.order?.length || 0;
+              
+              return (
+                <tr key={cliente.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-medium text-slate-800">{cliente.username}</td>
+                  <td className="p-4 text-slate-600">{cliente.phone || '-'}</td>
+                  <td className="p-4 text-center text-slate-600">{totalPedidos}</td>
+                  <td className="p-4 text-right font-medium text-slate-800">
+                    R$ {totalGasto.toFixed(2)}
+                  </td>
+                  <td className="p-4 text-center">
+                    <button className="text-indigo-600 hover:text-indigo-800">Detalhes</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

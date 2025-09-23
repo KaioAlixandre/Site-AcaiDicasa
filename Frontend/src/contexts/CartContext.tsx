@@ -50,6 +50,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
+  const addCustomAcai = async (customAcai: any, quantity: number) => {
+    try {
+      setLoading(true);
+      await apiService.addCustomAcaiToCart(customAcai, quantity);
+      await loadCart(); // Recarregar carrinho após adicionar açaí personalizado
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erro ao adicionar açaí personalizado ao carrinho');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateItem = async (cartItemId: number, quantity: number) => {
     try {
       setLoading(true);
@@ -91,6 +103,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     items,
     total,
     addItem,
+    addCustomAcai,
     updateItem,
     removeItem,
     clearCart,

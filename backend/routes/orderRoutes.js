@@ -79,7 +79,12 @@ router.post('/', authenticateToken, async (req, res) => {
         
         // Calcular o preço total do pedido (incluindo taxa de entrega)
         const subtotalPrice = cart.cartitem.reduce((acc, item) => {
-            return acc + (item.quantity * item.product.price);
+            // Verificar se é açaí personalizado
+            let itemPrice = item.product.price;
+            if (item.selectedOptions && item.selectedOptions.customAcai) {
+                itemPrice = item.selectedOptions.customAcai.value;
+            }
+            return acc + (item.quantity * itemPrice);
         }, 0);
         
         const totalPrice = subtotalPrice + (deliveryType === 'delivery' ? deliveryFee : 0);
@@ -106,11 +111,20 @@ router.post('/', authenticateToken, async (req, res) => {
                     shippingNeighborhood: shippingAddress?.neighborhood || null,
                     orderitem: {
                         createMany: {
-                            data: cart.cartitem.map(item => ({
-                                productId: item.productId,
-                                quantity: item.quantity,
-                                priceAtOrder: item.product.price,
-                            }))
+                            data: cart.cartitem.map(item => {
+                                // Verificar se é açaí personalizado
+                                let itemPrice = item.product.price;
+                                if (item.selectedOptions && item.selectedOptions.customAcai) {
+                                    itemPrice = item.selectedOptions.customAcai.value;
+                                }
+                                
+                                return {
+                                    productId: item.productId,
+                                    quantity: item.quantity,
+                                    priceAtOrder: itemPrice,
+                                    selectedOptionsSnapshot: item.selectedOptions
+                                };
+                            })
                         }
                     }
                 },

@@ -6,6 +6,7 @@ import { apiService } from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
+import CustomAcaiModal from '../components/CustomAcaiModal';
 
 const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,6 +19,7 @@ const Products: React.FC = () => {
   const [storeStatus, setStoreStatus] = useState<any>(null);
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCustomAcaiModal, setShowCustomAcaiModal] = useState(false);
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -268,6 +270,62 @@ const Products: React.FC = () => {
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8' 
               : 'space-y-6'
           }`}>
+            {/* Card Açaí Personalizado - Destacado */}
+            <div 
+              className={`group bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden border-4 border-purple-300 ${
+                viewType === 'list' ? 'flex items-center' : ''
+              }`}
+            >
+              <div className={`${viewType === 'list' ? 'w-48 h-32' : 'h-56'} bg-gradient-to-br from-purple-400 to-pink-500 relative overflow-hidden`}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-6xl">🍓</div>
+                </div>
+                <div className="absolute top-3 right-3 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                  PERSONALIZE
+                </div>
+              </div>
+              
+              <div className={`p-6 flex-1 ${viewType === 'list' ? 'flex justify-between items-center' : ''}`}>
+                <div className={viewType === 'list' ? 'flex-1' : ''}>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    🎨 Açaí Personalizado
+                  </h3>
+                  <p className="text-purple-100 text-sm mb-4">
+                    Escolha o valor que deseja gastar e todos os complementos que quiser!
+                  </p>
+                  <div className="flex items-center gap-2 text-purple-200 text-sm mb-4">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span>Monte do seu jeito</span>
+                  </div>
+                </div>
+                
+                <div className={viewType === 'list' ? 'ml-6' : ''}>
+                  <div className="mb-4">
+                    <span className="text-purple-200 text-sm">A partir de</span>
+                    <div className="text-2xl font-bold text-white">R$ 8,00</div>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowCustomAcaiModal(true)}
+                    disabled={storeStatus && !storeStatus.isOpen}
+                    className="w-full bg-white text-purple-600 font-bold py-3 px-6 rounded-2xl 
+                             hover:bg-purple-50 transition-all duration-300 shadow-lg hover:shadow-xl 
+                             disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                    title={storeStatus && !storeStatus.isOpen ? 'Loja fechada' : 'Personalizar açaí'}
+                  >
+                    {storeStatus && !storeStatus.isOpen ? (
+                      <>🔒 Fechado</>
+                    ) : (
+                      <>
+                        🎨 Personalizar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Produtos Normais */}
             {filteredProducts.map((product) => (
               <div 
                 key={product.id} 
@@ -380,6 +438,12 @@ const Products: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal do Açaí Personalizado */}
+      <CustomAcaiModal 
+        isOpen={showCustomAcaiModal} 
+        onClose={() => setShowCustomAcaiModal(false)} 
+      />
     </div>
   );
 };
