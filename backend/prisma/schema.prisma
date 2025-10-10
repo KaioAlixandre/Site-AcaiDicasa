@@ -292,3 +292,15 @@ enum user_role {
   admin
   master
 }
+
+model passwordreset {
+  id            Int      @id @default(autoincrement())
+  email         String   @db.VarChar(191)
+  code          String   @db.VarChar(6)
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  used          Boolean  @default(false)
+  
+  @@index([email])
+  @@index([code])
+}

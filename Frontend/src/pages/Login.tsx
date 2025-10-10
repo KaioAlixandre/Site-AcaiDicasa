@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, Mail, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
 
@@ -11,8 +11,19 @@ const Login: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const { login, loading, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Verificar se há uma mensagem de sucesso vinda do reset de senha
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Limpar a mensagem após 5 segundos
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
+  }, [location.state]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -69,6 +80,13 @@ const Login: React.FC = () => {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2" />
+                {successMessage}
               </div>
             )}
 
@@ -143,9 +161,9 @@ const Login: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-purple-600 hover:text-purple-500">
+                <Link to="/forgot-password" className="font-medium text-purple-600 hover:text-purple-500">
                   Esqueceu sua senha?
-                </a>
+                </Link>
               </div>
             </div>
 

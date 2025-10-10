@@ -74,6 +74,28 @@ class ApiService {
     return response.data;
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response: AxiosResponse<{ message: string }> = await this.api.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+    const response: AxiosResponse<{ message: string }> = await this.api.post('/auth/reset-password', {
+      email,
+      code,
+      newPassword
+    });
+    return response.data;
+  }
+
+  async verifyResetCode(email: string, code: string): Promise<{ valid: boolean; message?: string }> {
+    const response: AxiosResponse<{ valid: boolean; message?: string }> = await this.api.post('/auth/verify-reset-code', {
+      email,
+      code
+    });
+    return response.data;
+  }
+
   async getUsers(): Promise<User[]> {
   const response: AxiosResponse<User[]> = await this.api.get('/auth/users');
   return response.data;

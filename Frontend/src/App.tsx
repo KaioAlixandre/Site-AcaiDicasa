@@ -16,6 +16,8 @@ import Admin from './pages/admin/Admin';
 import AddAddress from './pages/AddAddress';
 import AddPhone from './pages/AddPhone';
 import Checkout from './pages/Checkout';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 function AppContent() {
   const location = useLocation();
@@ -29,6 +31,8 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/products" element={<Products />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/about" element={<About />} />

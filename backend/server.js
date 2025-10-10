@@ -19,6 +19,7 @@ const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
 const insightsRoutes = require('./routes/insithsRoutes'); // TODO: Organizar
 const storeConfigRoutes = require('./routes/storeConfigRoutes'); // TODO: Organizar
 const complementsRoutes = require('./routes/complementsRoutes'); // TODO: Organizar
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
 
 // Middlewares
 app.use(cors());
@@ -39,6 +40,7 @@ const connectDB = async () => {
 connectDB().then(() => {
     // Conectar as rotas organizadas
     app.use('/api/auth', authRoutes.router);
+    app.use('/api/auth', passwordResetRoutes);
     app.use('/api/products', productRoutes);
     app.use('/api/orders', orderRoutes);
     app.use('/api/deliverers', delivererRoutes);
