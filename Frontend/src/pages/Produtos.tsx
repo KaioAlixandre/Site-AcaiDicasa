@@ -41,9 +41,9 @@ const Products: React.FC = () => {
           setStoreStatus(status);
         }
         
-        // Criar categorias fictícias baseadas nos produtos
+        // Criar categorias baseadas nos produtos
         const uniqueCategories = Array.from(
-          new Set(productsData.map(p => p.categoryId).filter(Boolean))
+          new Set(productsData.map(p => p.category?.id).filter(Boolean))
         ).map((id, index) => ({
           id: id || index + 1,
           name: `Categoria ${id || index + 1}`
@@ -72,7 +72,7 @@ const Products: React.FC = () => {
 
     // Filtrar por categoria
     if (selectedCategory) {
-      filtered = filtered.filter(product => product.categoryId === selectedCategory);
+      filtered = filtered.filter(product => product.category?.id === selectedCategory);
     }
 
     setFilteredProducts(filtered);

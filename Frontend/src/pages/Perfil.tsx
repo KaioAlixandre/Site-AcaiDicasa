@@ -42,13 +42,13 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     console.log('🎯 useEffect - User disponível:', !!user);
-    console.log('🎯 useEffect - User addresses:', user?.address);
+    console.log('🎯 useEffect - User addresses:', user?.enderecos);
     
     if (user) {
       // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
-      if (user.address && Array.isArray(user.address) && user.address.length > 0) {
+      if (user.enderecos && Array.isArray(user.enderecos) && user.enderecos.length > 0) {
         console.log('🔄 Usando endereços do perfil do usuário');
-        setAddresses(user.address);
+        setAddresses(user.enderecos);
         setLoading(false);
       } else {
         // Caso contrário, tentar carregar via API
@@ -78,9 +78,9 @@ const Profile: React.FC = () => {
       setError('Erro ao carregar endereços. Tentando usar dados do perfil...');
       
       // Tentar carregar endereços do perfil do usuário como fallback
-      if (user?.address && Array.isArray(user.address)) {
+      if (user?.enderecos && Array.isArray(user.enderecos)) {
         console.log('🔄 Usando endereços do perfil do usuário como fallback');
-        setAddresses(user.address);
+        setAddresses(user.enderecos);
         setError(null);
       } else {
         setAddresses([]);
@@ -274,7 +274,7 @@ const Profile: React.FC = () => {
               {/* Informações do Usuário */}
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Olá, {user.username}! 👋
+                  Olá, {user.nomeUsuario}! 👋
                 </h1>
                 <p className="text-lg text-gray-600 mb-4">
                   Gerencie suas informações pessoais e preferências
@@ -293,7 +293,7 @@ const Profile: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Shield className="w-4 h-4 text-green-600" />
                       <span className="text-sm font-medium text-gray-700">
-                        {user.role === 'admin' ? 'Administrador' : 'Cliente'}
+                        {user.funcao === 'admin' ? 'Administrador' : 'Cliente'}
                       </span>
                     </div>
                   </div>
@@ -342,7 +342,7 @@ const Profile: React.FC = () => {
                     Nome de usuário
                   </label>
                   <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
-                    <p className="text-gray-900 font-medium">{user.username}</p>
+                    <p className="text-gray-900 font-medium">{user.nomeUsuario}</p>
                   </div>
                 </div>
 
@@ -393,11 +393,11 @@ const Profile: React.FC = () => {
                     <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
                       <div className="flex items-center justify-between">
                         <p className="text-gray-900 font-medium">
-                          {user.phone || 'Não informado'}
+                          {user.telefone || 'Não informado'}
                         </p>
                         <button
                           onClick={() => {
-                            setNewPhone(user.phone || '');
+                            setNewPhone(user.telefone || '');
                             setEditingPhone(true);
                           }}
                           className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200"
@@ -418,13 +418,13 @@ const Profile: React.FC = () => {
                   <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
                     <div className="flex items-center space-x-2">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                        user.role === 'admin' 
+                        user.funcao === 'admin' 
                           ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
                           : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
                       }`}>
-                        {user.role === 'admin' ? '👑 Administrador' : '🌟 Cliente Premium'}
+                        {user.funcao === 'admin' ? '👑 Administrador' : '🌟 Cliente Premium'}
                       </span>
-                      {user.role === 'admin' && (
+                      {user.funcao === 'admin' && (
                         <Star className="w-4 h-4 text-yellow-500" />
                       )}
                     </div>

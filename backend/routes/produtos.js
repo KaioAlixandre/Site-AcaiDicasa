@@ -24,8 +24,27 @@ router.get('/', async (req, res) => {
         const products = await prisma.produto.findMany({
             include: { imagens_produto: true, categoria: true }
         });
-        console.log(products); // Veja no terminal se category está preenchido
-        res.json(products);
+        
+        // Transformar os campos do banco para o formato esperado pelo frontend
+        const transformedProducts = products.map(product => ({
+            id: product.id,
+            name: product.nome,
+            price: Number(product.preco),
+            description: product.descricao,
+            isActive: product.ativo,
+            createdAt: product.criadoEm,
+            category: product.categoria ? {
+                id: product.categoria.id,
+                name: product.categoria.nome
+            } : null,
+            images: product.imagens_produto.map(img => ({
+                id: img.id,
+                url: img.url
+            }))
+        }));
+        
+        console.log(`✅ GET /api/products: ${transformedProducts.length} produtos encontrados.`);
+        res.json(transformedProducts);
     } catch (err) {
         console.error('❌ GET /api/products: Erro ao buscar produtos:', err.message);
         res.status(500).json({ message: 'Erro ao buscar produtos.', error: err.message });
@@ -189,7 +208,12 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
             data: { nome },
         });
         console.log(`✅ POST /api/products/categories/add: Nova categoria adicionada com sucesso: ${newCategory.nome}.`);
-        res.status(201).json(newCategory);
+        // Transformar o campo 'nome' para 'name' para compatibilidade com o frontend
+        const transformedCategory = {
+            id: newCategory.id,
+            name: newCategory.nome
+        };
+        res.status(201).json(transformedCategory);
     } catch (err) {
         console.error('❌ POST /api/products/categories/add: Erro ao adicionar categoria:', err.message);
         res.status(500).json({ message: 'Erro ao adicionar categoria.', error: err.message });
@@ -200,8 +224,13 @@ router.get('/categories', async (req, res) => {
     console.log('📂 GET /api/products/categories: Requisição para listar todas as categorias de produtos.');
     try {
         const categories = await prisma.categoria_produto.findMany();
+        // Transformar o campo 'nome' para 'name' para compatibilidade com o frontend
+        const transformedCategories = categories.map(cat => ({
+            id: cat.id,
+            name: cat.nome
+        }));
         console.log(`✅ GET /api/products/categories: Categorias listadas com sucesso (${categories.length} encontradas).`);
-        res.status(200).json(categories);
+        res.status(200).json(transformedCategories);
     } catch (err) {
         console.error('❌ GET /api/products/categories: Erro ao buscar categorias:', err.message);
         res.status(500).json({ message: 'Erro ao buscar categorias.', error: err.message });

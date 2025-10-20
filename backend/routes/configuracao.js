@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   console.log('🔑 [GET /api/store-config] Headers recebidos:', req.headers);
   console.log('🔐 [GET /api/store-config] Authorization header:', req.headers.authorization);
   console.log('🔧 [GET /api/store-config] Verificando instância do prisma:', !!prisma);
-  console.log('🔧 [GET /api/store-config] Verificando modelo storeconfig:', !!prisma.storeconfig);
+  console.log('🔧 [GET /api/store-config] Verificando modelo configuracao_loja:', !!prisma.configuracao_loja);
   
   try {
     console.log('📋 [GET /api/store-config] Procurando configuração existente no banco...');

@@ -38,11 +38,27 @@ const Login: React.FC = () => {
 
     try {
       await login(formData.email, formData.password);
-      if (user?.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+      
+      // Aguardar um pouco para o contexto ser atualizado
+      setTimeout(() => {
+        // Verificar o usuário do localStorage após o login
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          console.log('🔍 [Login] Usuário após login:', userData);
+          
+          if (userData.funcao === 'admin' || userData.funcao === 'master') {
+            console.log('✅ [Login] Usuário admin detectado, redirecionando para /admin');
+            navigate('/admin');
+          } else {
+            console.log('ℹ️ [Login] Usuário comum, redirecionando para /');
+            navigate('/');
+          }
+        } else {
+          console.log('❌ [Login] Nenhum usuário encontrado no localStorage');
+          navigate('/');
+        }
+      }, 100);
     } catch (err: any) {
       setError(err.message);
     }

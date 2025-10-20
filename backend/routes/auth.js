@@ -8,32 +8,51 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const authenticateToken = async (req, res, next) => {
+    console.log('🔗 [Auth Route: authenticateToken] Verificando token de autenticação...');
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
+    
     if (!token) {
+        console.warn('⚠️ [Auth Route: authenticateToken] Token não fornecido. Acesso negado.');
         return res.status(401).json({ message: 'Token não fornecido.' });
     }
+    
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const user = await prisma.usuario.findUnique({
             where: { id: decoded.id },
-            select: { id: true, funcao: true }
+            select: { id: true, funcao: true, nomeUsuario: true }
         });
+        
         if (!user) {
+            console.error('❌ [Auth Route: authenticateToken] Usuário não encontrado para o token fornecido.');
             return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
+        
         req.user = user;
+        console.log(`✅ [Auth Route: authenticateToken] Autenticação bem-sucedida para o usuário ID: ${req.user.id}, Nome: ${req.user.nomeUsuario}, Função: ${req.user.funcao}`);
         next();
     } catch (err) {
+        console.error('🚫 [Auth Route: authenticateToken] Token inválido:', err.message);
         return res.status(403).json({ message: 'Token inválido.' });
     }
 };
 
 const authorize = (role) => {
     return (req, res, next) => {
+        console.log(`🔗 [Auth Route: authorize] Verificando se o usuário tem o papel '${role}'.`);
+        console.log(`🔗 [Auth Route: authorize] Usuário atual:`, {
+            id: req.user?.id,
+            username: req.user?.nomeUsuario,
+            role: req.user?.funcao
+        });
+        
         if (!req.user || req.user.funcao !== role) {
-            return res.status(403).json({ message: 'Acesso negado.' });
+            console.warn(`🚫 [Auth Route: authorize] Acesso negado. Papel necessário: '${role}', Papel do usuário: '${req.user ? req.user.funcao : 'não autenticado'}'`);
+            return res.status(403).json({ message: 'Acesso negado: você não tem permissão para realizar esta ação.' });
         }
+        
+        console.log(`✅ [Auth Route: authorize] Autorização bem-sucedida para o papel '${role}'.`);
         next();
     };
 };

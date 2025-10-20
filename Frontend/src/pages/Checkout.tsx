@@ -76,14 +76,14 @@ const Checkout: React.FC = () => {
   useEffect(() => {
     if (user && deliveryType === 'delivery') {
       // Verificar se o usuário não tem endereço
-      if (!user.address || user.address.length === 0) {
+      if (!user.enderecos || user.enderecos.length === 0) {
         console.log('Usuário não tem endereço, redirecionando para AddAddress');
         navigate('/add-address');
         return;
       }
       
       // Verificar se o usuário não tem telefone
-      if (!user.phone || user.phone.trim() === '') {
+      if (!user.telefone || user.telefone.trim() === '') {
         console.log('Usuário não tem telefone, redirecionando para AddPhone');
         navigate('/add-phone');
         return;
@@ -132,7 +132,7 @@ const Checkout: React.FC = () => {
       await apiService.createOrder({
         items,
         paymentMethod, // <-- este campo é obrigatório!
-        addressId: deliveryType === 'delivery' ? user.address?.[0]?.id : undefined,
+        addressId: deliveryType === 'delivery' ? user.enderecos?.[0]?.id : undefined,
         deliveryType,
         deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
       });

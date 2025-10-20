@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 import Dashboard from './Dashboard';
 import Pedidos from './Pedidos';
 import Produtos from './Produtos';
@@ -24,18 +26,49 @@ const pages = [
 ];
 
 const Admin: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [user, setUser] = useState<User[]>([]); // Simulação de usuário logado
+  const [users, setUsers] = useState<User[]>([]); // Lista de usuários
   const [orders, setOrders] = useState<Order[]>([]); // Estado para pedidos
   
   // Estados do modal de seleção de entregador
   const [showDelivererModal, setShowDelivererModal] = useState(false);
   const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<Order | null>(null);
+
+  // Verificar se o usuário tem permissão de admin
+  useEffect(() => {
+    if (!user) {
+      console.log('❌ [Admin] Usuário não autenticado, redirecionando para login...');
+      navigate('/login');
+      return;
+    }
+    
+    if (user.funcao !== 'admin' && user.funcao !== 'master') {
+      console.log(`❌ [Admin] Usuário não tem permissão de admin. Função atual: ${user.funcao}, redirecionando...`);
+      navigate('/');
+      return;
+    }
+    
+    console.log(`✅ [Admin] Usuário autenticado com permissão de admin: ${user.nomeUsuario} (${user.funcao})`);
+  }, [user, navigate]);
+
+  // Se não há usuário ou não tem permissão, não renderizar nada
+  if (!user || (user.funcao !== 'admin' && user.funcao !== 'master')) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (activePage === 'produtos') {
@@ -45,13 +78,15 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     apiService.getCategories().then(setCategories);
-  }, []); // Busca as categorias quando o componente Admin é montado
+    // Carregar produtos iniciais também
+    apiService.getProducts().then(setProducts);
+  }, []); // Busca as categorias e produtos quando o componente Admin é montado
 
   useEffect(() => {
-  if (activePage === 'clientes') {
-    apiService.getUsers().then(setUser);
-  }
-}, [activePage]);
+    if (activePage === 'clientes') {
+      apiService.getUsers().then(setUsers);
+    }
+  }, [activePage]);
 
 useEffect(() => {
   if (activePage === 'pedidos') {
@@ -62,13 +97,15 @@ useEffect(() => {
   const handleAddProduct = async (data: any) => {
     await apiService.createProduct(data);
     setShowAddModal(false);
+    // Recarregar produtos e categorias após adicionar
+    setProducts(await apiService.getProducts());
+    setCategories(await apiService.getCategories());
   };
 
   const handleAddCategory = async (name: string) => {
     await apiService.addCategory(name);
     setShowAddCategoryModal(false);
     setCategories(await apiService.getCategories());
-    // Se quiser atualizar a lista de categorias, chame a função que busca as categorias aqui
   };
 
   const handleEdit = (product: Product) => setEditProduct(product);
@@ -76,6 +113,8 @@ useEffect(() => {
   const handleUpdateProduct = async (id: number, data: any) => {
     await apiService.updateProduct(id, data);
     setEditProduct(null);
+    // Recarregar produtos após atualizar
+    setProducts(await apiService.getProducts());
   };
 
   const handleDelete = async (id: number) => {
@@ -164,7 +203,13 @@ const handleDelivererSelected = async (delivererId: number) => {
           ))}
         </nav>
         <div className="p-4 border-t border-slate-700">
-          <button className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-red-400 hover:bg-red-900/50 w-full">
+          <button 
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-red-400 hover:bg-red-900/50 w-full"
+          >
             <LogOut />
             <span className="font-medium">Sair</span>
           </button>
@@ -202,7 +247,7 @@ const handleDelivererSelected = async (delivererId: number) => {
         {activePage === 'complementos' && <Complementos />}
 
         {/* Clientes */}
-        {activePage === 'clientes' && <Clientes user={user} />}
+        {activePage === 'clientes' && <Clientes user={users} />}
 
         {/* Entregadores */}
         {activePage === 'entregadores' && <Entregadores />}

@@ -115,10 +115,10 @@ const Header: React.FC = () => {
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700 transition-colors">
-                      {user.username}
+                      {user.nomeUsuario}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {user.role === 'admin' ? 'Administrador' : 'Cliente'}
+                      {user.funcao === 'admin' ? 'Administrador' : 'Cliente'}
                     </span>
                   </div>
                 </button>
@@ -126,7 +126,7 @@ const Header: React.FC = () => {
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in slide-in-from-top-2 duration-200">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-800">{user.username}</p>
+                      <p className="text-sm font-semibold text-gray-800">{user.nomeUsuario}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                     
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
                       <span>Meus Pedidos</span>
                     </Link>
                     
-                    {user.role === 'admin' && (
+                    {user.funcao === 'admin' && (
                       <Link
                         to="/admin"
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200"
@@ -247,7 +247,7 @@ const Header: React.FC = () => {
                     <div>
                       <p className="font-semibold text-gray-800 text-sm">{user.username}</p>
                       <p className="text-xs text-gray-500">
-                        {user.role === 'admin' ? 'Administrador' : 'Cliente'}
+                        {user.funcao === 'admin' ? 'Administrador' : 'Cliente'}
                       </p>
                     </div>
                   </div>
@@ -259,7 +259,7 @@ const Header: React.FC = () => {
                     Meus Pedidos
                   </MobileNavLink>
                   
-                  {user.role === 'admin' && (
+                  {user.funcao === 'admin' && (
                     <MobileNavLink to="/admin" icon={<Package size={18} />} onClick={() => setIsMenuOpen(false)}>
                       Dashboard Admin
                     </MobileNavLink>

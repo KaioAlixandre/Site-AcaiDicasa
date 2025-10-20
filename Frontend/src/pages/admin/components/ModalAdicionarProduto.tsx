@@ -31,10 +31,10 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('name', form.name);
-    formData.append('price', form.price);
-    formData.append('categoryId', form.categoryId);
-    formData.append('description', form.description);
+    formData.append('nome', form.name);
+    formData.append('preco', form.price);
+    formData.append('categoriaId', form.categoryId);
+    formData.append('descricao', form.description);
     formData.append('isActive', String(form.isActive));
     if (form.image) formData.append('image', form.image);
 

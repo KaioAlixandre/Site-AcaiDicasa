@@ -31,7 +31,7 @@ const AddAddress: React.FC = () => {
     setLoading(false);
   };
 
-  console.log('user.address:', user?.address);
+  console.log('user.enderecos:', user?.enderecos);
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow">

@@ -1,12 +1,11 @@
 // User related types
 export interface User {
   id: number;
-  username: string;
+  nomeUsuario: string;
   email: string;
-  phone?: string;
-  role: 'user' | 'admin' | 'master';
-  createdAt: string;
-  address?: Address[];
+  telefone?: string;
+  funcao: 'user' | 'admin' | 'master';
+  enderecos?: Address[];
   order?: {
     id: number;
     totalPrice: number;
@@ -158,7 +157,7 @@ export interface Review {
 }
 
 // Enums
-export type Role = 'user' | 'admin' | 'master';
+export type Funcao = 'user' | 'admin' | 'master';
 export type OrderStatus = 'pending_payment' | 'being_prepared' | 'ready_for_pickup' | 'on_the_way' | 'delivered' | 'canceled';
 export type PaymentMethod = 'CREDIT_CARD' | 'PIX' | 'CASH_ON_DELIVERY';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';

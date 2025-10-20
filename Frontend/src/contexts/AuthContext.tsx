@@ -45,18 +45,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('🔐 [AuthContext] Iniciando login para:', email);
+      
       const response = await apiService.login({ email, password });
+      console.log('✅ [AuthContext] Login response:', response);
       
       // Salvar token no localStorage ANTES de fazer outras requisições
       localStorage.setItem('token', response.token);
       setToken(response.token);
+      console.log('🔑 [AuthContext] Token salvo no localStorage');
       
       // Carregar perfil completo com endereços
       const userProfile = await apiService.getProfile();
-      setUser(userProfile);
+      console.log('👤 [AuthContext] Perfil carregado:', userProfile);
       
+      setUser(userProfile);
       localStorage.setItem('user', JSON.stringify(userProfile));
+      console.log('💾 [AuthContext] Usuário salvo no localStorage');
     } catch (error: any) {
+      console.error('❌ [AuthContext] Erro no login:', error);
       throw new Error(error.response?.data?.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);

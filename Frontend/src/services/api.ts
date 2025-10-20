@@ -158,7 +158,7 @@ class ApiService {
   }
 
   async addCategory(name: string): Promise<ProductCategory> {
-    const response: AxiosResponse<ProductCategory> = await this.api.post('/products/categories/add', { name });
+    const response: AxiosResponse<ProductCategory> = await this.api.post('/products/categories/add', { nome: name });
     return response.data;
   }
 
@@ -308,12 +308,21 @@ async getDeliverers() {
 }
 
 async createDeliverer(data: { name: string; phone: string; email?: string }) {
-  const response = await this.api.post('/deliverers', data);
+  const response = await this.api.post('/deliverers', { 
+    nome: data.name, 
+    telefone: data.phone, 
+    email: data.email 
+  });
   return response.data;
 }
 
 async updateDeliverer(id: number, data: { name: string; phone: string; email?: string; isActive?: boolean }) {
-  const response = await this.api.put(`/deliverers/${id}`, data);
+  const response = await this.api.put(`/deliverers/${id}`, { 
+    nome: data.name, 
+    telefone: data.phone, 
+    email: data.email,
+    isActive: data.isActive 
+  });
   return response.data;
 }
 
@@ -339,12 +348,19 @@ async toggleDelivererStatus(id: number) {
   }
 
   async createComplement(data: { name: string; isActive: boolean }): Promise<any> {
-    const response = await this.api.post('/complements', data);
+    const response = await this.api.post('/complements', { 
+      nome: data.name, 
+      ativo: data.isActive 
+    });
     return response.data;
   }
 
   async updateComplement(id: number, data: { name?: string; isActive?: boolean }): Promise<any> {
-    const response = await this.api.put(`/complements/${id}`, data);
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.nome = data.name;
+    if (data.isActive !== undefined) updateData.ativo = data.isActive;
+    
+    const response = await this.api.put(`/complements/${id}`, updateData);
     return response.data;
   }
 
