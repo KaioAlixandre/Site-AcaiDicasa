@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 
 // Função auxiliar para obter início e fim do dia
 function getStartAndEndOfDay(date = new Date()) {
@@ -40,9 +40,9 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
 
     console.log('[Dashboard] Buscando faturamento do dia...');
     // 1. Faturamento do dia
-    const dailyRevenue = await prisma.order.aggregate({
+    const dailyRevenue = await prisma.pedido.aggregate({
       where: {
-        createdAt: {
+        criadoEm: {
           gte: dayStart,
           lte: dayEnd
         },
@@ -51,14 +51,14 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
         }
       },
       _sum: {
-        totalPrice: true
+        precoTotal: true
       }
     });
 
     // 2. Número de vendas do dia
-    const dailySales = await prisma.order.count({
+    const dailySales = await prisma.pedido.count({
       where: {
-        createdAt: {
+        criadoEm: {
           gte: dayStart,
           lte: dayEnd
         },
@@ -70,13 +70,13 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
 
     // 3. Ticket médio do dia
     const dailyTicketAverage = dailySales > 0 ? 
-      (parseFloat(dailyRevenue._sum.totalPrice || 0) / dailySales).toFixed(2) : 0;
+      (parseFloat(dailyRevenue._sum.precoTotal || 0) / dailySales).toFixed(2) : 0;
 
     // 4. Vendas da semana (por dia)
-    const weeklyStats = await prisma.order.groupBy({
-      by: ['createdAt'],
+    const weeklyStats = await prisma.pedido.groupBy({
+      by: ['criadoEm'],
       where: {
-        createdAt: {
+        criadoEm: {
           gte: weekStart,
           lte: weekEnd
         },
@@ -85,7 +85,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
         }
       },
       _sum: {
-        totalPrice: true
+        precoTotal: true
       },
       _count: {
         id: true
@@ -93,11 +93,11 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     });
 
     // 5. Produtos mais vendidos
-    const topProducts = await prisma.orderitem.groupBy({
-      by: ['productId'],
+    const topProducts = await prisma.item_pedido.groupBy({
+      by: ['produtoId'],
       where: {
-        order: {
-          createdAt: {
+        pedido: {
+          criadoEm: {
             gte: weekStart,
             lte: weekEnd
           },
@@ -107,14 +107,14 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
         }
       },
       _sum: {
-        quantity: true
+        quantidade: true
       },
       _count: {
-        productId: true
+        produtoId: true
       },
       orderBy: {
         _sum: {
-          quantity: 'desc'
+          quantidade: 'desc'
         }
       },
       take: 5
@@ -123,22 +123,22 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     // Buscar detalhes dos produtos mais vendidos
     const topProductsWithDetails = await Promise.all(
       topProducts.map(async (item) => {
-        const product = await prisma.product.findUnique({
-          where: { id: item.productId },
-          select: { id: true, name: true, price: true }
+        const product = await prisma.produto.findUnique({
+          where: { id: item.produtoId },
+          select: { id: true, nome: true, preco: true }
         });
         return {
           ...product,
-          quantitySold: item._sum.quantity,
-          orderCount: item._count.productId
+          quantitySold: item._sum.quantidade,
+          orderCount: item._count.produtoId
         };
       })
     );
 
     // 6. Faturamento da semana
-    const weeklyRevenue = await prisma.order.aggregate({
+    const weeklyRevenue = await prisma.pedido.aggregate({
       where: {
-        createdAt: {
+        criadoEm: {
           gte: weekStart,
           lte: weekEnd
         },
@@ -147,12 +147,12 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
         }
       },
       _sum: {
-        totalPrice: true
+        precoTotal: true
       }
     });
 
     // 7. Total de pedidos pendentes
-    const pendingOrders = await prisma.order.count({
+    const pendingOrders = await prisma.pedido.count({
       where: {
         status: {
           in: ['pending_payment', 'being_prepared', 'ready_for_pickup', 'on_the_way']
@@ -161,10 +161,10 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     });
 
     // 8. Status dos pedidos de hoje
-    const todayOrdersStatus = await prisma.order.groupBy({
+    const todayOrdersStatus = await prisma.pedido.groupBy({
       by: ['status'],
       where: {
-        createdAt: {
+        criadoEm: {
           gte: dayStart,
           lte: dayEnd
         }
@@ -179,9 +179,9 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     yesterday.setDate(yesterday.getDate() - 1);
     const { start: yesterdayStart, end: yesterdayEnd } = getStartAndEndOfDay(yesterday);
 
-    const yesterdayRevenue = await prisma.order.aggregate({
+    const yesterdayRevenue = await prisma.pedido.aggregate({
       where: {
-        createdAt: {
+        criadoEm: {
           gte: yesterdayStart,
           lte: yesterdayEnd
         },
@@ -190,13 +190,13 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
         }
       },
       _sum: {
-        totalPrice: true
+        precoTotal: true
       }
     });
 
-    const yesterdayOrders = await prisma.order.count({
+    const yesterdayOrders = await prisma.pedido.count({
       where: {
-        createdAt: {
+        criadoEm: {
           gte: yesterdayStart,
           lte: yesterdayEnd
         },
@@ -207,8 +207,8 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     });
 
     // Calcular variações percentuais
-    const revenueChange = yesterdayRevenue._sum.totalPrice ? 
-      (((parseFloat(dailyRevenue._sum.totalPrice || 0) - parseFloat(yesterdayRevenue._sum.totalPrice || 0)) / parseFloat(yesterdayRevenue._sum.totalPrice || 0)) * 100).toFixed(1) : 0;
+    const revenueChange = yesterdayRevenue._sum.precoTotal ? 
+      (((parseFloat(dailyRevenue._sum.precoTotal || 0) - parseFloat(yesterdayRevenue._sum.precoTotal || 0)) / parseFloat(yesterdayRevenue._sum.precoTotal || 0)) * 100).toFixed(1) : 0;
     
     const ordersChange = yesterdayOrders ? 
       (((dailySales - yesterdayOrders) / yesterdayOrders) * 100).toFixed(1) : 0;
@@ -222,9 +222,9 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
       currentDay.setDate(weekStart.getDate() + i);
       const { start: dayStart, end: dayEnd } = getStartAndEndOfDay(currentDay);
       
-      const dayStats = await prisma.order.aggregate({
+      const dayStats = await prisma.pedido.aggregate({
         where: {
-          createdAt: {
+          criadoEm: {
             gte: dayStart,
             lte: dayEnd
           },
@@ -233,7 +233,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
           }
         },
         _sum: {
-          totalPrice: true
+          precoTotal: true
         },
         _count: {
           id: true
@@ -242,7 +242,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
       
       weeklyData.push({
         day: daysOfWeek[i],
-        revenue: parseFloat(dayStats._sum.totalPrice || 0),
+        revenue: parseFloat(dayStats._sum.precoTotal || 0),
         orders: dayStats._count.id || 0,
         date: currentDay.toISOString().split('T')[0]
       });
@@ -250,14 +250,14 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
 
     res.json({
       daily: {
-        revenue: parseFloat(dailyRevenue._sum.totalPrice || 0),
+        revenue: parseFloat(dailyRevenue._sum.precoTotal || 0),
         sales: dailySales,
         ticketAverage: parseFloat(dailyTicketAverage),
         revenueChange: parseFloat(revenueChange),
         ordersChange: parseFloat(ordersChange)
       },
       weekly: {
-        revenue: parseFloat(weeklyRevenue._sum.totalPrice || 0),
+        revenue: parseFloat(weeklyRevenue._sum.precoTotal || 0),
         data: weeklyData
       },
       topProducts: topProductsWithDetails,
@@ -293,9 +293,9 @@ router.get('/sales-history', authenticateToken, authorize('admin'), async (req, 
       currentDay.setDate(thirtyDaysAgo.getDate() + i);
       const { start: dayStart, end: dayEnd } = getStartAndEndOfDay(currentDay);
       
-      const dayStats = await prisma.order.aggregate({
+      const dayStats = await prisma.pedido.aggregate({
         where: {
-          createdAt: {
+          criadoEm: {
             gte: dayStart,
             lte: dayEnd
           },
@@ -304,7 +304,7 @@ router.get('/sales-history', authenticateToken, authorize('admin'), async (req, 
           }
         },
         _sum: {
-          totalPrice: true
+          precoTotal: true
         },
         _count: {
           id: true
@@ -313,7 +313,7 @@ router.get('/sales-history', authenticateToken, authorize('admin'), async (req, 
       
       salesHistory.push({
         date: currentDay.toISOString().split('T')[0],
-        revenue: parseFloat(dayStats._sum.totalPrice || 0),
+        revenue: parseFloat(dayStats._sum.precoTotal || 0),
         orders: dayStats._count.id || 0
       });
     }

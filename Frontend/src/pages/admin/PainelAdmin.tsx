@@ -7,11 +7,11 @@ import { Product, ProductCategory, User, Order } from '../../types';
 import Dashboard from './Dashboard';
 import Pedidos from './Pedidos';
 import Produtos from './Produtos';
-import Clientes from './Cliente';
+import Clientes from './Clientes';
 import Configuracoes from './Configuracoes';
 import Entregadores from './Entregadores';
 import Complementos from './Complementos';
-import DelivererSelectionModal from './components/DelivererSelectionModal';
+import ModalSelecaoEntregador from './components/ModalSelecaoEntregador';
 
 const pages = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
@@ -212,7 +212,7 @@ const handleDelivererSelected = async (delivererId: number) => {
       </main>
 
       {/* Modal de Seleção de Entregador */}
-      <DelivererSelectionModal
+      <ModalSelecaoEntregador
         isOpen={showDelivererModal}
         onClose={() => setShowDelivererModal(false)}
         onSelect={handleDelivererSelected}

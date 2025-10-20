@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -8,18 +9,18 @@ const app = express();
 const PORT = 3001;
 
 // Importar as rotas organizadas (principais)
-const authRoutes = require('./routes/authRoutes'); // Ajustado para importar o diretório
-const productRoutes = require('./routes/productRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const delivererRoutes = require('./routes/delivererRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
+const authRoutes = require('./routes/auth'); // Ajustado para importar o diretório
+const productRoutes = require('./routes/produtos');
+const orderRoutes = require('./routes/pedidos');
+const delivererRoutes = require('./routes/deliverer');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Rotas ainda não organizadas
-const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
-const insightsRoutes = require('./routes/insithsRoutes'); // TODO: Organizar
-const storeConfigRoutes = require('./routes/storeConfigRoutes'); // TODO: Organizar
-const complementsRoutes = require('./routes/complementsRoutes'); // TODO: Organizar
-const passwordResetRoutes = require('./routes/passwordResetRoutes');
+const cartRoutes = require('./routes/carrinho'); // TODO: Organizar
+const insightsRoutes = require('./routes/insiths'); // TODO: Organizar
+const storeConfigRoutes = require('./routes/configuracao'); // TODO: Organizar
+const complementsRoutes = require('./routes/complementos'); // TODO: Organizar
+const passwordResetRoutes = require('./routes/passwordReset');
 
 // Middlewares
 app.use(cors());
@@ -51,7 +52,7 @@ connectDB().then(() => {
     app.use('/api/complements', complementsRoutes);
     
     // Rota de debug temporária
-    const debugRoutes = require('./routes/debugRoutes');
+    const debugRoutes = require('./routes/debug');
     app.use('/api', debugRoutes);
     
     // Servir arquivos estáticos da pasta uploads

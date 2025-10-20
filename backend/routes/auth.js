@@ -15,9 +15,9 @@ const authenticateToken = async (req, res, next) => {
     }
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await prisma.user.findUnique({
+        const user = await prisma.usuario.findUnique({
             where: { id: decoded.id },
-            select: { id: true, role: true }
+            select: { id: true, funcao: true }
         });
         if (!user) {
             return res.status(404).json({ message: 'Usuário não encontrado.' });
@@ -31,7 +31,7 @@ const authenticateToken = async (req, res, next) => {
 
 const authorize = (role) => {
     return (req, res, next) => {
-        if (!req.user || req.user.role !== role) {
+        if (!req.user || req.user.funcao !== role) {
             return res.status(403).json({ message: 'Acesso negado.' });
         }
         next();
@@ -43,14 +43,14 @@ router.post('/login', async (req, res) => {
     console.log(`🔐 [POST /auth/login] Tentativa de login para email: ${email}`);
     
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        const user = await prisma.usuario.findUnique({ where: { email } });
+        if (!user || !(await bcrypt.compare(password, user.senha))) {
             console.warn(`⚠️ [POST /auth/login] Credenciais inválidas para email: ${email}`);
             return res.status(400).json({ message: 'Credenciais inválidas.' });
         }
-        const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-        console.log(`✅ [POST /auth/login] Login realizado com sucesso para usuário: ${user.username} (ID: ${user.id})`);
-        res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+        const token = jwt.sign({ id: user.id, role: user.funcao }, JWT_SECRET, { expiresIn: '1h' });
+        console.log(`✅ [POST /auth/login] Login realizado com sucesso para usuário: ${user.nomeUsuario} (ID: ${user.id})`);
+        res.json({ token, user: { id: user.id, username: user.nomeUsuario, role: user.funcao } });
     } catch (err) {
         console.error('❌ [POST /auth/login] Erro interno ao fazer login:', err);
         res.status(500).json({ message: 'Erro ao fazer login.' });
@@ -62,14 +62,14 @@ router.post('/register', async (req, res) => {
     console.log(`👤 [POST /auth/register] Tentativa de registro para usuário: ${username}, email: ${email}`);
     
     try {
-        const existingUser = await prisma.user.findUnique({ where: { email } });
+        const existingUser = await prisma.usuario.findUnique({ where: { email } });
         if (existingUser) {
             console.warn(`⚠️ [POST /auth/register] Email já existe: ${email}`);
             return res.status(400).json({ message: 'E-mail já cadastrado.' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await prisma.user.create({
-            data: { username, email, password: hashedPassword }
+        const newUser = await prisma.usuario.create({
+            data: { nomeUsuario: username, email, senha: hashedPassword }
         });
         console.log(`✅ [POST /auth/register] Usuário cadastrado com sucesso: ${username} (ID: ${newUser.id})`);
         res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
@@ -83,30 +83,30 @@ router.get('/profile', authenticateToken, async (req, res) => {
     console.log(`👤 [GET /auth/profile] Buscando perfil do usuário ID: ${req.user.id}`);
     
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prisma.usuario.findUnique({
             where: { id: req.user.id },
             select: {
                 id: true,
-                username: true,
+                nomeUsuario: true,
                 email: true,
-                role: true,
-                phone: true,
-                address: {
+                funcao: true,
+                telefone: true,
+                enderecos: {
                     select: {
                         id: true,
-                        street: true,
-                        number: true,
-                        complement: true,
-                        neighborhood: true,
-                        isDefault: true
+                        rua: true,
+                        numero: true,
+                        complemento: true,
+                        bairro: true,
+                        padrao: true
                     },
                     orderBy: {
-                        isDefault: 'desc'
+                        padrao: 'desc'
                     }
                 }
             }
         });
-        console.log(`✅ [GET /auth/profile] Perfil encontrado para usuário: ${user.username}`);
+        console.log(`✅ [GET /auth/profile] Perfil encontrado para usuário: ${user.nomeUsuario}`);
         res.json(user);
     } catch (err) {
         console.error('❌ [GET /auth/profile] Erro interno ao buscar perfil:', err);
@@ -118,20 +118,20 @@ router.get('/users', authenticateToken, authorize('admin'), async (req, res) => 
     console.log(`👥 [GET /auth/users] Admin ${req.user.id} solicitando lista de usuários`);
     
     try {
-        const users = await prisma.user.findMany({
+        const users = await prisma.usuario.findMany({
             select: {
                 id: true,
-                username: true,
+                nomeUsuario: true,
                 email: true,
-                role: true,
-                phone: true,
-                createdAt: true,
-                order: {
+                funcao: true,
+                telefone: true,
+                criadoEm: true,
+                pedidos: {
                     select: {
                         id: true,
-                        totalPrice: true,
+                        precoTotal: true,
                         status: true,
-                        createdAt: true
+                        criadoEm: true
                     }
                 }
             }
@@ -149,9 +149,9 @@ router.get('/profile/addresses', authenticateToken, async (req, res) => {
     console.log(`🏠 [GET /auth/profile/addresses] Buscando endereços do usuário ID: ${req.user.id}`);
     
     try {
-        const addresses = await prisma.address.findMany({
-            where: { userId: req.user.id },
-            orderBy: { isDefault: 'desc' }
+        const addresses = await prisma.endereco.findMany({
+            where: { usuarioId: req.user.id },
+            orderBy: { padrao: 'desc' }
         });
         console.log(`✅ [GET /auth/profile/addresses] ${addresses.length} endereços encontrados`);
         res.json(addresses);
@@ -176,28 +176,28 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
     try {
         // Se isDefault é verdadeiro, definir outros endereços como não padrão
         if (isDefault) {
-            await prisma.address.updateMany({
-                where: { userId },
-                data: { isDefault: false }
+            await prisma.endereco.updateMany({
+                where: { usuarioId },
+                data: { padrao: false }
             });
         }
 
-        const newAddress = await prisma.address.create({
+        const newAddress = await prisma.endereco.create({
             data: {
-                street,
-                number,
-                complement: complement || null,
-                neighborhood,
-                isDefault: isDefault || false,
-                userId
+                rua: street,
+                numero: number,
+                complemento: complement || null,
+                bairro: neighborhood,
+                padrao: isDefault || false,
+                usuarioId: userId
             }
         });
 
         // Buscar o usuário atualizado com endereços para resposta
-        const updatedUser = await prisma.user.findUnique({
+        const updatedUser = await prisma.usuario.findUnique({
             where: { id: userId },
             include: { 
-                address: true
+                enderecos: true
             }
         });
 
@@ -224,8 +224,8 @@ router.put('/profile/address/:addressId', authenticateToken, async (req, res) =>
 
     try {
         // Verificar se o endereço pertence ao usuário
-        const existingAddress = await prisma.address.findFirst({
-            where: { id: parseInt(addressId), userId }
+        const existingAddress = await prisma.endereco.findFirst({
+            where: { id: parseInt(addressId), usuarioId: userId }
         });
 
         if (!existingAddress) {
@@ -235,20 +235,20 @@ router.put('/profile/address/:addressId', authenticateToken, async (req, res) =>
 
         // Se isDefault é verdadeiro, definir outros endereços como não padrão
         if (isDefault) {
-            await prisma.address.updateMany({
-                where: { userId, id: { not: parseInt(addressId) } },
-                data: { isDefault: false }
+            await prisma.endereco.updateMany({
+                where: { usuarioId: userId, id: { not: parseInt(addressId) } },
+                data: { padrao: false }
             });
         }
 
-        const updatedAddress = await prisma.address.update({
+        const updatedAddress = await prisma.endereco.update({
             where: { id: parseInt(addressId) },
             data: {
-                street,
-                number,
-                complement: complement || null,
-                neighborhood,
-                isDefault: isDefault || false
+                rua: street,
+                numero: number,
+                complemento: complement || null,
+                bairro: neighborhood,
+                padrao: isDefault || false
             }
         });
 
@@ -273,16 +273,16 @@ router.put('/profile/phone', authenticateToken, async (req, res) => {
     }
 
     try {
-        const updatedUser = await prisma.user.update({
+        const updatedUser = await prisma.usuario.update({
             where: { id: userId },
-            data: { phone },
+            data: { telefone: phone },
             select: {
                 id: true,
-                username: true,
+                nomeUsuario: true,
                 email: true,
-                phone: true,
-                role: true,
-                address: true
+                telefone: true,
+                funcao: true,
+                enderecos: true
             }
         });
 
@@ -303,10 +303,10 @@ router.delete('/profile/address/:addressId', authenticateToken, async (req, res)
 
     try {
         // Verificar se o endereço existe e pertence ao usuário
-        const existingAddress = await prisma.address.findFirst({
+        const existingAddress = await prisma.endereco.findFirst({
             where: { 
                 id: parseInt(addressId), 
-                userId 
+                usuarioId: userId 
             }
         });
 
@@ -316,8 +316,8 @@ router.delete('/profile/address/:addressId', authenticateToken, async (req, res)
         }
 
         // Verificar se é o último endereço do usuário
-        const userAddressCount = await prisma.address.count({
-            where: { userId }
+        const userAddressCount = await prisma.endereco.count({
+            where: { usuarioId: userId }
         });
 
         if (userAddressCount === 1) {
@@ -328,31 +328,31 @@ router.delete('/profile/address/:addressId', authenticateToken, async (req, res)
         }
 
         // Excluir o endereço
-        await prisma.address.delete({
+        await prisma.endereco.delete({
             where: { id: parseInt(addressId) }
         });
 
         // Se o endereço excluído era o padrão, definir outro como padrão
-        if (existingAddress.isDefault) {
-            const firstRemainingAddress = await prisma.address.findFirst({
-                where: { userId },
+        if (existingAddress.padrao) {
+            const firstRemainingAddress = await prisma.endereco.findFirst({
+                where: { usuarioId: userId },
                 orderBy: { id: 'asc' }
             });
 
             if (firstRemainingAddress) {
-                await prisma.address.update({
+                await prisma.endereco.update({
                     where: { id: firstRemainingAddress.id },
-                    data: { isDefault: true }
+                    data: { padrao: true }
                 });
                 console.log(`🔄 [DELETE /auth/profile/address] Novo endereço padrão definido: ID ${firstRemainingAddress.id}`);
             }
         }
 
         // Buscar endereços atualizados do usuário
-        const updatedAddresses = await prisma.address.findMany({
-            where: { userId },
+        const updatedAddresses = await prisma.endereco.findMany({
+            where: { usuarioId: userId },
             orderBy: [
-                { isDefault: 'desc' },
+                { padrao: 'desc' },
                 { id: 'asc' }
             ]
         });

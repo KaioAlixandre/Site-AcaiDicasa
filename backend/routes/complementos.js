@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Middlewares de autenticação e autorização
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 
 // 🍓 GET - Listar todos os complementos (apenas ativos por padrão)
 router.get('/', async (req, res) => {
@@ -13,9 +13,9 @@ router.get('/', async (req, res) => {
   try {
     const { includeInactive } = req.query;
     
-    const complements = await prisma.complement.findMany({
-      where: includeInactive === 'true' ? {} : { isActive: true },
-      orderBy: { name: 'asc' }
+    const complements = await prisma.complemento.findMany({
+      where: includeInactive === 'true' ? {} : { ativo: true },
+      orderBy: { nome: 'asc' }
     });
 
     console.log(`✅ Encontrados ${complements.length} complementos`);
@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
   console.log(`🔍 GET /complements/${id} - Buscando complemento específico...`);
   
   try {
-    const complement = await prisma.complement.findUnique({
+    const complement = await prisma.complemento.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -41,7 +41,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Complemento não encontrado' });
     }
 
-    console.log(`✅ Complemento encontrado: ${complement.name}`);
+    console.log(`✅ Complemento encontrado: ${complement.nome}`);
     res.json(complement);
   } catch (error) {
     console.error('❌ Erro ao buscar complemento:', error);
@@ -51,29 +51,29 @@ router.get('/:id', async (req, res) => {
 
 // ➕ POST - Criar novo complemento (APENAS ADMIN)
 router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
-  const { name, isActive = true } = req.body;
+  const { nome, ativo = true } = req.body;
   console.log(`➕ POST /complements - Usuário autenticado:`, {
     id: req.user?.id,
     username: req.user?.username,
     role: req.user?.role
   });
-  console.log(`➕ POST /complements - Criando complemento: ${name}`);
+  console.log(`➕ POST /complements - Criando complemento: ${nome}`);
   
   try {
     // Validação
-    if (!name || name.trim().length === 0) {
+    if (!nome || nome.trim().length === 0) {
       console.log('❌ Nome do complemento é obrigatório');
       return res.status(400).json({ message: 'Nome do complemento é obrigatório' });
     }
 
-    if (name.length > 100) {
+    if (nome.length > 100) {
       console.log('❌ Nome muito longo');
       return res.status(400).json({ message: 'Nome deve ter no máximo 100 caracteres' });
     }
 
     // Verificar se já existe um complemento com o mesmo nome
-    const existingComplement = await prisma.complement.findFirst({
-      where: { name: name.trim() }
+    const existingComplement = await prisma.complemento.findFirst({
+      where: { nome: nome.trim() }
     });
 
     if (existingComplement) {
@@ -82,10 +82,10 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
     }
 
     // Criar o complemento
-    const complement = await prisma.complement.create({
+    const complement = await prisma.complemento.create({
       data: {
-        name: name.trim(),
-        isActive: Boolean(isActive)
+        nome: nome.trim(),
+        ativo: Boolean(ativo)
       }
     });
 
@@ -100,12 +100,12 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
 // ✏️ PUT - Atualizar complemento (APENAS ADMIN)
 router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
   const { id } = req.params;
-  const { name, isActive } = req.body;
+  const { nome, ativo } = req.body;
   console.log(`✏️ PUT /complements/${id} - Admin ${req.user.username} atualizando complemento...`);
   
   try {
     // Verificar se o complemento existe
-    const existingComplement = await prisma.complement.findUnique({
+    const existingComplement = await prisma.complemento.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -117,21 +117,21 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
     // Preparar dados para atualização
     const updateData = {};
 
-    if (name !== undefined) {
-      if (!name || name.trim().length === 0) {
+    if (nome !== undefined) {
+      if (!nome || nome.trim().length === 0) {
         console.log('❌ Nome do complemento não pode estar vazio');
         return res.status(400).json({ message: 'Nome do complemento não pode estar vazio' });
       }
 
-      if (name.length > 100) {
+      if (nome.length > 100) {
         console.log('❌ Nome muito longo');
         return res.status(400).json({ message: 'Nome deve ter no máximo 100 caracteres' });
       }
 
       // Verificar se já existe outro complemento com o mesmo nome
-      const duplicateComplement = await prisma.complement.findFirst({
+      const duplicateComplement = await prisma.complemento.findFirst({
         where: { 
-          name: name.trim(),
+          nome: nome.trim(),
           id: { not: parseInt(id) }
         }
       });
@@ -141,20 +141,20 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
         return res.status(409).json({ message: 'Já existe outro complemento com este nome' });
       }
 
-      updateData.name = name.trim();
+      updateData.nome = nome.trim();
     }
 
-    if (isActive !== undefined) {
-      updateData.isActive = Boolean(isActive);
+    if (ativo !== undefined) {
+      updateData.ativo = Boolean(ativo);
     }
 
     // Atualizar o complemento
-    const complement = await prisma.complement.update({
+    const complement = await prisma.complemento.update({
       where: { id: parseInt(id) },
       data: updateData
     });
 
-    console.log(`✅ Complemento atualizado: ${complement.name}`);
+    console.log(`✅ Complemento atualizado: ${complement.nome}`);
     res.json(complement);
   } catch (error) {
     console.error('❌ Erro ao atualizar complemento:', error);
@@ -169,7 +169,7 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
   
   try {
     // Verificar se o complemento existe
-    const existingComplement = await prisma.complement.findUnique({
+    const existingComplement = await prisma.complemento.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -179,11 +179,11 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
     }
 
     // Deletar o complemento
-    await prisma.complement.delete({
+    await prisma.complemento.delete({
       where: { id: parseInt(id) }
     });
 
-    console.log(`✅ Complemento deletado: ${existingComplement.name}`);
+    console.log(`✅ Complemento deletado: ${existingComplement.nome}`);
     res.json({ message: 'Complemento deletado com sucesso', deletedComplement: existingComplement });
   } catch (error) {
     console.error('❌ Erro ao deletar complemento:', error);
@@ -198,7 +198,7 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
   
   try {
     // Verificar se o complemento existe
-    const existingComplement = await prisma.complement.findUnique({
+    const existingComplement = await prisma.complemento.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -208,13 +208,13 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
     }
 
     // Alternar o status
-    const complement = await prisma.complement.update({
+    const complement = await prisma.complemento.update({
       where: { id: parseInt(id) },
-      data: { isActive: !existingComplement.isActive }
+      data: { ativo: !existingComplement.ativo }
     });
 
-    const status = complement.isActive ? 'ativado' : 'desativado';
-    console.log(`✅ Complemento ${status}: ${complement.name}`);
+    const status = complement.ativo ? 'ativado' : 'desativado';
+    console.log(`✅ Complemento ${status}: ${complement.nome}`);
     res.json({ 
       message: `Complemento ${status} com sucesso`, 
       complement 

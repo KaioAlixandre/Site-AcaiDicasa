@@ -17,9 +17,9 @@ const authenticateToken = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await prisma.user.findUnique({
+        const user = await prisma.usuario.findUnique({
             where: { id: decoded.id },
-            select: { id: true, role: true } // Seleciona apenas o id e o papel
+            select: { id: true, funcao: true } // Seleciona apenas o id e o papel
         });
 
         if (!user) {
@@ -40,8 +40,8 @@ const authenticateToken = async (req, res, next) => {
 const authorize = (role) => {
     return (req, res, next) => {
         console.log(`🔗 [Middleware: authorize] Verificando se o usuário tem o papel '${role}'.`);
-        if (!req.user || req.user.role !== role) {
-            console.warn(`🚫 [Middleware: authorize] Acesso negado. Papel necessário: '${role}', Papel do usuário: '${req.user ? req.user.role : 'não autenticado'}'`);
+        if (!req.user || req.user.funcao !== role) {
+            console.warn(`🚫 [Middleware: authorize] Acesso negado. Papel necessário: '${role}', Papel do usuário: '${req.user ? req.user.funcao : 'não autenticado'}'`);
             return res.status(403).json({ message: 'Acesso negado: você não tem permissão para realizar esta ação.' });
         }
         console.log(`✅ [Middleware: authorize] Autorização bem-sucedida para o papel '${role}'.`);

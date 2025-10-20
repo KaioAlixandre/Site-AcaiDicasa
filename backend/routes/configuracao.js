@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const authModule = require('./authRoutes');
+const authModule = require('./auth');
 const { authenticateToken, authorize } = authModule;
 
 console.log('🚀 [StoreConfigRoutes] Módulo de rotas de configuração da loja carregado');
@@ -17,16 +17,16 @@ router.get('/', async (req, res) => {
   
   try {
     console.log('📋 [GET /api/store-config] Procurando configuração existente no banco...');
-    let config = await prisma.storeconfig.findFirst();
+    let config = await prisma.configuracao_loja.findFirst();
     
     if (!config) {
       console.log('⚠️ [GET /api/store-config] Nenhuma configuração encontrada, criando configuração padrão...');
-      config = await prisma.storeconfig.create({
+      config = await prisma.configuracao_loja.create({
         data: {
-          isOpen: true,
-          openingTime: '08:00',
-          closingTime: '18:00',
-          openDays: '2,3,4,5,6,0'
+          aberto: true,
+          horaAbertura: '08:00',
+          horaFechamento: '18:00',
+          diasAbertos: '2,3,4,5,6,0'
         }
       });
       console.log('✨ [GET /api/store-config] Configuração padrão criada:', config);
@@ -49,12 +49,12 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
   
   // Aceitar tanto os nomes do frontend (openTime/closeTime) quanto do backend (openingTime/closingTime)
   const { 
-    isOpen, 
-    openingTime: backendOpeningTime, 
-    closingTime: backendClosingTime, 
+    aberto, 
+    horaAbertura: backendOpeningTime, 
+    horaFechamento: backendClosingTime, 
     openTime: frontendOpenTime,
     closeTime: frontendCloseTime,
-    openDays 
+    diasAbertos 
   } = req.body;
   
   // Usar os valores do frontend se disponíveis, senão usar os do backend
@@ -62,20 +62,20 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
   const closingTime = frontendCloseTime || backendClosingTime;
   
   console.log('📝 [PUT /api/store-config] Dados extraídos e mapeados:', {
-    isOpen,
+    aberto,
     openingTime,
     closingTime,
-    openDays,
-    'fonte-openingTime': frontendOpenTime ? 'frontend (openTime)' : 'backend (openingTime)',
-    'fonte-closingTime': frontendCloseTime ? 'frontend (closeTime)' : 'backend (closingTime)'
+    diasAbertos,
+    'fonte-openingTime': frontendOpenTime ? 'frontend (openTime)' : 'backend (horaAbertura)',
+    'fonte-closingTime': frontendCloseTime ? 'frontend (closeTime)' : 'backend (horaFechamento)'
   });
   
   try {
     console.log('💾 [PUT /api/store-config] Executando upsert no banco de dados...');
-    const config = await prisma.storeconfig.upsert({
+    const config = await prisma.configuracao_loja.upsert({
       where: { id: 1 },
-      update: { isOpen, openingTime, closingTime, openDays },
-      create: { isOpen, openingTime, closingTime, openDays }
+      update: { aberto, horaAbertura: openingTime, horaFechamento: closingTime, diasAbertos },
+      create: { aberto, horaAbertura: openingTime, horaFechamento: closingTime, diasAbertos }
     });
     
     console.log('✅ [PUT /api/store-config] Configuração atualizada com sucesso:', config);

@@ -19,8 +19,8 @@ const upload = multer({ storage });
 router.get('/', async (req, res) => {
     console.log('📦 GET /api/products: Requisição para listar todos os produtos.');
     try {
-        const products = await prisma.product.findMany({
-            include: { images: true, category: true }
+        const products = await prisma.produto.findMany({
+            include: { imagens_produto: true, categoria: true }
         });
         console.log(products); // Veja no terminal se category está preenchido
         res.json(products);
@@ -32,28 +32,28 @@ router.get('/', async (req, res) => {
 
 // POST /products - Criar novo produto
 router.post('/add', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
-  const { name, price, description, categoryId } = req.body;
-  console.log('Categoria recebida:', categoryId);
+  const { nome, preco, descricao, categoriaId } = req.body;
+  console.log('Categoria recebida:', categoriaId);
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-  console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${name}.`);
+  console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
   console.log('Arquivo recebido:', req.file);
   try {
-        const newProduct = await prisma.product.create({
+        const newProduct = await prisma.produto.create({
             data: {
-                name,
-                price: parseFloat(price),
-                description,
-                categoryId:  parseInt(categoryId),
-                images: imageUrl
+                nome,
+                preco: parseFloat(preco),
+                descricao,
+                categoriaId:  parseInt(categoriaId),
+                imagens_produto: imageUrl
                   ? { create: [{ url: imageUrl }] }
                   : undefined
             },
             include: {
-                images: true,
-                category: true
+                imagens_produto: true,
+                categoria: true
             }
         });
-        console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.name}.`);
+        console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.nome}.`);
         res.status(201).json(newProduct);
     } catch (err) {
         console.error('❌ POST /api/products/add: Erro ao adicionar produto:', err.message);
@@ -66,7 +66,7 @@ router.delete('/delete/:id', authenticateToken, authorize('admin'), async (req, 
     const { id } = req.params;
     console.log(`🗑️ DELETE /api/products/delete/${id}: Requisição para deletar produto.`);
     try {
-        await prisma.product.delete({
+        await prisma.produto.delete({
             where: { id: parseInt(id) }
         });
         console.log(`✅ DELETE /api/products/delete/${id}: Produto ${id} deletado com sucesso.`);

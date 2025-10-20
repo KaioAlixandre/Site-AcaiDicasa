@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Product, ProductCategory } from '../../types';
-import AddProductModal from './components/AddProductModal';
-import EditProductModal from './components/EditProductModal';
-import AddCategoryModal from './components/AddCategoryModal';
+import ModalAdicionarProduto from './components/ModalAdicionarProduto';
+import ModalEditarProduto from './components/ModalEditarProduto';
+import ModalAdicionarCategoria from './components/ModalAdicionarCategoria';
 import Products from '../Products';
 
 const Produtos: React.FC<{
@@ -91,14 +91,14 @@ const Produtos: React.FC<{
       </div>
     </div>
     {showAddModal && (
-      <AddProductModal
+      <ModalAdicionarProduto
         categories={categories}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddProduct}
       />
     )}
     {editProduct && (
-      <EditProductModal
+      <ModalEditarProduto
         categories={categories}
         product={editProduct}
         onClose={() => setEditProduct(null)}
@@ -106,7 +106,7 @@ const Produtos: React.FC<{
       />
     )}
     {showAddCategoryModal && (
-      <AddCategoryModal
+      <ModalAdicionarCategoria
         onClose={() => setShowAddCategoryModal(false)}
         onAdd={handleAddCategory}
       />

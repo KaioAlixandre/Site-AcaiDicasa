@@ -1,0 +1,15 @@
+# Arquivos que devem ser ignorados pelo Cursor
+# Remova ou comente as linhas abaixo para permitir que o Cursor acesse esses arquivos
+
+# Permitir acesso ao arquivo .env do backend
+!backend/.env
+
+# Outros arquivos comumente ignorados (descomente conforme necessário)
+# node_modules/
+# .git/
+# dist/
+# build/
+# .next/
+# .nuxt/
+# .vscode/
+# .idea/

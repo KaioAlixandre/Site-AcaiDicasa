@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification } = require('../services/messageService');
 const axios = require('axios');
 
@@ -31,71 +31,71 @@ async function sendWhatsAppMessageZApi(phone, message) {
 // Rota para criar um pedido a partir do carrinho
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { paymentMethod, deliveryType = 'delivery', deliveryFee = 0 } = req.body;
+    const { paymentMethod, tipoEntrega = 'delivery', taxaEntrega = 0 } = req.body;
     if (!paymentMethod) {
         return res.status(400).json({ message: 'Forma de pagamento não informada.' });
     }
-    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${deliveryType}`);
+    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${tipoEntrega}`);
 
     try {
         // Encontrar o carrinho e o usuário com seus endereços em uma única busca
         const [cart, user] = await Promise.all([
-            prisma.cart.findUnique({
-                where: { userId: userId },
+            prisma.carrinho.findUnique({
+                where: { usuarioId: userId },
                 include: {
-                    cartitem: {
+                    itens: {
                         include: {
-                            product: true
+                            produto: true
                         }
                     }
                 }
             }),
-            prisma.user.findUnique({
+            prisma.usuario.findUnique({
                 where: { id: userId },
                 include: {
-                    address: true
+                    enderecos: true
                 }
             })
         ]);
 
-        if (!cart || cart.cartitem.length === 0) {
+        if (!cart || cart.itens.length === 0) {
             console.warn(`[POST /api/orders] Carrinho do usuário ${userId} está vazio.`);
             return res.status(400).json({ message: 'Carrinho vazio. Adicione itens antes de criar um pedido.' });
         }
 
         // Para entrega, verificar se tem endereço
         let shippingAddress = null;
-        if (deliveryType === 'delivery') {
-            shippingAddress = user.address.find(addr => addr.isDefault) || user.address[0];
+        if (tipoEntrega === 'delivery') {
+            shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
             
             if (!shippingAddress) {
                 console.warn(`[POST /api/orders] Usuário ${userId} não possui endereço de entrega cadastrado.`);
                 return res.status(400).json({
                     message: 'Nenhum endereço de entrega encontrado. Por favor, cadastre um para continuar.',
-                    redirectPath: '/api/auth/profile/address'
+                    redirectPath: '/api/auth/profile/enderecos'
                 });
             }
         }
         
         // Calcular o preço total do pedido (incluindo taxa de entrega)
-        const subtotalPrice = cart.cartitem.reduce((acc, item) => {
+        const subprecoTotal = cart.itens.reduce((acc, item) => {
             // Verificar se é produto personalizado
-            let itemPrice = item.product.price;
-            if (item.selectedOptions) {
-                if (item.selectedOptions.customAcai) {
-                    itemPrice = item.selectedOptions.customAcai.value;
-                } else if (item.selectedOptions.customSorvete) {
-                    itemPrice = item.selectedOptions.customSorvete.value;
-                } else if (item.selectedOptions.customProduct) {
-                    itemPrice = item.selectedOptions.customProduct.value;
+            let itemPrice = item.produto.preco;
+            if (item.opcoesSelecionadas) {
+                if (item.opcoesSelecionadas.customAcai) {
+                    itemPrice = item.opcoesSelecionadas.customAcai.value;
+                } else if (item.opcoesSelecionadas.customSorvete) {
+                    itemPrice = item.opcoesSelecionadas.customSorvete.value;
+                } else if (item.opcoesSelecionadas.customProduct) {
+                    itemPrice = item.opcoesSelecionadas.customProduct.value;
                 }
             }
-            return acc + (item.quantity * itemPrice);
+            return acc + (item.quantidade * itemPrice);
         }, 0);
         
-        const totalPrice = subtotalPrice + (deliveryType === 'delivery' ? deliveryFee : 0);
+        const precoTotal = subprecoTotal + (tipoEntrega === 'delivery' ? taxaEntrega : 0);
 
-        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${totalPrice.toFixed(2)} (${deliveryType}).`);
+        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${precoTotal.toFixed(2)} (${tipoEntrega}).`);
 
         // Iniciar uma transação para garantir que tudo seja feito ou nada seja feito
         const newOrder = await prisma.$transaction(async (tx) => {
@@ -103,51 +103,51 @@ router.post('/', authenticateToken, async (req, res) => {
             // Se for cartão de crédito ou dinheiro na entrega, já inicia como "being_prepared", senão "pending_payment"
             const initialStatus = (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') ? 'being_prepared' : 'pending_payment';
             
-            const order = await tx.order.create({
+            const order = await tx.pedido.create({
                 data: {
-                    userId: userId,
-                    totalPrice: totalPrice,
+                    usuarioId: userId,
+                    precoTotal: precoTotal,
                     status: initialStatus,
-                    deliveryType: deliveryType,
-                    deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
-                    updatedAt: new Date(),
-                    shippingStreet: shippingAddress?.street || null,
-                    shippingNumber: shippingAddress?.number || null,
-                    shippingComplement: shippingAddress?.complement || null,
-                    shippingNeighborhood: shippingAddress?.neighborhood || null,
-                    orderitem: {
+                    tipoEntrega: tipoEntrega,
+                    taxaEntrega: tipoEntrega === 'delivery' ? taxaEntrega : 0,
+                    atualizadoEm: new Date(),
+                    ruaEntrega: shippingAddress?.rua || null,
+                    numeroEntrega: shippingAddress?.numero || null,
+                    complementoEntrega: shippingAddress?.complemento || null,
+                    bairroEntrega: shippingAddress?.bairro || null,
+                    itens_pedido: {
                         createMany: {
-                            data: cart.cartitem.map(item => {
+                            data: cart.itens.map(item => {
                                 // Verificar se é produto personalizado
-                                let itemPrice = item.product.price;
-                                if (item.selectedOptions) {
-                                    if (item.selectedOptions.customAcai) {
-                                        itemPrice = item.selectedOptions.customAcai.value;
-                                    } else if (item.selectedOptions.customSorvete) {
-                                        itemPrice = item.selectedOptions.customSorvete.value;
-                                    } else if (item.selectedOptions.customProduct) {
-                                        itemPrice = item.selectedOptions.customProduct.value;
+                                let itemPrice = item.produto.preco;
+                                if (item.opcoesSelecionadas) {
+                                    if (item.opcoesSelecionadas.customAcai) {
+                                        itemPrice = item.opcoesSelecionadas.customAcai.value;
+                                    } else if (item.opcoesSelecionadas.customSorvete) {
+                                        itemPrice = item.opcoesSelecionadas.customSorvete.value;
+                                    } else if (item.opcoesSelecionadas.customProduct) {
+                                        itemPrice = item.opcoesSelecionadas.customProduct.value;
                                     }
                                 }
                                 
                                 return {
-                                    productId: item.productId,
-                                    quantity: item.quantity,
-                                    priceAtOrder: itemPrice,
-                                    selectedOptionsSnapshot: item.selectedOptions
+                                    produtoId: item.produtoId,
+                                    quantidade: item.quantidade,
+                                    precoNoPedido: itemPrice,
+                                    opcoesSelecionadasSnapshot: item.opcoesSelecionadas
                                 };
                             })
                         }
                     }
                 },
                 include: {
-                    orderitem: true
+                    itens_pedido: true
                 }
             });
 
             // 2. Esvaziar o carrinho do usuário
-            await tx.cartitem.deleteMany({
-                where: { cartId: cart.id }
+            await tx.item_carrinho.deleteMany({
+                where: { carrinhoId: cart.id }
             });
 
             return order;
@@ -156,17 +156,17 @@ router.post('/', authenticateToken, async (req, res) => {
         console.log(`[POST /api/orders] Pedido ID ${newOrder.id} criado com sucesso para o usuário ${userId}.`);
         
         // Enviar mensagem via WhatsApp para PIX, Cartão de Crédito ou Dinheiro na Entrega
-        const userData = await prisma.user.findUnique({ where: { id: req.user.id } });
+        const userData = await prisma.usuario.findUnique({ where: { id: req.user.id } });
 
-        if ((paymentMethod === 'PIX' || paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') && userData.phone) {
-            const itens = cart.cartitem.map(item =>
-                `• ${item.product.name} x ${item.quantity}`
+        if ((paymentMethod === 'PIX' || paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') && userData.telefone) {
+            const itens = cart.itens.map(item =>
+                `• ${item.produto.nome} x ${item.quantidade}`
             ).join('\n');
             
             // Informações de entrega/retirada
-            const deliveryInfo = deliveryType === 'pickup' 
+            const deliveryInfo = tipoEntrega === 'pickup' 
                 ? `📍 *Retirada no local*\n🏪 Endereço da loja: [SEU ENDEREÇO AQUI]\n⏰ Horário: Segunda a Domingo, 8h às 22h`
-                : `🚚 *Entrega em casa*\n📍 Endereço: ${shippingAddress.street}, ${shippingAddress.number}${shippingAddress.complement ? ` - ${shippingAddress.complement}` : ''}\n🏘️ Bairro: ${shippingAddress.neighborhood}`;
+                : `🚚 *Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\n🏘️ Bairro: ${shippingAddress.bairro}`;
             
             let message;
             
@@ -175,15 +175,15 @@ router.post('/', authenticateToken, async (req, res) => {
                     `🎉 *Pedido Confirmado!* 🎉\n\n` +
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subtotalPrice).toFixed(2)}\n` +
-                    (deliveryType === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(deliveryFee).toFixed(2)}\n` : '') +
-                    `💰 *Total:* R$ ${Number(newOrder.totalPrice).toFixed(2)}\n` +
+                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
+                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💳 *Forma de pagamento:* Cartão de Crédito\n\n` +
                     `${deliveryInfo}\n\n` +
                     `📍 *Para pagamento via PIX (opcional):*\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `⏰ *Seu pedido já está sendo preparado!*\n` +
-                    (deliveryType === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
+                    (tipoEntrega === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
                     `💜 *Obrigado por escolher a gente!*\n` +
                     `Qualquer dúvida, estamos aqui! 😊`;
             } else if (paymentMethod === 'CASH_ON_DELIVERY') {
@@ -191,15 +191,15 @@ router.post('/', authenticateToken, async (req, res) => {
                     `🎉 *Pedido Confirmado!* 🎉\n\n` +
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subtotalPrice).toFixed(2)}\n` +
-                    (deliveryType === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(deliveryFee).toFixed(2)}\n` : '') +
-                    `💰 *Total:* R$ ${Number(newOrder.totalPrice).toFixed(2)}\n` +
-                    `💵 *Forma de pagamento:* Dinheiro ${deliveryType === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
+                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
+                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
+                    `💵 *Forma de pagamento:* Dinheiro ${tipoEntrega === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
                     `${deliveryInfo}\n\n` +
                     `📍 *Para pagamento via PIX (opcional):*\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `⏰ *Seu pedido já está sendo preparado!*\n` +
-                    (deliveryType === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
+                    (tipoEntrega === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
                     `💜 *Obrigado por escolher a gente!*\n` +
                     `Qualquer dúvida, estamos aqui! 😊`;
             } else {
@@ -207,9 +207,9 @@ router.post('/', authenticateToken, async (req, res) => {
                     `🎉 *Pedido Confirmado!* 🎉\n\n` +
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subtotalPrice).toFixed(2)}\n` +
-                    (deliveryType === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(deliveryFee).toFixed(2)}\n` : '') +
-                    `💰 *Total:* R$ ${Number(newOrder.totalPrice).toFixed(2)}\n` +
+                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
+                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💸 *Forma de pagamento:* PIX\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `${deliveryInfo}\n\n` +
@@ -219,8 +219,8 @@ router.post('/', authenticateToken, async (req, res) => {
             }
 
             try {
-              await sendWhatsAppMessageZApi(userData.phone, message);
-              console.log('Mensagem enviada para:', userData.phone);
+              await sendWhatsAppMessageZApi(userData.telefone, message);
+              console.log('Mensagem enviada para:', userData.telefone);
             } catch (err) {
               console.error('Erro ao enviar mensagem via Z-API:', err.response?.data || err.message);
             }
@@ -239,17 +239,17 @@ router.get('/history', authenticateToken, async (req, res) => {
     console.log(`[GET /api/orders/history] Recebida requisição para o histórico de pedidos. Usuário ID: ${userId}`);
     
     try {
-        const orders = await prisma.order.findMany({
-            where: { userId: userId },
+        const orders = await prisma.pedido.findMany({
+            where: { usuarioId: userId },
             include: {
-                orderitem: {
+                itens_pedido: {
                     include: {
-                        product: true
+                        produto: true
                     }
                 },
             },
             orderBy: {
-                createdAt: 'desc'
+                criadoEm: 'desc'
             }
         });
 
@@ -276,12 +276,12 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
 
     try {
         // Buscar o pedido atual primeiro para comparar o status
-        const currentOrder = await prisma.order.findUnique({
+        const currentOrder = await prisma.pedido.findUnique({
             where: { id: orderId },
             include: {
-                payment: {
+                pagamento: {
                     select: {
-                        method: true
+                        metodo: true
                     }
                 }
             }
@@ -294,42 +294,42 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
 
         // Verificar se o entregador existe e está ativo (se fornecido)
         if (delivererId) {
-            const deliverer = await prisma.deliverer.findUnique({
+            const deliverer = await prisma.entregador.findUnique({
                 where: { id: parseInt(delivererId) }
             });
             
-            if (!deliverer || !deliverer.isActive) {
+            if (!deliverer || !deliverer.ativo) {
                 console.warn(`[PUT /api/orders/status/${orderId}] Entregador não encontrado ou inativo. ID: ${delivererId}`);
                 return res.status(400).json({ message: 'Entregador não encontrado ou inativo' });
             }
         }
 
-        const updatedOrder = await prisma.order.update({
+        const updatedOrder = await prisma.pedido.update({
             where: { id: orderId },
             data: { 
                 status: status,
-                delivererId: delivererId ? parseInt(delivererId) : undefined,
-                updatedAt: new Date()
+                entregadorId: delivererId ? parseInt(delivererId) : undefined,
+                atualizadoEm: new Date()
             },
             include: {
-                orderitem: {
+                itens_pedido: {
                     include: {
-                        product: true
+                        produto: true
                     }
                 },
-                user: {
+                usuario: {
                     select: {
                         id: true,
-                        username: true,
+                        nomeUsuario: true,
                         email: true,
-                        phone: true
+                        telefone: true
                     }
                 },
-                deliverer: {
+                entregador: {
                     select: {
                         id: true,
-                        name: true,
-                        phone: true
+                        nome: true,
+                        telefone: true
                     }
                 }
             }
@@ -347,10 +347,10 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         }
 
         // Enviar notificações se o status mudou para "on_the_way" e há um entregador
-        if (status === 'on_the_way' && updatedOrder.deliverer) {
+        if (status === 'on_the_way' && updatedOrder.entregador) {
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                await sendDeliveryNotifications(updatedOrder, updatedOrder.deliverer);
+                await sendDeliveryNotifications(updatedOrder, updatedOrder.entregador);
             } catch (error) {
                 console.error('❌ Erro ao enviar notificações:', error);
                 // Não falha a operação se as notificações falharem
@@ -377,7 +377,7 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
 
     try {
         // Verificar se o pedido existe
-        const existingOrder = await prisma.order.findUnique({
+        const existingOrder = await prisma.pedido.findUnique({
             where: { id: orderId }
         });
 
@@ -421,32 +421,32 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
         }
 
         // Atualizar pedido
-        const order = await prisma.order.update({
+        const order = await prisma.pedido.update({
             where: { id: orderId },
             data: {
                 status: dbStatus || existingOrder.status,
-                delivererId: delivererId !== undefined ? (delivererId ? parseInt(delivererId) : null) : existingOrder.delivererId,
-                updatedAt: new Date()
+                entregadorId: delivererId !== undefined ? (delivererId ? parseInt(delivererId) : null) : existingOrder.entregadorId,
+                atualizadoEm: new Date()
             },
             include: {
-                orderitem: {
+                itens_pedido: {
                     include: {
-                        product: true
+                        produto: true
                     }
                 },
-                user: {
+                usuario: {
                     select: {
                         id: true,
-                        username: true,
+                        nomeUsuario: true,
                         email: true,
-                        phone: true
+                        telefone: true
                     }
                 },
-                deliverer: {
+                entregador: {
                     select: {
                         id: true,
-                        name: true,
-                        phone: true
+                        nome: true,
+                        telefone: true
                     }
                 }
             }
@@ -464,15 +464,15 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
         }
 
         // Enviar notificações baseadas no tipo de pedido e status
-        if (dbStatus === 'on_the_way' && order.deliverer && order.deliveryType === 'delivery') {
+        if (dbStatus === 'on_the_way' && order.entregador && order.tipoEntrega === 'delivery') {
             // Notificação para entrega com entregador
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                await sendDeliveryNotifications(order, order.deliverer);
+                await sendDeliveryNotifications(order, order.entregador);
             } catch (error) {
                 console.error('❌ Erro ao enviar notificações de entrega:', error);
             }
-        } else if (dbStatus === 'ready_for_pickup' && order.deliveryType === 'pickup') {
+        } else if (dbStatus === 'ready_for_pickup' && order.tipoEntrega === 'pickup') {
             // Notificação para retirada
             try {
                 console.log('🏪 Enviando notificação de retirada...');
@@ -498,7 +498,7 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
     console.log(`[PUT /api/orders/cancel/${orderId}] Recebida requisição para cancelar pedido. Usuário ID: ${userId}`);
 
     try {
-        const order = await prisma.order.findUnique({
+        const order = await prisma.pedido.findUnique({
             where: { id: orderId },
         });
 
@@ -508,7 +508,7 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
         }
 
         // Verifica se o usuário é o dono do pedido ou um administrador
-        if (order.userId !== userId && userRole !== 'admin') {
+        if (order.usuarioId !== userId && userRole !== 'admin') {
             console.warn(`[PUT /api/orders/cancel/${orderId}] Acesso negado. Usuário ID ${userId} tentou cancelar pedido que não lhe pertence.`);
             return res.status(403).json({ message: 'Acesso negado: você não tem permissão para cancelar este pedido.' });
         }
@@ -519,11 +519,11 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: `Não é possível cancelar um pedido com o status "${order.status}".` });
         }
 
-        const updatedOrder = await prisma.order.update({
+        const updatedOrder = await prisma.pedido.update({
             where: { id: orderId },
             data: { 
                 status: 'canceled',
-                updatedAt: new Date()
+                atualizadoEm: new Date()
             },
         });
 
@@ -538,18 +538,18 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
 // Listar todos os pedidos (apenas admin)
 router.get('/orders', authenticateToken, authorize('admin'), async (req, res) => {
   try {
-    const orders = await prisma.order.findMany({
+    const orders = await prisma.pedido.findMany({
       include: {
-        user: {
+        usuario: {
           select: {
             id: true,
-            username: true,
+            nomeUsuario: true,
             email: true,
-            phone: true
+            telefone: true
           }
         },
-        orderitem: {
-          include: { product: true }
+        itens_pedido: {
+          include: { produto: true }
         }
       }
     });
@@ -560,7 +560,7 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
 });
 
 router.get('/pending-count', authenticateToken, authorize('admin'), async (req, res) => {
-  const count = await prisma.order.count({
+  const count = await prisma.pedido.count({
     where: {
       status: { in: ['pending_payment', 'being_prepared'] }
     }

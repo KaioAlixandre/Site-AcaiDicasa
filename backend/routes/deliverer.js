@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 
 // GET - Listar todos os entregadores
 router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
   try {
-    const deliverers = await prisma.deliverer.findMany({
-      orderBy: { createdAt: 'desc' }
+    const deliverers = await prisma.entregador.findMany({
+      orderBy: { criadoEm: 'desc' }
     });
     res.json(deliverers);
   } catch (error) {
@@ -20,25 +20,25 @@ router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
 // POST - Criar novo entregador
 router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
   try {
-    const { name, phone, email } = req.body;
+    const { nome, telefone, email } = req.body;
 
-    if (!name || !phone) {
+    if (!nome || !telefone) {
       return res.status(400).json({ message: 'Nome e telefone são obrigatórios' });
     }
 
     // Verificar se já existe entregador com o mesmo telefone
-    const existingDeliverer = await prisma.deliverer.findFirst({
-      where: { phone }
+    const existingDeliverer = await prisma.entregador.findFirst({
+      where: { telefone }
     });
 
     if (existingDeliverer) {
       return res.status(400).json({ message: 'Já existe um entregador com este telefone' });
     }
 
-    const deliverer = await prisma.deliverer.create({
+    const deliverer = await prisma.entregador.create({
       data: {
-        name,
-        phone,
+        nome,
+        telefone,
         email: email || null
       }
     });
@@ -54,14 +54,14 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
 router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, isActive } = req.body;
+    const { nome, telefone, email, ativo } = req.body;
 
-    if (!name || !phone) {
+    if (!nome || !telefone) {
       return res.status(400).json({ message: 'Nome e telefone são obrigatórios' });
     }
 
     // Verificar se o entregador existe
-    const existingDeliverer = await prisma.deliverer.findUnique({
+    const existingDeliverer = await prisma.entregador.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -70,9 +70,9 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
     }
 
     // Verificar se outro entregador já tem o mesmo telefone
-    const delivererWithSamePhone = await prisma.deliverer.findFirst({
+    const delivererWithSamePhone = await prisma.entregador.findFirst({
       where: { 
-        phone,
+        telefone,
         id: { not: parseInt(id) }
       }
     });
@@ -81,13 +81,13 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
       return res.status(400).json({ message: 'Já existe um entregador com este telefone' });
     }
 
-    const deliverer = await prisma.deliverer.update({
+    const deliverer = await prisma.entregador.update({
       where: { id: parseInt(id) },
       data: {
-        name,
-        phone,
+        nome,
+        telefone,
         email: email || null,
-        isActive: isActive !== undefined ? isActive : true
+        ativo: ativo !== undefined ? ativo : true
       }
     });
 
@@ -104,7 +104,7 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
     const { id } = req.params;
 
     // Verificar se o entregador existe
-    const existingDeliverer = await prisma.deliverer.findUnique({
+    const existingDeliverer = await prisma.entregador.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -112,7 +112,7 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
-    await prisma.deliverer.delete({
+    await prisma.entregador.delete({
       where: { id: parseInt(id) }
     });
 
@@ -128,7 +128,7 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
   try {
     const { id } = req.params;
 
-    const deliverer = await prisma.deliverer.findUnique({
+    const deliverer = await prisma.entregador.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -136,9 +136,9 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
       return res.status(404).json({ message: 'Entregador não encontrado' });
     }
 
-    const updatedDeliverer = await prisma.deliverer.update({
+    const updatedDeliverer = await prisma.entregador.update({
       where: { id: parseInt(id) },
-      data: { isActive: !deliverer.isActive }
+      data: { ativo: !deliverer.ativo }
     });
 
     res.json(updatedDeliverer);

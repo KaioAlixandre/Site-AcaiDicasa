@@ -19,7 +19,7 @@ router.post('/forgot-password', async (req, res) => {
 
     try {
         // Verificar se o usuário existe
-        const user = await prisma.user.findUnique({
+        const user = await prisma.usuario.findUnique({
             where: { email }
         });
 
@@ -36,21 +36,21 @@ router.post('/forgot-password', async (req, res) => {
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
         // Invalidar códigos anteriores para este email
-        await prisma.passwordreset.updateMany({
+        await prisma.redefinicao_senha.updateMany({
             where: { 
                 email,
-                used: false 
+                usado: false 
             },
-            data: { used: true }
+            data: { usado: true }
         });
 
         // Criar novo registro de reset
-        await prisma.passwordreset.create({
+        await prisma.redefinicao_senha.create({
             data: {
                 email,
-                code: verificationCode,
-                expiresAt,
-                used: false
+                codigo: verificationCode,
+                expiraEm: expiresAt,
+                usado: false
             }
         });
 
@@ -109,12 +109,12 @@ router.post('/reset-password', async (req, res) => {
 
     try {
         // Verificar se o código existe e é válido
-        const resetRecord = await prisma.passwordreset.findFirst({
+        const resetRecord = await prisma.redefinicao_senha.findFirst({
             where: {
                 email,
-                code,
-                used: false,
-                expiresAt: {
+                codigo,
+                usado: false,
+                expiraEm: {
                     gt: new Date()
                 }
             }
@@ -128,7 +128,7 @@ router.post('/reset-password', async (req, res) => {
         }
 
         // Verificar se o usuário ainda existe
-        const user = await prisma.user.findUnique({
+        const user = await prisma.usuario.findUnique({
             where: { email }
         });
 
@@ -143,25 +143,25 @@ router.post('/reset-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         // Atualizar senha do usuário
-        await prisma.user.update({
+        await prisma.usuario.update({
             where: { email },
-            data: { password: hashedPassword }
+            data: { senha: hashedPassword }
         });
 
         // Marcar o código como usado
-        await prisma.passwordreset.update({
+        await prisma.redefinicao_senha.update({
             where: { id: resetRecord.id },
-            data: { used: true }
+            data: { usado: true }
         });
 
         // Invalidar todos os outros códigos pendentes para este email
-        await prisma.passwordreset.updateMany({
+        await prisma.redefinicao_senha.updateMany({
             where: {
                 email,
-                used: false,
+                usado: false,
                 id: { not: resetRecord.id }
             },
-            data: { used: true }
+            data: { usado: true }
         });
 
         console.log(`✅ [POST /api/auth/reset-password] Senha redefinida com sucesso para: ${email}`);
@@ -190,12 +190,12 @@ router.post('/verify-reset-code', async (req, res) => {
     }
 
     try {
-        const resetRecord = await prisma.passwordreset.findFirst({
+        const resetRecord = await prisma.redefinicao_senha.findFirst({
             where: {
                 email,
-                code,
-                used: false,
-                expiresAt: {
+                codigo,
+                usado: false,
+                expiraEm: {
                     gt: new Date()
                 }
             }

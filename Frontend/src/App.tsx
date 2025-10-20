@@ -5,19 +5,19 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import Products from './pages/Products';
-import Cart from './pages/Cart';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Profile from './pages/Profile';
-import Orders from './pages/Orders';
-import Admin from './pages/admin/Admin'; 
+import Cadastrar from './pages/Cadastrar';
+import Produtos from './pages/Produtos';
+import Carrinho from './pages/Carrinho';
+import Sobre from './pages/Sobre';
+import Contato from './pages/Contato';
+import Perfil from './pages/Perfil';
+import Pedidos from './pages/Pedidos';
+import PainelAdmin from './pages/admin/PainelAdmin'; 
 import AddAddress from './pages/AddAddress';
 import AddPhone from './pages/AddPhone';
 import Checkout from './pages/Checkout';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import EsqueciSenha from './pages/EsqueciSenha';
+import RedefinirSenha from './pages/RedefinirSenha';
 
 function AppContent() {
   const location = useLocation();
@@ -30,16 +30,16 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/admin" element={<Admin />} /> 
+          <Route path="/register" element={<Cadastrar />} />
+          <Route path="/forgot-password" element={<EsqueciSenha />} />
+          <Route path="/reset-password" element={<RedefinirSenha />} />
+          <Route path="/products" element={<Produtos />} />
+          <Route path="/cart" element={<Carrinho />} />
+          <Route path="/about" element={<Sobre />} />
+          <Route path="/contact" element={<Contato />} />
+          <Route path="/profile" element={<Perfil />} />
+          <Route path="/orders" element={<Pedidos />} />
+          <Route path="/admin" element={<PainelAdmin />} /> 
           <Route path="/add-address" element={<AddAddress />} />
           <Route path="/add-phone" element={<AddPhone />} />
           <Route path="/checkout" element={<Checkout />} />

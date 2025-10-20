@@ -7,265 +7,309 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model address {
+model endereco {
   id           Int     @id @default(autoincrement())
-  street       String  @db.VarChar(255)
-  number       String  @db.VarChar(20)
-  complement   String? @db.VarChar(100)
-  neighborhood String  @db.VarChar(100)
-  isDefault    Boolean @default(false)
-  userId       Int
-  user         user    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Address_userId_fkey")
+  rua          String  @db.VarChar(255)
+  numero       String  @db.VarChar(20)
+  complemento  String? @db.VarChar(100)
+  bairro       String  @db.VarChar(100)
+  padrao       Boolean @default(false)
+  usuarioId    Int
+  usuario      usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Endereco_userId_fkey")
 
-  @@index([userId], map: "Address_userId_fkey")
+  @@index([usuarioId], map: "Endereco_userId_fkey")
+  @@map("enderecos")
 }
 
-model cart {
+model carrinho {
   id        Int        @id @default(autoincrement())
-  userId    Int        @unique(map: "Cart_userId_key")
-  createdAt DateTime   @default(now())
-  user      user       @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Cart_userId_fkey")
-  cartitem  cartitem[]
+  usuarioId Int        @unique(map: "Carrinho_userId_key")
+  criadoEm  DateTime   @default(now())
+  usuario   usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Carrinho_userId_fkey")
+  itens     item_carrinho[]
+
+  @@index([usuarioId], map: "Carrinho_userId_fkey")
+  @@map("carrinhos")
 }
 
-model cartitem {
+model item_carrinho {
   id              Int      @id @default(autoincrement())
-  cartId          Int
-  productId       Int
-  quantity        Int
-  createdAt       DateTime @default(now())
-  selectedOptions Json?
-  cart            cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, map: "CartItem_cartId_fkey")
-  product         product  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "CartItem_productId_fkey")
+  carrinhoId      Int
+  produtoId       Int
+  quantidade      Int
+  criadoEm        DateTime @default(now())
+  opcoesSelecionadas Json?
+  carrinho        carrinho @relation(fields: [carrinhoId], references: [id], onDelete: Cascade, map: "CartItem_cartId_fkey")
+  produto         produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "CartItem_productId_fkey")
 
-  @@unique([cartId, productId], map: "CartItem_cartId_productId_key")
-  @@index([productId], map: "CartItem_productId_fkey")
+  @@unique([carrinhoId, produtoId], map: "CartItem_cartId_productId_key")
+  @@index([produtoId], map: "CartItem_productId_fkey")
+  @@map("itens_carrinho")
 }
 
-model categorysalesreport {
+model relatorio_vendas_categoria {
   id              Int             @id @default(autoincrement())
-  date            DateTime        @db.Date
-  unitsSold       Int
-  totalRevenue    Decimal         @db.Decimal(12, 2)
-  categoryId      Int
-  productcategory productcategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "CategorySalesReport_categoryId_fkey")
+  data            DateTime        @db.Date
+  unidadesVendidas Int
+  receitaTotal    Decimal         @db.Decimal(12, 2)
+  categoriaId     Int
+  categoria       categoria_produto @relation(fields: [categoriaId], references: [id], onDelete: Cascade, map: "CategorySalesReport_categoryId_fkey")
 
-  @@unique([date, categoryId], map: "CategorySalesReport_date_categoryId_key")
-  @@index([categoryId], map: "CategorySalesReport_categoryId_fkey")
+  @@unique([data, categoriaId], map: "CategorySalesReport_date_categoryId_key")
+  @@index([categoriaId], map: "CategorySalesReport_categoryId_fkey")
+  @@map("relatorios_vendas_categoria")
 }
 
-model complement {
+model complemento {
   id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  nome      String   @db.VarChar(100)
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  
+  @@map("complementos")
 }
 
-model coupon {
+model cupom {
   id           Int                 @id @default(autoincrement())
-  code         String              @unique(map: "Coupon_code_key") @db.VarChar(50)
-  discountType coupon_discountType
-  value        Decimal             @db.Decimal(10, 2)
-  expiresAt    DateTime?
-  isActive     Boolean             @default(true)
-  maxUses      Int?
-  usedCount    Int                 @default(0)
-  ordercoupon  ordercoupon[]
+  codigo       String              @unique(map: "Coupon_code_key") @db.VarChar(50)
+  tipoDesconto tipo_desconto_cupom
+  valor        Decimal             @db.Decimal(10, 2)
+  expiraEm     DateTime?
+  ativo        Boolean             @default(true)
+  maxUsos      Int?
+  contadorUsos Int                 @default(0)
+  cupom_pedido cupom_pedido[]
+  
+  @@map("cupons")
 }
 
-model dailysalesreport {
+model relatorio_vendas_diario {
   id                Int      @id @default(autoincrement())
-  date              DateTime @unique(map: "DailySalesReport_date_key") @db.Date
-  totalSales        Decimal  @db.Decimal(12, 2)
-  orderCount        Int
-  totalItemsSold    Int
-  averageOrderValue Decimal  @db.Decimal(12, 2)
+  data              DateTime @unique(map: "DailySalesReport_date_key") @db.Date
+  vendasTotais      Decimal  @db.Decimal(12, 2)
+  contadorPedidos   Int
+  itensVendidosTotal Int
+  valorMedioPedido  Decimal  @db.Decimal(12, 2)
+  
+  @@map("relatorios_vendas_diario")
 }
 
-model deliverer {
+model entregador {
   id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  phone     String   @db.VarChar(20)
+  nome      String   @db.VarChar(100)
+  telefone  String   @db.VarChar(20)
   email     String?  @db.VarChar(100)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  order     order[]
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+  pedidos   pedido[]
+  
+  @@map("entregadores")
 }
 
-model optionvalue {
+model valor_opcao {
   id            Int           @id @default(autoincrement())
-  value         String        @db.VarChar(100)
-  priceModifier Decimal       @default(0.00) @db.Decimal(10, 2)
-  optionId      Int
-  productoption productoption @relation(fields: [optionId], references: [id], onDelete: Cascade, map: "OptionValue_optionId_fkey")
+  valor         String        @db.VarChar(100)
+  modificadorPreco Decimal    @default(0.00) @db.Decimal(10, 2)
+  opcaoId       Int
+  opcao_produto opcao_produto @relation(fields: [opcaoId], references: [id], onDelete: Cascade, map: "OptionValue_optionId_fkey")
 
-  @@index([optionId], map: "OptionValue_optionId_fkey")
+  @@index([opcaoId], map: "OptionValue_optionId_fkey")
+  @@map("valores_opcao")
 }
 
-model order {
+model pedido {
   id                   Int          @id @default(autoincrement())
-  userId               Int
-  status               order_status @default(being_prepared)
-  totalPrice           Decimal      @db.Decimal(10, 2)
-  createdAt            DateTime     @default(now())
-  shippingComplement   String?
-  shippingNeighborhood String?
-  shippingNumber       String?
-  shippingStreet       String?
-  shippingPhone        String?
-  deliveryFee          Decimal      @default(0.00) @db.Decimal(10, 2)
-  deliveryType         String       @default("delivery")
-  delivererId          Int?
-  updatedAt            DateTime
-  deliverer            deliverer?   @relation(fields: [delivererId], references: [id], map: "Order_delivererId_fkey")
-  user                 user         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Order_userId_fkey")
-  ordercoupon          ordercoupon?
-  orderitem            orderitem[]
-  payment              payment?
+  usuarioId            Int
+  status               status_pedido @default(being_prepared)
+  precoTotal           Decimal      @db.Decimal(10, 2)
+  criadoEm             DateTime     @default(now())
+  complementoEntrega   String?
+  bairroEntrega        String?
+  numeroEntrega        String?
+  ruaEntrega           String?
+  telefoneEntrega        String?
+  taxaEntrega          Decimal      @default(0.00) @db.Decimal(10, 2)
+  tipoEntrega          String       @default("delivery")
+  entregadorId          Int?
+  atualizadoEm         DateTime
+  entregador           entregador?  @relation(fields: [entregadorId], references: [id], map: "Order_delivererId_fkey")
+  usuario              usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Order_userId_fkey")
+  cupom_pedido         cupom_pedido?
+  itens_pedido         item_pedido[]
+  pagamento            pagamento?
 
-  @@index([delivererId], map: "Order_delivererId_fkey")
-  @@index([userId], map: "Order_userId_fkey")
+  @@index([entregadorId], map: "Order_delivererId_fkey")
+  @@index([usuarioId], map: "Order_userId_fkey")
+  @@map("pedidos")
 }
 
-model ordercoupon {
+model cupom_pedido {
   id             Int     @id @default(autoincrement())
-  orderId        Int     @unique(map: "OrderCoupon_orderId_key")
-  couponId       Int
-  discountAmount Decimal @db.Decimal(10, 2)
-  coupon         coupon  @relation(fields: [couponId], references: [id], map: "OrderCoupon_couponId_fkey")
-  order          order   @relation(fields: [orderId], references: [id], map: "OrderCoupon_orderId_fkey")
+  pedidoId       Int     @unique(map: "OrderCoupon_orderId_key")
+  cupomId        Int
+  valorDesconto  Decimal @db.Decimal(10, 2)
+  cupom          cupom   @relation(fields: [cupomId], references: [id], map: "OrderCoupon_couponId_fkey")
+  pedido         pedido  @relation(fields: [pedidoId], references: [id], map: "OrderCoupon_orderId_fkey")
 
-  @@index([couponId], map: "OrderCoupon_couponId_fkey")
+  @@index([cupomId], map: "OrderCoupon_couponId_fkey")
+  @@map("cupons_pedido")
 }
 
-model orderitem {
+model item_pedido {
   id                      Int     @id @default(autoincrement())
-  orderId                 Int
-  productId               Int
-  quantity                Int
-  priceAtOrder            Decimal @db.Decimal(10, 2)
-  selectedOptionsSnapshot Json?
-  order                   order   @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "OrderItem_orderId_fkey")
-  product                 product @relation(fields: [productId], references: [id], onDelete: Cascade, map: "OrderItem_productId_fkey")
+  pedidoId                Int
+  produtoId               Int
+  quantidade              Int
+  precoNoPedido           Decimal @db.Decimal(10, 2)
+  opcoesSelecionadasSnapshot Json?
+  pedido                  pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade, map: "OrderItem_orderId_fkey")
+  produto                 produto @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "OrderItem_productId_fkey")
 
-  @@index([orderId], map: "OrderItem_orderId_fkey")
-  @@index([productId], map: "OrderItem_productId_fkey")
+  @@index([pedidoId], map: "OrderItem_orderId_fkey")
+  @@index([produtoId], map: "OrderItem_productId_fkey")
+  @@map("itens_pedido")
 }
 
-model payment {
+model pagamento {
   id            Int            @id @default(autoincrement())
-  amount        Decimal        @db.Decimal(10, 2)
-  method        payment_method
-  status        payment_status @default(PENDING)
-  transactionId String?        @db.VarChar(255)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime
-  orderId       Int            @unique(map: "Payment_orderId_key")
-  order         order          @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "Payment_orderId_fkey")
+  valor         Decimal        @db.Decimal(10, 2)
+  metodo        metodo_pagamento
+  status        status_pagamento @default(PENDING)
+  idTransacao   String?        @db.VarChar(255)
+  criadoEm      DateTime       @default(now())
+  atualizadoEm  DateTime
+  pedidoId      Int            @unique(map: "Payment_orderId_key")
+  pedido        pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade, map: "Payment_orderId_fkey")
+  
+  @@map("pagamentos")
 }
 
-model product {
+model produto {
   id                 Int                  @id @default(autoincrement())
-  name               String               @db.VarChar(255)
-  price              Decimal              @db.Decimal(10, 2)
-  description        String?              @db.Text
-  createdAt          DateTime             @default(now())
-  categoryId         Int?
-  isActive           Boolean              @default(true)
-  cartitem           cartitem[]
-  orderitem          orderitem[]
-  productcategory    productcategory?     @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
-  productimage       productimage[]
-  productoption      productoption[]
-  productsalesreport productsalesreport[]
-  review             review[]
+  nome               String               @db.VarChar(255)
+  preco              Decimal              @db.Decimal(10, 2)
+  descricao          String?              @db.Text
+  criadoEm           DateTime             @default(now())
+  categoriaId        Int?
+  ativo              Boolean              @default(true)
+  itens_carrinho     item_carrinho[]
+  itens_pedido       item_pedido[]
+  categoria          categoria_produto?   @relation(fields: [categoriaId], references: [id], map: "Product_categoryId_fkey")
+  imagens_produto    imagem_produto[]
+  opcoes_produto     opcao_produto[]
+  relatorios_vendas  relatorio_vendas_produto[]
+  avaliacoes         avaliacao[]
 
-  @@index([categoryId], map: "Product_categoryId_fkey")
+  @@index([categoriaId], map: "Product_categoryId_fkey")
+  @@map("produtos")
 }
 
-model productcategory {
+model categoria_produto {
   id                  Int                   @id @default(autoincrement())
-  name                String                @unique(map: "ProductCategory_name_key") @db.VarChar(100)
-  categorysalesreport categorysalesreport[]
-  product             product[]
+  nome                String                @unique(map: "ProductCategory_name_key") @db.VarChar(100)
+  relatorios_vendas   relatorio_vendas_categoria[]
+  produtos            produto[]
+  
+  @@map("categorias_produto")
 }
 
-model productimage {
+model imagem_produto {
   id        Int     @id @default(autoincrement())
   url       String  @db.VarChar(255)
-  altText   String? @db.VarChar(255)
-  productId Int
-  product   product @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductImage_productId_fkey")
+  textoAlt String? @db.VarChar(255)
+  produtoId Int
+  produto   produto @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "ProductImage_productId_fkey")
 
-  @@index([productId], map: "ProductImage_productId_fkey")
+  @@index([produtoId], map: "ProductImage_productId_fkey")
+  @@map("imagens_produto")
 }
 
-model productoption {
+model opcao_produto {
   id          Int           @id @default(autoincrement())
-  name        String        @db.VarChar(100)
-  productId   Int
-  optionvalue optionvalue[]
-  product     product       @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductOption_productId_fkey")
+  nome        String        @db.VarChar(100)
+  produtoId   Int
+  valores_opcao valor_opcao[]
+  produto     produto       @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "ProductOption_productId_fkey")
 
-  @@index([productId], map: "ProductOption_productId_fkey")
+  @@index([produtoId], map: "ProductOption_productId_fkey")
+  @@map("opcoes_produto")
 }
 
-model productsalesreport {
+model relatorio_vendas_produto {
   id           Int      @id @default(autoincrement())
-  date         DateTime @db.Date
-  unitsSold    Int
-  totalRevenue Decimal  @db.Decimal(12, 2)
-  productId    Int
-  product      product  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductSalesReport_productId_fkey")
+  data         DateTime @db.Date
+  unidadesVendidas Int
+  receitaTotal Decimal  @db.Decimal(12, 2)
+  produtoId    Int
+  produto      produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "ProductSalesReport_productId_fkey")
 
-  @@unique([date, productId], map: "ProductSalesReport_date_productId_key")
-  @@index([productId], map: "ProductSalesReport_productId_fkey")
+  @@unique([data, produtoId], map: "ProductSalesReport_date_productId_key")
+  @@index([produtoId], map: "ProductSalesReport_productId_fkey")
+  @@map("relatorios_vendas_produto")
 }
 
-model review {
+model avaliacao {
   id        Int      @id @default(autoincrement())
-  rating    Int
-  comment   String?  @db.Text
-  createdAt DateTime @default(now())
-  userId    Int
-  productId Int
-  product   product  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "Review_productId_fkey")
-  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Review_userId_fkey")
+  avaliacao Int
+  comentario String?  @db.Text
+  criadoEm  DateTime @default(now())
+  usuarioId Int
+  produtoId Int
+  produto   produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "Review_productId_fkey")
+  usuario   usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Review_userId_fkey")
 
-  @@unique([userId, productId], map: "Review_userId_productId_key")
-  @@index([productId], map: "Review_productId_fkey")
+  @@unique([usuarioId, produtoId], map: "Review_userId_productId_key")
+  @@index([produtoId], map: "Review_productId_fkey")
+  @@map("avaliacoes")
 }
 
-model storeconfig {
+model configuracao_loja {
   id          Int      @id @default(autoincrement())
-  isOpen      Boolean  @default(true)
-  openingTime String   @db.VarChar(5)
-  closingTime String   @db.VarChar(5)
-  openDays    String   @db.VarChar(20)
-  updatedAt   DateTime @updatedAt
+  aberto      Boolean  @default(true)
+  horaAbertura String   @db.VarChar(5)
+  horaFechamento String @db.VarChar(5)
+  diasAbertos String   @db.VarChar(20)
+  atualizadoEm DateTime @updatedAt
+  
+  @@map("configuracoes_loja")
 }
 
-model user {
+model usuario {
   id        Int       @id @default(autoincrement())
-  username  String    @unique(map: "User_username_key") @db.VarChar(50)
+  nomeUsuario String    @unique(map: "User_username_key") @db.VarChar(50)
   email     String    @unique(map: "User_email_key") @db.VarChar(100)
-  password  String    @db.VarChar(255)
-  role      user_role @default(user)
-  createdAt DateTime  @default(now())
-  phone     String?   @db.VarChar(20)
-  address   address[]
-  cart      cart?
-  order     order[]
-  review    review[]
+  senha     String    @db.VarChar(255)
+  funcao    funcao_usuario @default(user)
+  criadoEm  DateTime  @default(now())
+  telefone  String?   @db.VarChar(20)
+  enderecos endereco[]
+  carrinho  carrinho?
+  pedidos   pedido[]
+  avaliacoes avaliacao[]
+  
+  @@map("usuarios")
 }
 
-enum coupon_discountType {
+model redefinicao_senha {
+  id            Int      @id @default(autoincrement())
+  email         String   @db.VarChar(191)
+  codigo        String   @db.VarChar(6)
+  criadoEm      DateTime @default(now())
+  expiraEm      DateTime
+  usado         Boolean  @default(false)
+  
+  @@index([email])
+  @@index([codigo])
+  @@map("redefinicoes_senha")
+}
+
+enum tipo_desconto_cupom {
   PERCENTAGE
   FIXED_AMOUNT
 }
 
-enum order_status {
+enum status_pedido {
   pending_payment
   being_prepared
   ready_for_pickup
@@ -274,33 +318,21 @@ enum order_status {
   canceled
 }
 
-enum payment_method {
+enum metodo_pagamento {
   CREDIT_CARD
   PIX
   CASH_ON_DELIVERY
 }
 
-enum payment_status {
+enum status_pagamento {
   PENDING
   PAID
   FAILED
   REFUNDED
 }
 
-enum user_role {
+enum funcao_usuario {
   user
   admin
   master
-}
-
-model passwordreset {
-  id            Int      @id @default(autoincrement())
-  email         String   @db.VarChar(191)
-  code          String   @db.VarChar(6)
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
-  used          Boolean  @default(false)
-  
-  @@index([email])
-  @@index([code])
-}
+} 
