@@ -22,6 +22,7 @@ import RedefinirSenha from './pages/RedefinirSenha';
 function AppContent() {
   const location = useLocation();
   const hideFooterOnAdmin = location.pathname === '/admin';
+  const hideFooterOnProducts = location.pathname === '/products';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -46,7 +47,7 @@ function AppContent() {
           {/* Rotas adicionais serão adicionadas aqui */}
         </Routes>
       </main>
-      {!hideFooterOnAdmin && <Footer />}
+      {!hideFooterOnAdmin && !hideFooterOnProducts && <Footer />}
     </div>
   );
 }

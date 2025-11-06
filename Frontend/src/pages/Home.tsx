@@ -54,87 +54,88 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100">
+    <div className="min-h-screen bg-slate-50">
       {/* Top Banner */}
-      <div className="relative h-52 md:h-64 flex items-center justify-center" style={{ backgroundColor: '#740e93' }}>
-        <div className="absolute inset-0 opacity-95" style={{ backgroundColor: '#740e93' }}></div>
-        <div className="relative z-10 text-center text-white">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">Açaí DiCasa</h1>
-          <p className="text-xl text-pink-100">O melhor açaí da região</p>
+      <div className="relative h-56 md:h-64 flex items-center justify-center text-white" style={{ backgroundColor: '#740e93' }}>
+        <div className="text-center">
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Açaí DiCasa</h1>
+          <p className="mt-2 text-sm md:text-base text-pink-100">O melhor açaí da região</p>
         </div>
       </div>
 
-      {/* Card de informações, colado no banner */}
-      <div className="flex flex-col items-center bg-white w-full mx-auto -mt-16 z-10 relative shadow-2xl rounded-t-[30%] px-6 pb-6 pt-8">
-        <div className="w-28 h-28 rounded-full border-4 border-pink-400 shadow-lg bg-white -mt-16 flex items-center justify-center">
-          <span className="text-4xl">🥤</span>
-        </div>
-        <h1 className="text-3xl font-extrabold mt-2 text-purple-800 tracking-tight">Açaí DiCasa</h1>
-        <div className="flex gap-4 mt-2">
-          <a href="#" aria-label="Instagram" className="hover:text-purple-600 transition">
-            <Instagram className="text-xl" />
-          </a>
-          <a href="#" aria-label="WhatsApp" className="hover:text-green-600 transition">
-            <MessageCircle className="text-xl" />
-          </a>
-        </div>
-        <div className="mt-2 text-sm text-gray-600">
-          <span>Pedido Mínimo <span className="font-semibold text-pink-600">R$ 10,00</span></span> • 
-          <span>30-50 min</span>  
-        </div>
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-yellow-400 text-lg">★</span>
-          <span className="text-gray-700 font-medium">4,8 <span className="text-xs text-gray-400">(136 avaliações)</span></span>
-        </div>
-        <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-xs mt-2 font-semibold shadow">
-          {storeConfig?.isOpen ? 'ABERTO' : 'FECHADO'}
-        </span>
-      </div>
-
-      {/* Botões de categorias, colados no card */}
-      <div className="py-3 shadow-md" style={{ backgroundColor: '#740e93' }}>
-        <div className="flex justify-center gap-6 flex-wrap px-4">
-          {categories.slice(0, 4).map((category, index) => {
-            const icons = ['🥤', '🥞', '🍦', '🥟'];
-            return (
-              <Link
-                key={category.id}
-                to="/products"
-                className="flex flex-col items-center bg-white/20 hover:bg-white/40 transition rounded-xl shadow border border-purple-200 hover:border-yellow-400 py-2 px-4 text-white font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              >
-                <div className="w-14 h-14 rounded-full mb-1 border-2 border-white shadow bg-white/20 flex items-center justify-center">
-                  <span className="text-2xl">{icons[index] || '🥤'}</span>
-                </div>
-                <span className="text-xs">{category.name}</span>
-              </Link>
-            );
-          })}
+      {/* Card de informações */}
+      <div className="relative z-10 -mt-10">
+        <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md px-6 py-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Açaí DiCasa</h2>
+              <div className="mt-1 text-sm text-slate-600 flex items-center gap-2">
+                <span>Pedido mínimo</span>
+                <span className="font-semibold text-emerald-700">R$ 10,00</span>
+                <span className="text-slate-400">•</span>
+                <span>30-50 min</span>
+              </div>
+              <div className="mt-1 flex items-center gap-2 text-sm">
+                <span className="text-yellow-500">★★★★★</span>
+                <span className="text-slate-600">4,8 <span className="text-xs text-slate-400">(136 avaliações)</span></span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${storeConfig?.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                {storeConfig?.isOpen ? 'ABERTO' : 'FECHADO'}
+              </span>
+              <a href="#" aria-label="Instagram" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="#" aria-label="WhatsApp" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+                <MessageCircle className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Avisos */}
-      <div className="max-w-2xl mx-auto mt-6">
-        <div className="border border-pink-300 bg-pink-50 text-pink-800 px-6 py-3 rounded-xl mb-6 text-center shadow">
-          Aproveite nossa <span className="font-bold">promoção com preços irresistíveis</span> igual Açaí 💜
+      {/* Categorias */}
+      <div className="bg-white border-t border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
+          {categories.slice(0, 8).map((category) => (
+            <Link
+              key={category.id}
+              to="/products"
+              className="px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
+            >
+              {category.name}
+            </Link>
+          ))}
         </div>
       </div>
+
+      
 
       {/* Produtos em Destaque */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        <h2 className="text-2xl font-bold text-pink-700 mb-6">Produtos em Destaque</h2>
-        <div className="flex flex-col md:flex-row gap-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <h2 className="text-2xl font-bold text-slate-900 mb-4">Destaques</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-2xl shadow-lg p-5 flex items-center flex-1 hover:shadow-xl transition">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg text-pink-800">{product.name}</h3>
-                <p className="text-sm text-gray-500">{product.description || '9 Complementos Grátis'}</p>
-                <div className="flex items-center gap-1 text-yellow-400 text-base mt-1">
-                  <span>★★★★</span>
-                </div>
-                <p className="text-green-600 font-bold text-xl mt-2">R$ {Number(product.price).toFixed(2)}</p>
+            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="h-28 bg-slate-100 flex items-center justify-center text-3xl overflow-hidden">
+                {product.images && product.images[0]?.url ? (
+                  <img
+                    src={`http://localhost:3001${product.images[0].url}`}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>🥤</span>
+                )}
               </div>
-              <div className="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-400 rounded-2xl ml-6 shadow flex items-center justify-center">
-                <span className="text-3xl">🥤</span>
+              <div className="p-4">
+                <h3 className="font-semibold text-slate-900 truncate">{product.name}</h3>
+                <p className="mt-1 text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
+                  <span className="text-yellow-500 text-sm">★★★★</span>
+                </div>
               </div>
             </div>
           ))}
@@ -142,33 +143,33 @@ const Home: React.FC = () => {
       </div>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-pink-50 rounded-xl">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Truck className="w-8 h-8 text-pink-600" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Truck className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Entrega Rápida</h3>
-              <p className="text-gray-600">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Entrega Rápida</h3>
+              <p className="text-slate-600 text-sm">
                 Entregamos em até 30 minutos na sua casa
               </p>
             </div>
-            <div className="text-center p-6 bg-pink-50 rounded-xl">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="w-8 h-8 text-pink-600" />
+            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Heart className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Feito com Amor</h3>
-              <p className="text-gray-600">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Feito com Amor</h3>
+              <p className="text-slate-600 text-sm">
                 Ingredientes frescos e preparados com carinho
               </p>
             </div>
-            <div className="text-center p-6 bg-pink-50 rounded-xl">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-pink-600" />
+            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Star className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Qualidade Premium</h3>
-              <p className="text-gray-600">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">Qualidade Premium</h3>
+              <p className="text-slate-600 text-sm">
                 Açaí 100% natural e complementos selecionados
               </p>
             </div>
@@ -177,19 +178,15 @@ const Home: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="text-white py-16" style={{ backgroundColor: '#740e93' }}>
+      <section className="py-14 text-white" style={{ backgroundColor: '#740e93' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Pronto para pedir seu açaí?
-          </h2>
-          <p className="text-xl mb-8 text-pink-100">
-            Faça seu pedido agora e receba em casa rapidinho!
-          </p>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">Pronto para pedir seu açaí?</h2>
+          <p className="text-sm md:text-base mb-6 text-pink-100">Faça seu pedido agora e receba em casa rapidinho!</p>
           <Link
             to="/products"
-            className="inline-flex items-center px-8 py-4 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-white text-purple-700 font-semibold rounded-md hover:bg-slate-100"
           >
-            <ShoppingCart className="mr-2" size={20} />
+            <ShoppingCart className="mr-2" size={18} />
             Fazer Pedido Agora
           </Link>
         </div>

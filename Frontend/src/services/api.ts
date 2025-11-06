@@ -124,18 +124,54 @@ class ApiService {
 
   // Product endpoints
   async getProducts(): Promise<Product[]> {
-    const response: AxiosResponse<Product[]> = await this.api.get('/products');
-    return response.data;
+    const response = await this.api.get('/products');
+    const data = response.data || [];
+    return data.map((p: any) => ({
+      id: p.id,
+      name: p.nome,
+      price: Number(p.preco),
+      description: p.descricao ?? '',
+      isActive: Boolean(p.ativo),
+      categoryId: p.categoriaId ?? null,
+      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
+      images: Array.isArray(p.imagens_produto)
+        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+        : [],
+    }));
   }
 
   async getProductById(id: number): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.get(`/products/${id}`);
-    return response.data;
+    const response = await this.api.get(`/products/${id}`);
+    const p = response.data;
+    return {
+      id: p.id,
+      name: p.nome,
+      price: Number(p.preco),
+      description: p.descricao ?? '',
+      isActive: Boolean(p.ativo),
+      categoryId: p.categoriaId ?? null,
+      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
+      images: Array.isArray(p.imagens_produto)
+        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+        : [],
+    };
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
-    const response: AxiosResponse<Product[]> = await this.api.get(`/products/category/${categoryId}`);
-    return response.data;
+    const response = await this.api.get(`/products/category/${categoryId}`);
+    const data = response.data || [];
+    return data.map((p: any) => ({
+      id: p.id,
+      name: p.nome,
+      price: Number(p.preco),
+      description: p.descricao ?? '',
+      isActive: Boolean(p.ativo),
+      categoryId: p.categoriaId ?? null,
+      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
+      images: Array.isArray(p.imagens_produto)
+        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+        : [],
+    }));
   }
 
   async createProduct(formData: FormData): Promise<Product> {
@@ -175,7 +211,7 @@ class ApiService {
 
   async addToCart(productId: number, quantity: number): Promise<ApiResponse<CartItem>> {
     const response: AxiosResponse<ApiResponse<CartItem>> = await this.api.post('/cart/add', {
-      productId,
+      produtoId: productId,
       quantity,
     });
     return response.data;
@@ -293,7 +329,17 @@ async getCategorySales(date: string) {
 // Store Config endpoints
 async getStoreConfig() {
   const response = await this.api.get('/store-config');
-  return response.data;
+  const data = response.data || {};
+  // Normalizar campos do backend (aberto/horaAbertura/horaFechamento/diasAbertos)
+  return {
+    // Chaves esperadas pelo frontend
+    isOpen: data.isOpen ?? data.aberto ?? true,
+    openingTime: data.openingTime ?? data.horaAbertura ?? '',
+    closingTime: data.closingTime ?? data.horaFechamento ?? '',
+    openDays: data.openDays ?? data.diasAbertos ?? '',
+    // Preservar campos originais para compatibilidade
+    ...data,
+  };
 }
 
 async updateStoreConfig(data: any) {
