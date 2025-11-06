@@ -78,9 +78,7 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     apiService.getCategories().then(setCategories);
-    // Carregar produtos iniciais também
-    apiService.getProducts().then(setProducts);
-  }, []); // Busca as categorias e produtos quando o componente Admin é montado
+  }, []); // Busca as categorias quando o componente Admin é montado
 
   useEffect(() => {
     if (activePage === 'clientes') {
@@ -113,8 +111,6 @@ useEffect(() => {
   const handleUpdateProduct = async (id: number, data: any) => {
     await apiService.updateProduct(id, data);
     setEditProduct(null);
-    // Recarregar produtos após atualizar
-    setProducts(await apiService.getProducts());
   };
 
   const handleDelete = async (id: number) => {

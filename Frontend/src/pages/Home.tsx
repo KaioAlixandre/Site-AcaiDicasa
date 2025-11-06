@@ -56,8 +56,8 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100">
       {/* Top Banner */}
-      <div className="relative bg-gradient-to-r from-purple-600 to-pink-500 h-52 md:h-64 flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-500 opacity-95"></div>
+      <div className="relative h-52 md:h-64 flex items-center justify-center" style={{ backgroundColor: '#740e93' }}>
+        <div className="absolute inset-0 opacity-95" style={{ backgroundColor: '#740e93' }}></div>
         <div className="relative z-10 text-center text-white">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">Açaí DiCasa</h1>
           <p className="text-xl text-pink-100">O melhor açaí da região</p>
@@ -92,7 +92,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Botões de categorias, colados no card */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-500 py-3 shadow-md">
+      <div className="py-3 shadow-md" style={{ backgroundColor: '#740e93' }}>
         <div className="flex justify-center gap-6 flex-wrap px-4">
           {categories.slice(0, 4).map((category, index) => {
             const icons = ['🥤', '🥞', '🍦', '🥟'];
@@ -177,7 +177,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-16">
+      <section className="text-white py-16" style={{ backgroundColor: '#740e93' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">
             Pronto para pedir seu açaí?

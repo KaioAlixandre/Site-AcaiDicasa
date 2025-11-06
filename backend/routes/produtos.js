@@ -24,27 +24,8 @@ router.get('/', async (req, res) => {
         const products = await prisma.produto.findMany({
             include: { imagens_produto: true, categoria: true }
         });
-        
-        // Transformar os campos do banco para o formato esperado pelo frontend
-        const transformedProducts = products.map(product => ({
-            id: product.id,
-            name: product.nome,
-            price: Number(product.preco),
-            description: product.descricao,
-            isActive: product.ativo,
-            createdAt: product.criadoEm,
-            category: product.categoria ? {
-                id: product.categoria.id,
-                name: product.categoria.nome
-            } : null,
-            images: product.imagens_produto.map(img => ({
-                id: img.id,
-                url: img.url
-            }))
-        }));
-        
-        console.log(`✅ GET /api/products: ${transformedProducts.length} produtos encontrados.`);
-        res.json(transformedProducts);
+        console.log(products); // Veja no terminal se category está preenchido
+        res.json(products);
     } catch (err) {
         console.error('❌ GET /api/products: Erro ao buscar produtos:', err.message);
         res.status(500).json({ message: 'Erro ao buscar produtos.', error: err.message });

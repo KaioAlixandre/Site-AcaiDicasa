@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Middlewares de autenticação e autorização
-const { authenticateToken, authorize } = require('./auth');
+const { authenticateToken, authorize } = require('./authRoutes');
 
 // 🍓 GET - Listar todos os complementos (apenas ativos por padrão)
 router.get('/', async (req, res) => {
