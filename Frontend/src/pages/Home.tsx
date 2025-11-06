@@ -58,30 +58,30 @@ const Home: React.FC = () => {
       {/* Top Banner */}
       <div className="relative h-56 md:h-64 flex items-center justify-center text-white" style={{ backgroundColor: '#740e93' }}>
         <div className="text-center">
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Açaí DiCasa</h1>
-          <p className="mt-2 text-sm md:text-base text-pink-100">O melhor açaí da região</p>
+          <h1 className="text-2xl md:text-5xl font-extrabold tracking-tight">Açaí DiCasa</h1>
+          <p className="mt-1 text-xs md:text-base text-pink-100">O melhor açaí da região</p>
         </div>
       </div>
 
       {/* Card de informações */}
       <div className="relative z-10 -mt-10">
-        <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md px-6 py-5">
+        <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md px-4 py-4 md:px-6 md:py-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900">Açaí DiCasa</h2>
-              <div className="mt-1 text-sm text-slate-600 flex items-center gap-2">
+              <h2 className="text-lg md:text-2xl font-bold text-slate-900">Açaí DiCasa</h2>
+              <div className="mt-1 text-xs md:text-sm text-slate-600 flex items-center gap-2">
                 <span>Pedido mínimo</span>
                 <span className="font-semibold text-emerald-700">R$ 10,00</span>
                 <span className="text-slate-400">•</span>
                 <span>30-50 min</span>
               </div>
-              <div className="mt-1 flex items-center gap-2 text-sm">
+              <div className="mt-1 flex items-center gap-2 text-xs md:text-sm">
                 <span className="text-yellow-500">★★★★★</span>
                 <span className="text-slate-600">4,8 <span className="text-xs text-slate-400">(136 avaliações)</span></span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${storeConfig?.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-semibold ${storeConfig?.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                 {storeConfig?.isOpen ? 'ABERTO' : 'FECHADO'}
               </span>
               <a href="#" aria-label="Instagram" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
@@ -102,7 +102,7 @@ const Home: React.FC = () => {
             <Link
               key={category.id}
               to="/products"
-              className="px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 text-sm hover:bg-slate-50"
+              className="px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 text-xs md:text-sm hover:bg-slate-50"
             >
               {category.name}
             </Link>
@@ -114,11 +114,11 @@ const Home: React.FC = () => {
 
       {/* Produtos em Destaque */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">Destaques</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Destaques</h2>
+        <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-2 snap-x snap-mandatory">
           {featuredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="h-28 bg-slate-100 flex items-center justify-center text-3xl overflow-hidden">
+            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-w-[48%] sm:min-w-[240px] snap-start">
+              <div className="h-28 sm:h-32 bg-slate-100 flex items-center justify-center text-3xl overflow-hidden">
                 {product.images && product.images[0]?.url ? (
                   <img
                     src={`http://localhost:3001${product.images[0].url}`}
@@ -129,12 +129,12 @@ const Home: React.FC = () => {
                   <span>🥤</span>
                 )}
               </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-slate-900 truncate">{product.name}</h3>
-                <p className="mt-1 text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
-                  <span className="text-yellow-500 text-sm">★★★★</span>
+              <div className="p-3 md:p-4">
+                <h3 className="font-semibold text-slate-900 truncate text-sm md:text-base">{product.name}</h3>
+                <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
+                <div className="mt-2 md:mt-3 flex items-center justify-between">
+                  <span className="text-base md:text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
+                  <span className="text-yellow-500 text-xs md:text-sm">★★★★</span>
                 </div>
               </div>
             </div>
@@ -145,31 +145,31 @@ const Home: React.FC = () => {
       {/* Features Section */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="text-center p-5 md:p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-3">
                 <Truck className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-base font-semibold text-slate-900 mb-1">Entrega Rápida</h3>
-              <p className="text-slate-600 text-sm">
+              <h3 className="text-sm md:text-base font-semibold text-slate-900 mb-1">Entrega Rápida</h3>
+              <p className="text-slate-600 text-xs md:text-sm">
                 Entregamos em até 30 minutos na sua casa
               </p>
             </div>
-            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-center p-5 md:p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-3">
                 <Heart className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-base font-semibold text-slate-900 mb-1">Feito com Amor</h3>
-              <p className="text-slate-600 text-sm">
+              <h3 className="text-sm md:text-base font-semibold text-slate-900 mb-1">Feito com Amor</h3>
+              <p className="text-slate-600 text-xs md:text-sm">
                 Ingredientes frescos e preparados com carinho
               </p>
             </div>
-            <div className="text-center p-6 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="text-center p-5 md:p-6 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-3">
                 <Star className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="text-base font-semibold text-slate-900 mb-1">Qualidade Premium</h3>
-              <p className="text-slate-600 text-sm">
+              <h3 className="text-sm md:text-base font-semibold text-slate-900 mb-1">Qualidade Premium</h3>
+              <p className="text-slate-600 text-xs md:text-sm">
                 Açaí 100% natural e complementos selecionados
               </p>
             </div>
