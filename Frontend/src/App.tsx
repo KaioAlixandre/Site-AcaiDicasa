@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import Header from './components/Header';
@@ -20,14 +20,10 @@ import EsqueciSenha from './pages/EsqueciSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
 
 function AppContent() {
-  const location = useLocation();
-  const hideFooterOnAdmin = location.pathname === '/admin';
-  const hideFooterOnProducts = location.pathname === '/products';
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -47,7 +43,7 @@ function AppContent() {
           {/* Rotas adicionais serão adicionadas aqui */}
         </Routes>
       </main>
-      {!hideFooterOnAdmin && !hideFooterOnProducts && <Footer />}
+      <Footer />
     </div>
   );
 }

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 
 // Função auxiliar para obter início e fim do dia
 function getStartAndEndOfDay(date = new Date()) {

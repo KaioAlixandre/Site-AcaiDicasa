@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken } = require('./authRoutes');
+const { authenticateToken } = require('./auth');
 
 // Rota para adicionar um produto ao carrinho
 router.post('/add', authenticateToken, async (req, res) => {

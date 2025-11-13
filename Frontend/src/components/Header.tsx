@@ -57,20 +57,32 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="relative w-10 h-10 bg-gradient-to-br from-purple-600 via-pink-600 to-purple-800 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-              <span className="text-white font-black text-lg drop-shadow-sm">A</span>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl"></div>
+          <Link to="/" className="flex items-center space-x-2 group md:flex-row">
+            <div className="relative w-12 h-12 flex items-center justify-center transition-all duration-300 group-hover:scale-105">
+              <img 
+                src="/logo.jpg" 
+                alt="Açaí DiCasa" 
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="flex flex-col">
+            <div className="hidden md:flex flex-col">
               <span className="text-xl font-black text-gray-900 group-hover:text-purple-600 transition-colors duration-300">
+                AçaíDíCasa
+              </span>
+            </div>
+          </Link>
+
+          {/* Logo Text Centered for Mobile */}
+          <div className="md:hidden absolute left-1/2 transform -translate-x-1/2">
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-black text-gray-900">
                 AçaíDíCasa
               </span>
               <span className="text-xs text-purple-600 font-medium -mt-1">
                 Sabor Autêntico
               </span>
             </div>
-          </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
@@ -191,24 +203,13 @@ const Header: React.FC = () => {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-3">
-            <Link
-              to="/cart"
-              className="relative p-2 bg-gray-50 hover:bg-purple-50 rounded-xl transition-all duration-200"
-            >
-              <ShoppingCart size={20} className="text-gray-600" />
-              {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemsCount}
-                </span>
-              )}
-            </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 bg-gray-50 hover:bg-purple-50 rounded-xl transition-all duration-200"
+              className="p-2 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all duration-200"
             >
               {isMenuOpen ? 
-                <X size={20} className="text-gray-600" /> : 
-                <Menu size={20} className="text-gray-600" />
+                <X size={20} className="text-purple-600" /> : 
+                <Menu size={20} className="text-purple-600" />
               }
             </button>
           </div>
@@ -245,7 +246,7 @@ const Header: React.FC = () => {
                       <UserCircle size={18} className="text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800 text-sm">{user.username}</p>
+                      <p className="font-semibold text-gray-800 text-sm">{user.nomeUsuario}</p>
                       <p className="text-xs text-gray-500">
                         {user.funcao === 'admin' ? 'Administrador' : 'Cliente'}
                       </p>

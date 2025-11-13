@@ -12,15 +12,15 @@ const PORT = 3001;
 const authRoutes = require('./routes/auth'); // Ajustado para importar o diretório
 const productRoutes = require('./routes/produtos');
 const orderRoutes = require('./routes/pedidos');
-const delivererRoutes = require('./routes/deliverer');
-const dashboardRoutes = require('./routes/dashboard');
+const delivererRoutes = require('./routes/delivererRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Rotas ainda não organizadas
-const cartRoutes = require('./routes/carrinho'); // TODO: Organizar
+const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
 const insightsRoutes = require('./routes/insiths'); // TODO: Organizar
 const storeConfigRoutes = require('./routes/configuracao'); // TODO: Organizar
-const complementsRoutes = require('./routes/complementos'); // TODO: Organizar
-const passwordResetRoutes = require('./routes/passwordReset');
+const complementsRoutes = require('./routes/complementsRoutes'); // TODO: Organizar
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
 
 // Middlewares
 app.use(cors());

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { authenticateToken, authorize } = require('./authRoutes');
+const { authenticateToken, authorize } = require('./auth');
 
 // GET - Listar todos os entregadores
 router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
