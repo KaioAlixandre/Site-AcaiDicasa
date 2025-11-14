@@ -20,6 +20,7 @@ export interface Address {
   number: string;
   complement?: string;
   neighborhood: string;
+  reference?: string;
   isDefault: boolean;
   userId: number;
 }

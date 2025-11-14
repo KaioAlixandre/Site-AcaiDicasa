@@ -117,6 +117,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
                         numero: true,
                         complemento: true,
                         bairro: true,
+                        pontoReferencia: true,
                         padrao: true
                     },
                     orderBy: {
@@ -173,7 +174,20 @@ router.get('/profile/addresses', authenticateToken, async (req, res) => {
             orderBy: { padrao: 'desc' }
         });
         console.log(`✅ [GET /auth/profile/addresses] ${addresses.length} endereços encontrados`);
-        res.json(addresses);
+        
+        // Transformar dados do português para inglês
+        const transformedAddresses = addresses.map(addr => ({
+            id: addr.id,
+            street: addr.rua,
+            number: addr.numero,
+            complement: addr.complemento,
+            neighborhood: addr.bairro,
+            reference: addr.pontoReferencia,
+            isDefault: addr.padrao,
+            userId: addr.usuarioId
+        }));
+        
+        res.json(transformedAddresses);
     } catch (err) {
         console.error('❌ [GET /auth/profile/addresses] Erro interno ao buscar endereços:', err);
         res.status(500).json({ error: 'Erro ao buscar endereços.' });
@@ -182,7 +196,7 @@ router.get('/profile/addresses', authenticateToken, async (req, res) => {
 
 // POST /auth/profile/address - Adicionar endereço
 router.post('/profile/address', authenticateToken, async (req, res) => {
-    const { street, number, complement, neighborhood, isDefault } = req.body;
+    const { street, number, complement, neighborhood, reference, isDefault } = req.body;
     const userId = req.user.id;
 
     console.log(`📍 [POST /auth/profile/address] Adicionando endereço para usuário ID: ${userId}`);
@@ -196,7 +210,7 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
         // Se isDefault é verdadeiro, definir outros endereços como não padrão
         if (isDefault) {
             await prisma.endereco.updateMany({
-                where: { usuarioId },
+                where: { usuarioId: userId },
                 data: { padrao: false }
             });
         }
@@ -207,6 +221,7 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
                 numero: number,
                 complemento: complement || null,
                 bairro: neighborhood,
+                pontoReferencia: reference || null,
                 padrao: isDefault || false,
                 usuarioId: userId
             }
@@ -231,7 +246,7 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
 // PUT /auth/profile/address/:addressId - Atualizar endereço
 router.put('/profile/address/:addressId', authenticateToken, async (req, res) => {
     const { addressId } = req.params;
-    const { street, number, complement, neighborhood, isDefault } = req.body;
+    const { street, number, complement, neighborhood, reference, isDefault } = req.body;
     const userId = req.user.id;
 
     console.log(`✏️ [PUT /auth/profile/address/${addressId}] Atualizando endereço para usuário ID: ${userId}`);
@@ -267,6 +282,7 @@ router.put('/profile/address/:addressId', authenticateToken, async (req, res) =>
                 numero: number,
                 complemento: complement || null,
                 bairro: neighborhood,
+                pontoReferencia: reference || null,
                 padrao: isDefault || false
             }
         });

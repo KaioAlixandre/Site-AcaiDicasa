@@ -13,6 +13,7 @@ model endereco {
   numero       String  @db.VarChar(20)
   complemento  String? @db.VarChar(100)
   bairro       String  @db.VarChar(100)
+  pontoReferencia String? @db.VarChar(255)
   padrao       Boolean @default(false)
   usuarioId    Int
   usuario      usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Endereco_userId_fkey")

@@ -109,7 +109,7 @@ const Header: React.FC = () => {
             >
               <ShoppingCart size={20} className="text-gray-600 group-hover:text-purple-600 transition-colors duration-200" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg animate-pulse">
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
                   {cartItemsCount}
                 </span>
               )}

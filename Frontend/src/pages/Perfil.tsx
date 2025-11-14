@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, 
   MapPin, 
-  Phone, 
   Mail, 
   Edit, 
-  Save, 
   X, 
   Plus,
   Star,
   Shield,
-  Calendar,
   CheckCircle,
   Home,
   Trash2,
-  Eye,
-  Settings
+  Phone
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
@@ -27,18 +23,49 @@ const Profile: React.FC = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingPhone, setEditingPhone] = useState(false);
-  const [newPhone, setNewPhone] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState<Address | null>(null);
   const [newAddress, setNewAddress] = useState({
     street: '',
     number: '',
     complement: '',
     neighborhood: '',
+    reference: '',
     isDefault: false
   });
+
+  // Função para mapear dados do backend (português) para o frontend (inglês)
+  const mapAddressFromBackend = (addressData: any): Address => {
+    return {
+      id: addressData.id,
+      street: addressData.rua || '',
+      number: addressData.numero || '',
+      complement: addressData.complemento || '',
+      neighborhood: addressData.bairro || '',
+      reference: addressData.pontoReferencia || '',
+      isDefault: addressData.padrao || false,
+      userId: addressData.usuarioId || 0
+    };
+  };
+
+  // Função para formatar telefone
+  const formatPhone = (phone: string): string => {
+    // Remove tudo que não é número
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // Aplica a máscara (00) 00000-0000
+    if (cleaned.length === 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    }
+    // Aplica a máscara (00) 0000-0000 para números com 10 dígitos
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    }
+    
+    // Retorna o número original se não for 10 ou 11 dígitos
+    return phone;
+  };
 
   useEffect(() => {
     console.log('🎯 useEffect - User disponível:', !!user);
@@ -48,7 +75,9 @@ const Profile: React.FC = () => {
       // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
       if (user.enderecos && Array.isArray(user.enderecos) && user.enderecos.length > 0) {
         console.log('🔄 Usando endereços do perfil do usuário');
-        setAddresses(user.enderecos);
+        // Mapear os endereços do backend para o formato esperado pelo frontend
+        const mappedAddresses = user.enderecos.map(mapAddressFromBackend);
+        setAddresses(mappedAddresses);
         setLoading(false);
       } else {
         // Caso contrário, tentar carregar via API
@@ -67,6 +96,7 @@ const Profile: React.FC = () => {
       console.log('📋 Endereços carregados:', addressesData);
       
       if (Array.isArray(addressesData)) {
+        // Backend já retorna os dados no formato correto (transformados)
         setAddresses(addressesData);
         console.log(`✅ ${addressesData.length} endereços carregados com sucesso`);
       } else {
@@ -80,7 +110,8 @@ const Profile: React.FC = () => {
       // Tentar carregar endereços do perfil do usuário como fallback
       if (user?.enderecos && Array.isArray(user.enderecos)) {
         console.log('🔄 Usando endereços do perfil do usuário como fallback');
-        setAddresses(user.enderecos);
+        const mappedAddresses = user.enderecos.map(mapAddressFromBackend);
+        setAddresses(mappedAddresses);
         setError(null);
       } else {
         setAddresses([]);
@@ -88,17 +119,6 @@ const Profile: React.FC = () => {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpdatePhone = async () => {
-    try {
-      await apiService.updatePhone(newPhone);
-      setEditingPhone(false);
-      // Recarregar dados do usuário
-      window.location.reload();
-    } catch (error) {
-      console.error('Erro ao atualizar telefone:', error);
     }
   };
 
@@ -113,6 +133,7 @@ const Profile: React.FC = () => {
         number: '',
         complement: '',
         neighborhood: '',
+        reference: '',
         isDefault: false
       });
       
@@ -137,6 +158,7 @@ const Profile: React.FC = () => {
       number: address.number,
       complement: address.complement || '',
       neighborhood: address.neighborhood,
+      reference: address.reference || '',
       isDefault: address.isDefault
     });
     setShowAddressForm(true);
@@ -156,6 +178,7 @@ const Profile: React.FC = () => {
         number: '',
         complement: '',
         neighborhood: '',
+        reference: '',
         isDefault: false
       });
       
@@ -173,6 +196,26 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleDeleteAddress = async (addressId: number) => {
+    try {
+      console.log('🗑️ Removendo endereço:', addressId);
+      await apiService.deleteAddress(addressId);
+      
+      // Recarregar endereços após remover
+      console.log('🔄 Recarregando endereços após remoção...');
+      await loadAddresses();
+      
+      // Atualizar o perfil do usuário
+      await refreshUserProfile();
+      setDeletingAddress(null);
+      console.log('✅ Endereço removido com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao remover endereço:', error);
+      setError('Erro ao remover endereço. Tente novamente.');
+      setDeletingAddress(null);
+    }
+  };
+
   const cancelEdit = () => {
     console.log('❌ Cancelando edição de endereço');
     setEditingAddress(null);
@@ -182,50 +225,10 @@ const Profile: React.FC = () => {
       number: '',
       complement: '',
       neighborhood: '',
+      reference: '',
       isDefault: false
     });
     setError(null);
-  };
-
-  const handleDeleteAddress = async (address: Address) => {
-    setAddressToDelete(address);
-  };
-
-  const confirmDeleteAddress = async () => {
-    if (!addressToDelete) return;
-
-    try {
-      console.log('🗑️ Excluindo endereço:', addressToDelete.id);
-      setError(null);
-      
-      const result = await apiService.deleteAddress(addressToDelete.id);
-      
-      // Atualizar a lista local com os endereços retornados
-      setAddresses(result.addresses);
-      
-      // Recarregar o perfil do usuário
-      await refreshUserProfile();
-      
-      console.log('✅ Endereço excluído com sucesso');
-      
-      // Fechar o modal
-      setAddressToDelete(null);
-      
-    } catch (error: any) {
-      console.error('❌ Erro ao excluir endereço:', error);
-      
-      // Tratar diferentes tipos de erro
-      if (error.response?.status === 400) {
-        setError(error.response.data.message || 'Não é possível excluir este endereço.');
-      } else if (error.response?.status === 404) {
-        setError('Endereço não encontrado.');
-      } else {
-        setError('Erro ao excluir endereço. Tente novamente.');
-      }
-      
-      // Fechar o modal mesmo em caso de erro
-      setAddressToDelete(null);
-    }
   };
 
   if (authLoading || loading) {
@@ -234,12 +237,12 @@ const Profile: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">
             Acesso Negado
           </h2>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             Você precisa estar logado para acessar esta página.
           </p>
         </div>
@@ -248,242 +251,98 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         {/* Header com Avatar e Informações do Usuário */}
-        <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}></div>
-          </div>
-          
-          <div className="relative p-8">
-            <div className="flex items-center space-x-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6 md:mb-8">
+          <div className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-4 md:space-x-6">
               {/* Avatar */}
-              <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                  <User className="w-12 h-12 text-white" />
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-purple-600 rounded-full flex items-center justify-center">
+                  <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                  <CheckCircle className="w-5 h-5 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 md:w-8 md:h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
               </div>
               
               {/* Informações do Usuário */}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Olá, {user.nomeUsuario}! 👋
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
+                  Olá, {user.nomeUsuario}!
                 </h1>
-                <p className="text-lg text-gray-600 mb-4">
-                  Gerencie suas informações pessoais e preferências
+                <p className="text-sm md:text-base text-slate-600 mb-1">
+                  {user.email}
                 </p>
+                {user.telefone && (
+                  <p className="text-sm text-slate-600 mb-3 flex items-center justify-center sm:justify-start gap-1.5">
+                    <Phone className="w-3.5 h-3.5" />
+                    {formatPhone(user.telefone)}
+                  </p>
+                )}
                 
                 {/* Stats Cards */}
-                <div className="flex flex-wrap gap-4">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-md border border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-purple-600" />
-                      <span className="text-sm font-medium text-gray-700">Email verificado</span>
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                  <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200">
+                    <div className="flex items-center space-x-1.5">
+                      <Mail className="w-3.5 h-3.5 text-purple-600" />
+                      <span className="text-xs font-medium text-slate-700">Email verificado</span>
                     </div>
                   </div>
                   
-                  <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-md border border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <Shield className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-gray-700">
+                  <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200">
+                    <div className="flex items-center space-x-1.5">
+                      <Shield className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-xs font-medium text-slate-700">
                         {user.funcao === 'admin' ? 'Administrador' : 'Cliente'}
                       </span>
                     </div>
                   </div>
-                  
-                  <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-md border border-gray-100">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700">Membro desde 2024</span>
-                    </div>
-                  </div>
                 </div>
-              </div>
-              
-              {/* Settings Button */}
-              <div className="flex flex-col items-center space-y-2">
-                <button className="p-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:bg-white">
-                  <Settings className="w-6 h-6 text-gray-600" />
-                </button>
-                <span className="text-xs text-gray-500 font-medium">Configurações</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Informações Pessoais */}
-          <div className="xl:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              {/* Header da Seção */}
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-xl font-bold text-white">
-                    Informações Pessoais
-                  </h2>
-                </div>
+        {/* Endereços */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Header da Seção */}
+          <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-purple-600" />
+                <h2 className="text-base md:text-lg font-bold text-slate-900">
+                  Meus Endereços
+                </h2>
               </div>
-              
-              <div className="p-6 space-y-6">
-                {/* Campo Username */}
-                <div className="group">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <User className="w-4 h-4 mr-2 text-gray-500" />
-                    Nome de usuário
-                  </label>
-                  <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
-                    <p className="text-gray-900 font-medium">{user.nomeUsuario}</p>
-                  </div>
-                </div>
-
-                {/* Campo Email */}
-                <div className="group">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <Mail className="w-4 h-4 mr-2 text-gray-500" />
-                    Email
-                  </label>
-                  <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
-                    <p className="text-gray-900 font-medium">{user.email}</p>
-                  </div>
-                </div>
-
-                {/* Campo Telefone */}
-                <div className="group">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <Phone className="w-4 h-4 mr-2 text-gray-500" />
-                    Telefone
-                  </label>
-                  {editingPhone ? (
-                    <div className="space-y-3">
-                      <input
-                        type="tel"
-                        value={newPhone}
-                        onChange={(e) => setNewPhone(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
-                        placeholder="(00) 00000-0000"
-                      />
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={handleUpdatePhone}
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
-                        >
-                          <Save className="w-4 h-4" />
-                          <span>Salvar</span>
-                        </button>
-                        <button
-                          onClick={() => setEditingPhone(false)}
-                          className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
-                        >
-                          <X className="w-4 h-4" />
-                          <span>Cancelar</span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
-                      <div className="flex items-center justify-between">
-                        <p className="text-gray-900 font-medium">
-                          {user.telefone || 'Não informado'}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setNewPhone(user.telefone || '');
-                            setEditingPhone(true);
-                          }}
-                          className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Campo Tipo de Conta */}
-                <div className="group">
-                  <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                    <Shield className="w-4 h-4 mr-2 text-gray-500" />
-                    Tipo de conta
-                  </label>
-                  <div className="bg-gray-50 rounded-lg p-3 border-2 border-transparent group-hover:border-purple-200 transition-all duration-200">
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                        user.funcao === 'admin' 
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                          : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                      }`}>
-                        {user.funcao === 'admin' ? '👑 Administrador' : '🌟 Cliente Premium'}
-                      </span>
-                      {user.funcao === 'admin' && (
-                        <Star className="w-4 h-4 text-yellow-500" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={() => {
+                  setEditingAddress(null);
+                  setNewAddress({
+                    street: '',
+                    number: '',
+                    complement: '',
+                    neighborhood: '',
+                    reference: '',
+                    isDefault: false
+                  });
+                  setShowAddressForm(true);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-3 rounded-lg flex items-center space-x-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Novo</span>
+              </button>
             </div>
-          </div>
-
-          {/* Endereços */}
-          <div className="xl:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              {/* Header da Seção */}
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-white" />
-                    </div>
-                    <h2 className="text-xl font-bold text-white">
-                      Meus Endereços
-                    </h2>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={loadAddresses}
-                      disabled={loading}
-                      className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20 disabled:opacity-50"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>Recarregar</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingAddress(null);
-                        setNewAddress({
-                          street: '',
-                          number: '',
-                          complement: '',
-                          neighborhood: '',
-                          isDefault: false
-                        });
-                        setShowAddressForm(true);
-                      }}
-                      className="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center space-x-2 backdrop-blur-sm border border-white/20"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Novo Endereço</span>
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4 md:p-6">
                 {/* Mensagem de erro */}
                 {error && (
-                  <div className="mb-4 bg-red-50 border-2 border-red-200 rounded-xl p-4">
-                    <div className="flex items-center space-x-2 text-red-800">
-                      <X className="w-5 h-5" />
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-center space-x-2 text-red-800 text-sm">
+                      <X className="w-4 h-4" />
                       <span className="font-medium">{error}</span>
                     </div>
                   </div>
@@ -491,24 +350,33 @@ const Profile: React.FC = () => {
 
                 {/* Formulário de endereço */}
                 {showAddressForm && (
-                  <div className="mb-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200/50 overflow-hidden">
-                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-3">
-                      <h3 className="text-lg font-bold text-white flex items-center">
-                        {editingAddress ? (
-                          <>
-                            <Edit className="w-5 h-5 mr-2" />
-                            Editar Endereço
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-5 h-5 mr-2" />
-                            Adicionar Novo Endereço
-                          </>
-                        )}
-                      </h3>
-                    </div>
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                      <div className="px-4 md:px-6 py-4 border-b border-slate-200 sticky top-0 bg-white">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-base md:text-lg font-bold text-slate-900 flex items-center">
+                            {editingAddress ? (
+                              <>
+                                <Edit className="w-4 h-4 md:w-5 md:h-5 mr-2 text-purple-600" />
+                                Editar Endereço
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2 text-purple-600" />
+                                Adicionar Novo Endereço
+                              </>
+                            )}
+                          </h3>
+                          <button
+                            onClick={cancelEdit}
+                            className="text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
                     
-                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="p-6">
+                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="p-4 md:p-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div className="md:col-span-2">
                           <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
@@ -567,6 +435,19 @@ const Profile: React.FC = () => {
                         </div>
                         
                         <div className="md:col-span-2">
+                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                            Ponto de Referência
+                          </label>
+                          <input
+                            type="text"
+                            value={newAddress.reference}
+                            onChange={(e) => setNewAddress({...newAddress, reference: e.target.value})}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ex: Próximo ao mercado"
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-2">
                           <label className="flex items-center space-x-3 cursor-pointer">
                             <input
                               type="checkbox"
@@ -609,6 +490,64 @@ const Profile: React.FC = () => {
                       </div>
                     </form>
                   </div>
+                </div>
+                )}
+
+                {/* Modal de confirmação de exclusão */}
+                {deletingAddress && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                      <div className="px-6 py-4 border-b border-slate-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-900">
+                            Remover Endereço
+                          </h3>
+                        </div>
+                      </div>
+                      
+                      <div className="p-6">
+                        <p className="text-slate-600 mb-4">
+                          Tem certeza que deseja remover este endereço?
+                        </p>
+                        
+                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm">
+                              <p className="font-semibold text-slate-900">
+                                {deletingAddress.street}, {deletingAddress.number}
+                              </p>
+                              <p className="text-slate-600">{deletingAddress.neighborhood}</p>
+                              {deletingAddress.complement && (
+                                <p className="text-slate-500 text-xs mt-1">
+                                  {deletingAddress.complement}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="px-6 py-4 bg-slate-50 rounded-b-xl flex justify-end gap-3">
+                        <button
+                          onClick={() => setDeletingAddress(null)}
+                          className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-all duration-200"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAddress(deletingAddress.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Lista de endereços */}
@@ -631,11 +570,11 @@ const Profile: React.FC = () => {
                         <p className="text-gray-600 mb-6">Adicione um endereço para facilitar suas compras</p>
                         
                         {/* Debug info */}
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-sm text-left max-w-md mx-auto">
-                          <h4 className="font-semibold text-gray-700 mb-2">ℹ️ Informações de Debug:</h4>
-                          <div className="space-y-1 text-gray-600">
+                        <div className="bg-slate-50 rounded-lg p-4 mb-6 text-sm text-left max-w-md mx-auto border border-slate-200">
+                          <h4 className="font-semibold text-slate-700 mb-2">ℹ️ Informações de Debug:</h4>
+                          <div className="space-y-1 text-slate-600">
                             <p>• Usuário ID: {user?.id}</p>
-                            <p>• Endereços no perfil: {user?.address?.length || 0}</p>
+                            <p>• Endereços carregados: {addresses.length}</p>
                             <p>• Estado loading: {loading ? 'true' : 'false'}</p>
                             <p>• Erro: {error || 'Nenhum'}</p>
                           </div>
@@ -643,7 +582,7 @@ const Profile: React.FC = () => {
                         
                         <button
                           onClick={() => setShowAddressForm(true)}
-                          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg flex items-center space-x-2 mx-auto"
+                          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-md flex items-center space-x-2 mx-auto"
                         >
                           <Plus className="w-5 h-5" />
                           <span>Adicionar Primeiro Endereço</span>
@@ -651,77 +590,75 @@ const Profile: React.FC = () => {
                       </div>
                     ) : (
                       addresses.map((address) => (
-                        <div key={address.id} className="group relative bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 hover:border-blue-300 p-6 transition-all duration-300 hover:shadow-lg">
-                          {/* Badge de Endereço Padrão */}
-                          {address.isDefault && (
-                            <div className="absolute -top-3 -right-3">
-                              <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full px-3 py-1 text-xs font-bold shadow-lg flex items-center space-x-1">
-                                <Star className="w-3 h-3" />
-                                <span>PADRÃO</span>
-                              </div>
-                            </div>
-                          )}
+                        <div key={address.id} className="group relative bg-white rounded-xl border border-slate-200 hover:border-purple-300 p-3 sm:p-4 md:p-5 transition-all duration-200 hover:shadow-md">
                           
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
+                          <div className="flex items-start justify-between gap-2 sm:gap-3 md:gap-4">
+                            <div className="flex-1 min-w-0">
                               {/* Endereço Principal */}
-                              <div className="flex items-center space-x-3 mb-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-md">
-                                  <Home className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <h4 className="font-bold text-gray-900 text-lg">
-                                    {address.street}, {address.number}
-                                  </h4>
-                                  <p className="text-sm text-gray-600">
-                                    {address.neighborhood}
-                                  </p>
+                              <div className="mb-2 sm:mb-3">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                  <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <MapPin className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 text-purple-600" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-slate-900 text-sm sm:text-base mb-0.5 leading-tight">
+                                      {address.street}, {address.number}
+                                    </h4>
+                                    <p className="text-xs sm:text-sm text-slate-600">
+                                      {address.neighborhood}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                               
-                              {/* Complemento */}
-                              {address.complement && (
-                                <div className="ml-13 mb-3">
-                                  <p className="text-sm text-gray-700 bg-gray-100 rounded-lg px-3 py-1 inline-block">
-                                    📍 {address.complement}
-                                  </p>
+                              {/* Detalhes Adicionais */}
+                              {(address.complement || address.reference) && (
+                                <div className="ml-10 sm:ml-12 md:ml-13 space-y-1 sm:space-y-1.5">
+                                  {address.complement && (
+                                    <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                                      <span className="text-slate-500 text-xs">Complemento:</span>
+                                      <span className="text-slate-700 font-medium text-xs sm:text-sm truncate">{address.complement}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {address.reference && (
+                                    <div className="flex items-start gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                                      <span className="text-slate-500 flex-shrink-0 text-xs">Ref:</span>
+                                      <span className="text-slate-700 font-medium text-xs sm:text-sm line-clamp-2">{address.reference}</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                              
-                              {/* Endereço Completo */}
-                              <div className="ml-13 text-sm text-gray-600">
-                                <p className="font-medium">Endereço completo:</p>
-                                <p className="bg-gray-50 rounded-lg px-3 py-2 mt-1">
-                                  {address.street}, {address.number}
-                                  {address.complement && `, ${address.complement}`}
-                                  <br />
-                                  {address.neighborhood}
-                                </p>
-                              </div>
                             </div>
                             
                             {/* Ações */}
-                            <div className="flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button 
-                                onClick={() => handleEditAddress(address)}
-                                title="Editar endereço"
-                                className="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm border border-blue-200 hover:border-blue-300"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteAddress(address)}
-                                title="Excluir endereço"
-                                className="p-3 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 shadow-sm border border-red-200 hover:border-red-300"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                              <button 
-                                title="Visualizar detalhes"
-                                className="p-3 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 shadow-sm border border-purple-200 hover:border-purple-300"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
+                            <div className="flex-shrink-0 flex flex-col items-end gap-1.5 sm:gap-2">
+                              {/* Badge de Endereço Padrão */}
+                              {address.isDefault && (
+                                <div className="bg-emerald-500 text-white rounded-md px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold flex items-center space-x-0.5 sm:space-x-1">
+                                  <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-white" />
+                                  <span className="hidden xs:inline">PADRÃO</span>
+                                  <span className="xs:hidden">P</span>
+                                </div>
+                              )}
+                              
+                              {/* Botões de ação */}
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <button 
+                                  onClick={() => handleEditAddress(address)}
+                                  className="p-1.5 sm:p-2 bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white rounded-md transition-all duration-200"
+                                  title="Editar endereço"
+                                >
+                                  <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingAddress(address)}
+                                  className="p-1.5 sm:p-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-md transition-all duration-200"
+                                  title="Remover endereço"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -731,92 +668,7 @@ const Profile: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
-        </div>
       </div>
-
-      {/* Modal de Confirmação para Excluir Endereço */}
-      {addressToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-            {/* Header do Modal */}
-            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Trash2 className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-white">
-                  Excluir Endereço
-                </h3>
-              </div>
-            </div>
-
-            {/* Conteúdo do Modal */}
-            <div className="p-6">
-              <div className="mb-4">
-                <p className="text-gray-700 mb-4">
-                  Tem certeza que deseja excluir este endereço?
-                </p>
-                
-                {/* Visualização do Endereço */}
-                <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Home className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <p className="font-bold text-gray-900">
-                        {addressToDelete.street}, {addressToDelete.number}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {addressToDelete.neighborhood}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {addressToDelete.complement && (
-                    <div className="ml-8">
-                      <p className="text-sm text-gray-700">
-                        📍 {addressToDelete.complement}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {addressToDelete.isDefault && (
-                    <div className="ml-8 mt-2">
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
-                        🌟 Endereço Padrão
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>⚠️ Atenção:</strong> Esta ação não pode ser desfeita.
-                  {addressToDelete.isDefault && ' Um novo endereço será definido como padrão automaticamente.'}
-                </p>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setAddressToDelete(null)}
-                  className="flex-1 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold transition-all duration-200 border border-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDeleteAddress}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 font-semibold transition-all duration-200 shadow-lg flex items-center justify-center space-x-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Excluir</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

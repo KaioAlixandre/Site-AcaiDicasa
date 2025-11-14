@@ -73,7 +73,11 @@ router.get('/', authenticateToken, async (req, res) => {
             include: {
                 itens: {
                     include: {
-                        produto: true
+                        produto: {
+                            include: {
+                                imagens_produto: true
+                            }
+                        }
                     }
                 }
             }
@@ -106,9 +110,30 @@ router.get('/', authenticateToken, async (req, res) => {
                 }
             }
             
+            // Transformar campos do português para inglês
             return {
-                ...item,
-                totalPrice: item.quantidade * itemPrice
+                id: item.id,
+                quantity: item.quantidade,
+                createdAt: item.criadoEm,
+                cartId: item.carrinhoId,
+                productId: item.produtoId,
+                selectedOptions: item.opcoesSelecionadas,
+                totalPrice: item.quantidade * itemPrice,
+                product: {
+                    id: item.produto.id,
+                    name: item.produto.nome,
+                    price: Number(itemPrice),
+                    description: item.produto.descricao,
+                    isActive: item.produto.ativo,
+                    createdAt: item.produto.criadoEm,
+                    categoryId: item.produto.categoriaId,
+                    images: item.produto.imagens_produto ? item.produto.imagens_produto.map(img => ({
+                        id: img.id,
+                        url: img.url,
+                        altText: img.textoAlternativo,
+                        productId: img.produtoId
+                    })) : []
+                }
             };
         });
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Clock, Truck, Heart, ShoppingCart, Plus, Instagram, MessageCircle } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
@@ -12,7 +11,8 @@ const Home: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeConfig, setStoreConfig] = useState<any>(null);
-  const { user } = useAuth();
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const { addItem } = useCart();
 
   useEffect(() => {
@@ -43,9 +43,13 @@ const Home: React.FC = () => {
   const handleAddToCart = async (productId: number) => {
     try {
       await addItem(productId, 1);
-      alert('Produto adicionado ao carrinho!');
+      setToastMessage('Produto adicionado ao carrinho!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } catch (error) {
-      alert('Erro ao adicionar produto ao carrinho');
+      setToastMessage('Erro ao adicionar produto ao carrinho');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }
   };
 
@@ -55,6 +59,21 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-top-5 duration-300">
+          <div className="bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 max-w-md">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold">{toastMessage}</p>
+              <p className="text-xs text-emerald-100">Veja seu carrinho no menu superior</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="relative h-56 md:h-64 flex items-center justify-center text-white" style={{ backgroundColor: '#740e93' }}>
         <div className="text-center">
@@ -134,7 +153,13 @@ const Home: React.FC = () => {
                 <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
                 <div className="mt-2 md:mt-3 flex items-center justify-between">
                   <span className="text-base md:text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
-                  <span className="text-yellow-500 text-xs md:text-sm">★★★★</span>
+                  <button
+                    onClick={() => handleAddToCart(product.id)}
+                    className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
+                    aria-label="Adicionar ao carrinho"
+                  >
+                    <ShoppingCart size={18} />
+                  </button>
                 </div>
               </div>
             </div>
