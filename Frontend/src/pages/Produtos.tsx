@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Clock, Filter, Star, Heart, Package, Grid, List } from 'lucide-react';
+import { Search, ShoppingCart, Package } from 'lucide-react';
 import { Product, ProductCategory } from '../types';
 import { apiService } from '../services/api';
 import { useCart } from '../contexts/CartContext';
@@ -95,76 +95,78 @@ const Products: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header no estilo marketplace */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-slate-900">Cardápio</h1>
-        {storeStatus && (
-            <div className="mt-1 text-sm text-slate-600 flex items-center gap-2">
-              <Clock className={`w-4 h-4 ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`} />
-              {storeStatus.isOpen ? (
-                <span>Aberto agora</span>
-              ) : (
-                <span>
-                  Fechado. {storeStatus.nextOpenTime || storeStatus.reason}
-                </span>
-                    )}
-                  </div>
-                )}
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Top Banner */}
+      <div className="relative h-64 md:h-72 flex items-center justify-center text-white overflow-hidden" style={{ backgroundColor: '#740e93' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20"></div>
+        <div className="text-center relative z-10">
+          <h1 className="text-3xl md:text-6xl font-extrabold tracking-tight mb-2">Nosso Cardápio</h1>
+          <p className="mt-2 text-sm md:text-lg text-pink-100 font-light">Escolha seus produtos favoritos</p>
+        </div>
+      </div>
 
-        {/* Busca + chips de categorias */}
-        <div className="mb-4">
-              <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      {/* Card de informações */}
+      <div className="relative z-10 -mt-12">
+        <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 px-5 py-5 md:px-8 md:py-7">
+          {/* Busca */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="text"
-              placeholder="Buscar no cardápio"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                <button
+            </div>
+            <input
+              type="text"
+              placeholder="O que você está procurando?"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-slate-50 hover:bg-white transition-all duration-200 text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Chips de categorias */}
+        <div className="mb-6">
+          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide">
+            <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 rounded-full border text-sm ${selectedCategory === null ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-slate-700 border-slate-300'}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${selectedCategory === null ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm'}`}
             >
               Todos
-                </button>
+            </button>
             {categories.map((cat) => (
-                <button
+              <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full border text-sm ${selectedCategory === cat.id ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${selectedCategory === cat.id ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm'}`}
               >
                 {cat.name}
-                </button>
+              </button>
             ))}
           </div>
         </div>
 
         {/* Contador simples */}
-        <div className="flex items-center gap-2 mb-4 text-slate-600">
-          <Package className="w-5 h-5" />
-          <span className="text-sm">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'itens'} disponíveis
+        <div className="flex items-center gap-2.5 mb-8 text-slate-500">
+          <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+            <Package className="w-4 h-4 text-purple-600" />
+          </div>
+          <span className="text-sm font-medium">
+            <span className="text-slate-900 font-semibold">{filteredProducts.length}</span> {filteredProducts.length === 1 ? 'item' : 'itens'} disponíveis
           </span>
         </div>
 
         {/* Lista de produtos no estilo seções por categoria */}
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Search className="w-16 h-16 text-purple-400" />
+          <div className="text-center py-24">
+            <div className="w-40 h-40 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-purple-100">
+              <Search className="w-20 h-20 text-purple-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              🔍 Nenhum produto encontrado
+            <h3 className="text-3xl font-bold text-slate-900 mb-4">
+              Nenhum produto encontrado
             </h3>
-            <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+            <p className="text-lg text-slate-600 mb-10 max-w-md mx-auto font-light">
               Que tal tentar uma busca diferente? Nossos produtos deliciosos estão esperando por você!
             </p>
             <button
@@ -172,8 +174,8 @@ const Products: React.FC = () => {
                 setSearchTerm('');
                 setSelectedCategory(null);
               }}
-              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl 
-                       hover:from-purple-600 hover:to-pink-600 transition-all duration-300 
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl 
+                       hover:from-purple-700 hover:to-purple-800 transition-all duration-200 
                        shadow-lg hover:shadow-xl font-semibold"
             >
               Limpar Filtros
@@ -240,15 +242,15 @@ const CategorySection: React.FC<{
 }> = ({ title, products, onAdd, disabled }) => {
   if (!products || products.length === 0) return null;
   return (
-    <section className="mb-8">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <span className="text-xs text-slate-500">{products.length} itens</span>
+    <section className="mb-8 md:mb-10">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg md:text-xl font-bold text-slate-900">{title}</h2>
+        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{products.length} itens</span>
       </div>
-      <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4">
         {products.map((product) => (
-          <div key={product.id} className="p-4 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center">
+          <div key={product.id} className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
               {product.images?.[0]?.url ? (
                 <img
                   src={`http://localhost:3001${product.images[0].url}`}
@@ -256,30 +258,30 @@ const CategorySection: React.FC<{
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Package className="w-6 h-6 text-slate-400" />
+                <Package className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-slate-400" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-medium text-slate-900 truncate">{product.name}</h3>
-                <span className="whitespace-nowrap font-semibold text-slate-900">
-                  R$ {Number(product.price ?? 0).toFixed(2)}
-                </span>
-              </div>
-              <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+              <h3 className="font-bold text-sm sm:text-base text-slate-900 mb-1 sm:mb-2 leading-tight">{product.name}</h3>
+              <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 mb-2 sm:mb-3 leading-relaxed">
                 {product.description || 'Produto delicioso e preparado na hora'}
               </p>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="font-bold text-base sm:text-lg text-slate-900">
+                  R$ {Number(product.price ?? 0).toFixed(2)}
+                </span>
+                <button
+                  onClick={() => onAdd(product.id)}
+                  disabled={disabled}
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto ${
+                    disabled ? 'bg-slate-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 active:scale-95'
+                  }`}
+                  title={disabled ? 'Indisponível agora' : 'Adicionar ao carrinho'}
+                >
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => onAdd(product.id)}
-              disabled={disabled}
-              className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
-                disabled ? 'bg-slate-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
-              }`}
-              title={disabled ? 'Indisponível agora' : 'Adicionar ao carrinho'}
-            >
-              {disabled ? 'Indisponível' : 'Adicionar'}
-            </button>
           </div>
         ))}
       </div>

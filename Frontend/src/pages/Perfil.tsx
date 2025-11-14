@@ -350,20 +350,22 @@ const Profile: React.FC = () => {
 
                 {/* Formulário de endereço */}
                 {showAddressForm && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
                     <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                      <div className="px-4 md:px-6 py-4 border-b border-slate-200 sticky top-0 bg-white">
+                      <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-3.5 md:py-4 border-b border-slate-200 sticky top-0 bg-white">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-base md:text-lg font-bold text-slate-900 flex items-center">
+                          <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 flex items-center">
                             {editingAddress ? (
                               <>
-                                <Edit className="w-4 h-4 md:w-5 md:h-5 mr-2 text-purple-600" />
-                                Editar Endereço
+                                <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1.5 sm:mr-2 text-purple-600" />
+                                <span className="hidden xs:inline">Editar Endereço</span>
+                                <span className="xs:hidden">Editar</span>
                               </>
                             ) : (
                               <>
-                                <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2 text-purple-600" />
-                                Adicionar Novo Endereço
+                                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1.5 sm:mr-2 text-purple-600" />
+                                <span className="hidden xs:inline">Adicionar Novo Endereço</span>
+                                <span className="xs:hidden">Novo Endereço</span>
                               </>
                             )}
                           </h3>
@@ -371,119 +373,122 @@ const Profile: React.FC = () => {
                             onClick={cancelEdit}
                             className="text-slate-400 hover:text-slate-600 transition-colors"
                           >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
                           </button>
                         </div>
                       </div>
                     
-                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="p-4 md:p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress} className="p-3 sm:p-4 md:p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 md:gap-4 mb-4 sm:mb-5 md:mb-6">
                         <div className="md:col-span-2">
-                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            <Home className="w-4 h-4 mr-2 text-gray-500" />
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
+                            <Home className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 mr-1 sm:mr-1.5 md:mr-2 text-gray-500" />
                             Rua
                           </label>
                           <input
                             type="text"
                             value={newAddress.street}
                             onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                             placeholder="Ex: Rua das Flores"
                             required
                           />
                         </div>
                         
                         <div>
-                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
                             Número
                           </label>
                           <input
                             type="text"
                             value={newAddress.number}
                             onChange={(e) => setNewAddress({...newAddress, number: e.target.value})}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                             placeholder="123"
                             required
                           />
                         </div>
                         
                         <div>
-                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
                             Complemento
                           </label>
                           <input
                             type="text"
                             value={newAddress.complement}
                             onChange={(e) => setNewAddress({...newAddress, complement: e.target.value})}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                             placeholder="Apto 101"
                           />
                         </div>
                         
                         <div className="md:col-span-2">
-                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
                             Bairro
                           </label>
                           <input
                             type="text"
                             value={newAddress.neighborhood}
                             onChange={(e) => setNewAddress({...newAddress, neighborhood: e.target.value})}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                             placeholder="Ex: Centro"
                             required
                           />
                         </div>
                         
                         <div className="md:col-span-2">
-                          <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                            Ponto de Referência
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
+                            Referência
                           </label>
                           <input
                             type="text"
                             value={newAddress.reference}
                             onChange={(e) => setNewAddress({...newAddress, reference: e.target.value})}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                             placeholder="Ex: Próximo ao mercado"
                           />
                         </div>
                         
                         <div className="md:col-span-2">
-                          <label className="flex items-center space-x-3 cursor-pointer">
+                          <label className="flex items-center space-x-2 sm:space-x-2.5 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={newAddress.isDefault}
                               onChange={(e) => setNewAddress({...newAddress, isDefault: e.target.checked})}
-                              className="w-5 h-5 text-blue-600 focus:ring-blue-500 border-2 border-gray-300 rounded transition-all duration-200"
+                              className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 text-purple-600 focus:ring-purple-500 border-2 border-gray-300 rounded transition-all duration-200"
                             />
-                            <span className="text-sm font-medium text-gray-700 flex items-center">
-                              <Star className="w-4 h-4 mr-2 text-yellow-500" />
-                              Definir como endereço padrão
+                            <span className="text-xs sm:text-sm font-medium text-gray-700 flex items-center">
+                              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 mr-1 sm:mr-1.5 md:mr-2 text-yellow-500" />
+                              <span className="hidden xs:inline">Definir como endereço padrão</span>
+                              <span className="xs:hidden">Endereço padrão</span>
                             </span>
                           </label>
                         </div>
                       </div>
                       
-                      <div className="flex justify-end space-x-3">
+                      <div className="flex justify-end space-x-2 sm:space-x-2.5 md:space-x-3">
                         <button
                           type="button"
                           onClick={cancelEdit}
-                          className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg font-semibold transition-all duration-200 border border-gray-200"
+                          className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-sm sm:text-base text-gray-600 hover:bg-gray-100 rounded-lg font-semibold transition-all duration-200 border border-gray-200"
                         >
                           Cancelar
                         </button>
                         <button
                           type="submit"
-                          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 font-semibold transition-all duration-200 shadow-lg flex items-center space-x-2"
+                          className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 text-sm sm:text-base bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 font-semibold transition-all duration-200 shadow-lg flex items-center space-x-1.5 sm:space-x-2"
                         >
                           {editingAddress ? (
                             <>
-                              <Edit className="w-4 h-4" />
-                              <span>Atualizar Endereço</span>
+                              <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Atualizar</span>
+                              <span className="xs:hidden">OK</span>
                             </>
                           ) : (
                             <>
-                              <Plus className="w-4 h-4" />
-                              <span>Salvar Endereço</span>
+                              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Salvar</span>
+                              <span className="xs:hidden">OK</span>
                             </>
                           )}
                         </button>
