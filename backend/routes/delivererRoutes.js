@@ -10,7 +10,19 @@ router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
     const deliverers = await prisma.entregador.findMany({
       orderBy: { criadoEm: 'desc' }
     });
-    res.json(deliverers);
+
+    // Transformar campos do português para inglês
+    const transformedDeliverers = deliverers.map(deliverer => ({
+      id: deliverer.id,
+      name: deliverer.nome,
+      phone: deliverer.telefone,
+      email: deliverer.email,
+      isActive: deliverer.ativo,
+      createdAt: deliverer.criadoEm,
+      updatedAt: deliverer.atualizadoEm
+    }));
+
+    res.json(transformedDeliverers);
   } catch (error) {
     console.error('Erro ao buscar entregadores:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -43,7 +55,18 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
       }
     });
 
-    res.status(201).json(deliverer);
+    // Transformar campos do português para inglês
+    const transformedDeliverer = {
+      id: deliverer.id,
+      name: deliverer.nome,
+      phone: deliverer.telefone,
+      email: deliverer.email,
+      isActive: deliverer.ativo,
+      createdAt: deliverer.criadoEm,
+      updatedAt: deliverer.atualizadoEm
+    };
+
+    res.status(201).json(transformedDeliverer);
   } catch (error) {
     console.error('Erro ao criar entregador:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -91,7 +114,18 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
       }
     });
 
-    res.json(deliverer);
+    // Transformar campos do português para inglês
+    const transformedDeliverer = {
+      id: deliverer.id,
+      name: deliverer.nome,
+      phone: deliverer.telefone,
+      email: deliverer.email,
+      isActive: deliverer.ativo,
+      createdAt: deliverer.criadoEm,
+      updatedAt: deliverer.atualizadoEm
+    };
+
+    res.json(transformedDeliverer);
   } catch (error) {
     console.error('Erro ao atualizar entregador:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -141,7 +175,18 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
       data: { ativo: !deliverer.ativo }
     });
 
-    res.json(updatedDeliverer);
+    // Transformar campos do português para inglês
+    const transformedDeliverer = {
+      id: updatedDeliverer.id,
+      name: updatedDeliverer.nome,
+      phone: updatedDeliverer.telefone,
+      email: updatedDeliverer.email,
+      isActive: updatedDeliverer.ativo,
+      createdAt: updatedDeliverer.criadoEm,
+      updatedAt: updatedDeliverer.atualizadoEm
+    };
+
+    res.json(transformedDeliverer);
   } catch (error) {
     console.error('Erro ao alterar status do entregador:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });

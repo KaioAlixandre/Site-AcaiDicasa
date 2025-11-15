@@ -244,17 +244,71 @@ router.get('/history', authenticateToken, async (req, res) => {
             include: {
                 itens_pedido: {
                     include: {
-                        produto: true
+                        produto: {
+                            include: {
+                                imagens_produto: true
+                            }
+                        }
                     }
                 },
+                pagamento: true
             },
             orderBy: {
                 criadoEm: 'desc'
             }
         });
 
-        console.log(`[GET /api/orders/history] Histórico de pedidos do usuário ${userId} buscado com sucesso. Total de pedidos: ${orders.length}`);
-        res.status(200).json(orders);
+        // Transformar os dados para o formato esperado pelo frontend
+        const transformedOrders = orders.map(order => ({
+            id: order.id,
+            userId: order.usuarioId,
+            totalPrice: order.precoTotal,
+            status: order.status,
+            deliveryType: order.tipoEntrega,
+            createdAt: order.criadoEm,
+            shippingStreet: order.ruaEntrega,
+            shippingNumber: order.numeroEntrega,
+            shippingComplement: order.complementoEntrega,
+            shippingNeighborhood: order.bairroEntrega,
+            shippingPhone: order.telefoneEntrega,
+            deliveryFee: order.taxaEntrega,
+            orderitem: order.itens_pedido.map(item => ({
+                id: item.id,
+                orderId: item.pedidoId,
+                productId: item.produtoId,
+                quantity: item.quantidade,
+                priceAtOrder: item.precoNoPedido,
+                selectedOptionsSnapshot: item.opcoesSelecionadasSnapshot,
+                product: {
+                    id: item.produto.id,
+                    name: item.produto.nome,
+                    price: item.produto.preco,
+                    description: item.produto.descricao,
+                    isActive: item.produto.ativo,
+                    createdAt: item.produto.criadoEm,
+                    categoryId: item.produto.categoriaId,
+                    images: item.produto.imagens_produto?.map(img => ({
+                        id: img.id,
+                        url: img.urlImagem,
+                        altText: img.textoAlternativo,
+                        productId: img.produtoId
+                    })) || []
+                }
+            })),
+            payment: order.pagamento ? {
+                id: order.pagamento.id,
+                amount: order.pagamento.valor,
+                method: order.pagamento.metodo,
+                status: order.pagamento.status,
+                transactionId: order.pagamento.idTransacao,
+                createdAt: order.pagamento.criadoEm,
+                updatedAt: order.pagamento.atualizadoEm,
+                orderId: order.pagamento.pedidoId
+            } : null
+        }));
+
+        console.log(`[GET /api/orders/history] Histórico de pedidos do usuário ${userId} buscado com sucesso. Total de pedidos: ${transformedOrders.length}`);
+        res.status(200).json(transformedOrders);
     } catch (err) {
         console.error(`[GET /api/orders/history] Erro ao buscar o histórico de pedidos para o usuário ${userId}:`, err.message);
         res.status(500).json({ message: 'Erro ao buscar o histórico de pedidos.', error: err.message });
@@ -410,11 +464,11 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
 
         // Validar entregador se fornecido
         if (delivererId) {
-            const deliverer = await prisma.deliverer.findUnique({
+            const deliverer = await prisma.entregador.findUnique({
                 where: { id: parseInt(delivererId) }
             });
             
-            if (!deliverer || !deliverer.isActive) {
+            if (!deliverer || !deliverer.ativo) {
                 console.warn(`[PUT /api/orders/${orderId}] Entregador não encontrado ou inativo. ID: ${delivererId}`);
                 return res.status(400).json({ message: 'Entregador não encontrado ou inativo' });
             }
@@ -549,12 +603,76 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
           }
         },
         itens_pedido: {
-          include: { produto: true }
-        }
+          include: { 
+            produto: {
+              include: {
+                imagens_produto: true
+              }
+            }
+          }
+        },
+        pagamento: true
+      },
+      orderBy: {
+        criadoEm: 'desc'
       }
     });
-    res.json(orders);
+
+    // Transformar os dados para o formato esperado pelo frontend
+    const transformedOrders = orders.map(order => ({
+      id: order.id,
+      userId: order.usuarioId,
+      totalPrice: order.precoTotal,
+      status: order.status,
+      deliveryType: order.tipoEntrega,
+      createdAt: order.criadoEm,
+      shippingStreet: order.ruaEntrega,
+      shippingNumber: order.numeroEntrega,
+      shippingComplement: order.complementoEntrega,
+      shippingNeighborhood: order.bairroEntrega,
+      shippingPhone: order.telefoneEntrega,
+      deliveryFee: order.taxaEntrega,
+      user: order.usuario ? {
+        id: order.usuario.id,
+        username: order.usuario.nomeUsuario,
+        email: order.usuario.email,
+        phone: order.usuario.telefone
+      } : null,
+      orderitem: order.itens_pedido.map(item => ({
+        id: item.id,
+        orderId: item.pedidoId,
+        productId: item.produtoId,
+        quantity: item.quantidade,
+        priceAtOrder: item.precoNoPedido,
+        selectedOptionsSnapshot: item.opcoesSelecionadas,
+        product: item.produto ? {
+          id: item.produto.id,
+          name: item.produto.nome,
+          description: item.produto.descricao,
+          price: item.produto.preco,
+          categoryId: item.produto.categoriaId,
+          isActive: item.produto.ativo,
+          images: item.produto.imagens_produto ? item.produto.imagens_produto.map(img => ({
+            id: img.id,
+            productId: img.produtoId,
+            url: img.url,
+            isPrimary: img.principal
+          })) : []
+        } : null
+      })),
+      payment: order.pagamento ? {
+        id: order.pagamento.id,
+        orderId: order.pagamento.pedidoId,
+        method: order.pagamento.metodoPagamento,
+        status: order.pagamento.statusPagamento,
+        amount: order.pagamento.valor,
+        paidAt: order.pagamento.pagoEm
+      } : null
+    }));
+
+    res.json(transformedOrders);
   } catch (err) {
+    console.error('Erro ao buscar pedidos:', err);
     res.status(500).json({ error: 'Erro ao buscar pedidos.' });
   }
 });

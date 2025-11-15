@@ -128,14 +128,14 @@ class ApiService {
     const data = response.data || [];
     return data.map((p: any) => ({
       id: p.id,
-      name: p.nome,
-      price: Number(p.preco),
-      description: p.descricao ?? '',
-      isActive: Boolean(p.ativo),
-      categoryId: p.categoriaId ?? null,
-      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
-      images: Array.isArray(p.imagens_produto)
-        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+      name: p.name,
+      price: Number(p.price),
+      description: p.description ?? '',
+      isActive: Boolean(p.isActive),
+      categoryId: p.categoryId ?? null,
+      category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
+      images: Array.isArray(p.images)
+        ? p.images.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText || '' }))
         : [],
     }));
   }
@@ -145,14 +145,14 @@ class ApiService {
     const p = response.data;
     return {
       id: p.id,
-      name: p.nome,
-      price: Number(p.preco),
-      description: p.descricao ?? '',
-      isActive: Boolean(p.ativo),
-      categoryId: p.categoriaId ?? null,
-      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
-      images: Array.isArray(p.imagens_produto)
-        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+      name: p.name,
+      price: Number(p.price),
+      description: p.description ?? '',
+      isActive: Boolean(p.isActive),
+      categoryId: p.categoryId ?? null,
+      category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
+      images: Array.isArray(p.images)
+        ? p.images.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText || '' }))
         : [],
     };
   }
@@ -162,14 +162,14 @@ class ApiService {
     const data = response.data || [];
     return data.map((p: any) => ({
       id: p.id,
-      name: p.nome,
-      price: Number(p.preco),
-      description: p.descricao ?? '',
-      isActive: Boolean(p.ativo),
-      categoryId: p.categoriaId ?? null,
-      category: p.categoria ? { id: p.categoria.id, name: p.categoria.nome } : undefined,
-      images: Array.isArray(p.imagens_produto)
-        ? p.imagens_produto.map((img: any) => ({ id: img.id, url: img.url, altText: img.textoAlt || '' }))
+      name: p.name,
+      price: Number(p.price),
+      description: p.description ?? '',
+      isActive: Boolean(p.isActive),
+      categoryId: p.categoryId ?? null,
+      category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
+      images: Array.isArray(p.images)
+        ? p.images.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText || '' }))
         : [],
     }));
   }

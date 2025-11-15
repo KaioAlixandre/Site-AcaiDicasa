@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingBag, ShoppingCart, User } from 'lucide-react';
+import { Home, ShoppingBag, ShoppingCart, User, Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 
@@ -29,6 +29,12 @@ const Footer: React.FC = () => {
       badge: cartItemsCount
     },
     {
+      path: '/orders',
+      icon: Package,
+      label: 'Pedidos',
+      requireAuth: true
+    },
+    {
       path: user ? '/profile' : '/login',
       icon: User,
       label: user ? 'Perfil' : 'Login'
@@ -42,8 +48,13 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-lg">
-      <nav className="flex justify-around items-center h-16 px-2">
+      <nav className="flex justify-around items-center h-16 px-1">
         {navItems.map((item) => {
+          // Se o item requer autenticação e usuário não está logado, não mostrar
+          if (item.requireAuth && !user) {
+            return null;
+          }
+          
           const Icon = item.icon;
           const active = isActive(item.path);
           
@@ -58,14 +69,14 @@ const Footer: React.FC = () => {
               }`}
             >
               <div className="relative">
-                <Icon size={24} strokeWidth={active ? 2.5 : 2} />
+                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
                 )}
               </div>
-              <span className={`text-xs mt-1 ${active ? 'font-semibold' : 'font-normal'}`}>
+              <span className={`text-[10px] mt-1 ${active ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
               </span>
             </Link>

@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 // Configuração do destino e nome do arquivo
 const storage = multer.diskStorage({
@@ -22,10 +23,47 @@ router.get('/', async (req, res) => {
     console.log('📦 GET /api/products: Requisição para listar todos os produtos.');
     try {
         const products = await prisma.produto.findMany({
-            include: { imagens_produto: true, categoria: true }
+            include: { 
+                imagens_produto: {
+                    orderBy: { id: 'asc' } // Primeira imagem inserida será a principal
+                }, 
+                categoria: true 
+            }
         });
-        console.log(products); // Veja no terminal se category está preenchido
-        res.json(products);
+        
+        // Transformar campos do português para inglês
+        const transformedProducts = products.map(product => ({
+            id: product.id,
+            name: product.nome,
+            description: product.descricao || '',
+            price: product.preco,
+            categoryId: product.categoriaId,
+            isActive: product.ativo,
+            createdAt: product.criadoEm || new Date(),
+            updatedAt: product.atualizadoEm || new Date(),
+            category: product.categoria ? {
+                id: product.categoria.id,
+                name: product.categoria.nome
+            } : null,
+            images: (product.imagens_produto || []).map(img => ({
+                id: img.id,
+                url: img.url,
+                productId: img.produtoId
+            })),
+            // Adicionar campo para facilitar acesso à imagem principal
+            mainImage: product.imagens_produto?.[0]?.url || null
+        }));
+        
+        console.log(`✅ Retornando ${transformedProducts.length} produtos com imagens`);
+        if (transformedProducts.length > 0) {
+            console.log('🖼️ Exemplo produto:', {
+                id: transformedProducts[0].id,
+                name: transformedProducts[0].name,
+                images: transformedProducts[0].images,
+                mainImage: transformedProducts[0].mainImage
+            });
+        }
+        res.json(transformedProducts);
     } catch (err) {
         console.error('❌ GET /api/products: Erro ao buscar produtos:', err.message);
         res.status(500).json({ message: 'Erro ao buscar produtos.', error: err.message });
@@ -33,21 +71,30 @@ router.get('/', async (req, res) => {
 });
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
-router.post('/add', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
+router.post('/add', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
   const { nome, preco, descricao, categoriaId } = req.body;
   console.log('Categoria recebida:', categoriaId);
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const imageFiles = req.files || [];
   console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
-  console.log('Arquivo recebido:', req.file);
+  console.log('Arquivos recebidos:', imageFiles.length);
+  console.log('Arquivos detalhes:', imageFiles.map(f => f.filename));
+  
   try {
+        // Criar array de imagens
+        const imagesData = imageFiles.map((file) => ({
+          url: `/uploads/${file.filename}`
+        }));
+        
+        console.log('Imagens a serem criadas:', imagesData);
+
         const newProduct = await prisma.produto.create({
             data: {
                 nome,
                 preco: parseFloat(preco),
                 descricao,
-                categoriaId:  parseInt(categoriaId),
-                imagens_produto: imageUrl
-                  ? { create: [{ url: imageUrl }] }
+                categoriaId: parseInt(categoriaId),
+                imagens_produto: imagesData.length > 0
+                  ? { create: imagesData }
                   : undefined
             },
             include: {
@@ -55,29 +102,56 @@ router.post('/add', authenticateToken, authorize('admin'), upload.single('image'
                 categoria: true
             }
         });
+        
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.nome}.`);
-        res.status(201).json(newProduct);
+        console.log(`✅ Total de imagens criadas: ${newProduct.imagens_produto.length}`);
+        
+        // Transformar campos do português para inglês
+        const transformedProduct = {
+            id: newProduct.id,
+            name: newProduct.nome,
+            description: newProduct.descricao || '',
+            price: newProduct.preco,
+            categoryId: newProduct.categoriaId,
+            isActive: newProduct.ativo,
+            createdAt: newProduct.criadoEm || new Date(),
+            updatedAt: newProduct.atualizadoEm || new Date(),
+            category: newProduct.categoria ? {
+                id: newProduct.categoria.id,
+                name: newProduct.categoria.nome
+            } : null,
+            images: (newProduct.imagens_produto || []).map(img => ({
+                id: img.id,
+                url: img.url,
+                productId: img.produtoId
+            }))
+        };
+        
+        res.status(201).json(transformedProduct);
     } catch (err) {
-        console.error('❌ POST /api/products/add: Erro ao adicionar produto:', err.message);
+        console.error('❌ POST /api/products/add: Erro ao adicionar produto:', err);
         res.status(500).json({ message: 'Erro ao adicionar produto.', error: err.message });
     }
 });
 
 // Rota para atualizar um produto existente (apenas para administradores)
-router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
+router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
     const { id } = req.params;
     const { nome, preco, descricao, categoriaId, ativo } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageFiles = req.files || [];
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
-    console.log('Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
-    console.log('Arquivo de imagem:', req.file);
+    console.log('📝 Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
+    console.log('🖼️ Arquivos de imagem recebidos:', imageFiles.length);
+    if (imageFiles.length > 0) {
+        console.log('📸 Nomes dos arquivos:', imageFiles.map(f => f.filename));
+    }
     
     try {
         // Prepare the update data
         const updateData = {
             nome,
             preco: parseFloat(preco),
-            descricao,
+            descricao: descricao || null,
             ativo: ativo === 'true' || ativo === true
         };
 
@@ -95,20 +169,46 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('
             }
         });
 
-        // If new image is uploaded, update the product images
-        if (imageUrl) {
-            // Delete existing images
+        // If new images are uploaded, replace old ones
+        if (imageFiles.length > 0) {
+            console.log('🔄 Substituindo imagens antigas por novas...');
+            
+            // Get current images
+            const currentImages = await prisma.imagem_produto.findMany({
+                where: { produtoId: parseInt(id) }
+            });
+            
+            console.log(`📊 Imagens existentes: ${currentImages.length}`);
+            
+            // Delete old image files from disk
+            currentImages.forEach(img => {
+                const filePath = path.join(__dirname, '..', img.url);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log(`🗑️ Arquivo deletado: ${img.url}`);
+                }
+            });
+            
+            // Delete old image records from database
             await prisma.imagem_produto.deleteMany({
                 where: { produtoId: parseInt(id) }
             });
             
-            // Create new image
-            await prisma.imagem_produto.create({
-                data: {
-                    url: imageUrl,
-                    produtoId: parseInt(id)
-                }
+            console.log('✅ Imagens antigas deletadas do banco de dados');
+            
+            // Create new images
+            const imagesData = imageFiles.map((file) => ({
+                url: `/uploads/${file.filename}`,
+                produtoId: parseInt(id)
+            }));
+            
+            console.log('✨ Criando novas imagens:', imagesData);
+            
+            await prisma.imagem_produto.createMany({
+                data: imagesData
             });
+            
+            console.log(`✅ ${imagesData.length} nova(s) imagem(ns) adicionada(s)!`);
         }
 
         // Fetch the updated product with all relations
@@ -120,11 +220,32 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.single('
             }
         });
 
+        // Transformar campos do português para inglês
+        const transformedProduct = {
+            id: finalProduct.id,
+            name: finalProduct.nome,
+            description: finalProduct.descricao || '',
+            price: finalProduct.preco,
+            categoryId: finalProduct.categoriaId,
+            isActive: finalProduct.ativo,
+            createdAt: finalProduct.criadoEm || new Date(),
+            updatedAt: finalProduct.atualizadoEm || new Date(),
+            category: finalProduct.categoria ? {
+                id: finalProduct.categoria.id,
+                name: finalProduct.categoria.nome
+            } : null,
+            images: (finalProduct.imagens_produto || []).map(img => ({
+                id: img.id,
+                url: img.url,
+                productId: img.produtoId
+            }))
+        };
+
         console.log(`✅ PUT /api/products/update/${id}: Produto ${id} atualizado com sucesso.`);
-        res.json(finalProduct);
+        res.json(transformedProduct);
     } catch (err) {
-        console.error(`❌ PUT /api/products/update/${id}: Erro ao atualizar produto:`, err.message);
-        res.status(500).json({ message: 'Erro ao atualizar produto.', error: err.message });
+        console.error(`❌ PUT /api/products/update/${id}: Erro ao atualizar produto:`, err);
+        res.status(500).json({ message: 'Erro ao atualizar produto.', error: err.message, stack: err.stack });
     }
 });
 
@@ -155,7 +276,9 @@ router.get('/category/:categoriaId', async (req, res) => {
             },
             include: {
                 categoria: true,
-                imagens_produto: true,
+                imagens_produto: {
+                    orderBy: { id: 'asc' }
+                },
                 opcoes_produto: {
                     include: {
                         valores_opcao: true,
@@ -167,8 +290,32 @@ router.get('/category/:categoriaId', async (req, res) => {
             console.warn(`⚠️ GET /api/products/category/${categoriaId}: Nenhum produto encontrado para a categoria: ${categoriaId}.`);
             return res.status(404).json({ message: "Nenhum produto encontrado para esta categoria." });
         }
+        
+        // Transformar campos do português para inglês
+        const transformedProducts = products.map(product => ({
+            id: product.id,
+            name: product.nome,
+            description: product.descricao || '',
+            price: product.preco,
+            categoryId: product.categoriaId,
+            isActive: product.ativo,
+            createdAt: product.criadoEm || new Date(),
+            updatedAt: product.atualizadoEm || new Date(),
+            category: product.categoria ? {
+                id: product.categoria.id,
+                name: product.categoria.nome
+            } : null,
+            images: (product.imagens_produto || []).map(img => ({
+                id: img.id,
+                url: img.url,
+                productId: img.produtoId
+            })),
+            mainImage: product.imagens_produto?.[0]?.url || null,
+            options: product.opcoes_produto || []
+        }));
+        
         console.log(`✅ GET /api/products/category/${categoriaId}: Produtos da categoria ${categoriaId} listados com sucesso (${products.length} encontrados).`);
-        res.status(200).json(products);
+        res.status(200).json(transformedProducts);
     } catch (err) {
         console.error(`❌ GET /api/products/category/${categoriaId}: Erro ao buscar produtos por categoria:`, err.message);
         res.status(500).json({ message: "Erro ao buscar produtos por categoria.", error: err.message });

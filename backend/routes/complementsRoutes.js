@@ -18,8 +18,17 @@ router.get('/', async (req, res) => {
       orderBy: { nome: 'asc' }
     });
 
+    // Transformar campos do português para inglês
+    const transformedComplements = complements.map(complement => ({
+      id: complement.id,
+      name: complement.nome,
+      isActive: complement.ativo,
+      createdAt: complement.criadoEm,
+      updatedAt: complement.atualizadoEm
+    }));
+
     console.log(`✅ Encontrados ${complements.length} complementos`);
-    res.json(complements);
+    res.json(transformedComplements);
   } catch (error) {
     console.error('❌ Erro ao buscar complementos:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -41,8 +50,17 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Complemento não encontrado' });
     }
 
+    // Transformar campos do português para inglês
+    const transformedComplement = {
+      id: complement.id,
+      name: complement.nome,
+      isActive: complement.ativo,
+      createdAt: complement.criadoEm,
+      updatedAt: complement.atualizadoEm
+    };
+
     console.log(`✅ Complemento encontrado: ${complement.nome}`);
-    res.json(complement);
+    res.json(transformedComplement);
   } catch (error) {
     console.error('❌ Erro ao buscar complemento:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -89,8 +107,17 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
       }
     });
 
+    // Transformar campos do português para inglês
+    const transformedComplement = {
+      id: complement.id,
+      name: complement.nome,
+      isActive: complement.ativo,
+      createdAt: complement.criadoEm,
+      updatedAt: complement.atualizadoEm
+    };
+
     console.log(`✅ Complemento criado com ID: ${complement.id}`);
-    res.status(201).json(complement);
+    res.status(201).json(transformedComplement);
   } catch (error) {
     console.error('❌ Erro ao criar complemento:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -154,8 +181,17 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
       data: updateData
     });
 
+    // Transformar campos do português para inglês
+    const transformedComplement = {
+      id: complement.id,
+      name: complement.nome,
+      isActive: complement.ativo,
+      createdAt: complement.criadoEm,
+      updatedAt: complement.atualizadoEm
+    };
+
     console.log(`✅ Complemento atualizado: ${complement.nome}`);
-    res.json(complement);
+    res.json(transformedComplement);
   } catch (error) {
     console.error('❌ Erro ao atualizar complemento:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -183,8 +219,17 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
       where: { id: parseInt(id) }
     });
 
+    // Transformar campos do português para inglês
+    const transformedComplement = {
+      id: existingComplement.id,
+      name: existingComplement.nome,
+      isActive: existingComplement.ativo,
+      createdAt: existingComplement.criadoEm,
+      updatedAt: existingComplement.atualizadoEm
+    };
+
     console.log(`✅ Complemento deletado: ${existingComplement.nome}`);
-    res.json({ message: 'Complemento deletado com sucesso', deletedComplement: existingComplement });
+    res.json({ message: 'Complemento deletado com sucesso', deletedComplement: transformedComplement });
   } catch (error) {
     console.error('❌ Erro ao deletar complemento:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
@@ -213,11 +258,20 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
       data: { ativo: !existingComplement.ativo }
     });
 
+    // Transformar campos do português para inglês
+    const transformedComplement = {
+      id: complement.id,
+      name: complement.nome,
+      isActive: complement.ativo,
+      createdAt: complement.criadoEm,
+      updatedAt: complement.atualizadoEm
+    };
+
     const status = complement.ativo ? 'ativado' : 'desativado';
     console.log(`✅ Complemento ${status}: ${complement.nome}`);
     res.json({ 
       message: `Complemento ${status} com sucesso`, 
-      complement 
+      complement: transformedComplement 
     });
   } catch (error) {
     console.error('❌ Erro ao alternar status do complemento:', error);

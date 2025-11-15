@@ -109,8 +109,16 @@ useEffect(() => {
   const handleEdit = (product: Product) => setEditProduct(product);
 
   const handleUpdateProduct = async (id: number, data: any) => {
-    await apiService.updateProduct(id, data);
-    setEditProduct(null);
+    try {
+      await apiService.updateProduct(id, data);
+      setEditProduct(null);
+      // Recarregar a lista de produtos após atualização
+      const updatedProducts = await apiService.getProducts();
+      setProducts(updatedProducts);
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      alert('Erro ao atualizar produto. Tente novamente.');
+    }
   };
 
   const handleDelete = async (id: number) => {
