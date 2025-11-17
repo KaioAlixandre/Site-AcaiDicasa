@@ -39,6 +39,7 @@ router.get('/', async (req, res) => {
             price: product.preco,
             categoryId: product.categoriaId,
             isActive: product.ativo,
+            isFeatured: product.destaque || false,
             createdAt: product.criadoEm || new Date(),
             updatedAt: product.atualizadoEm || new Date(),
             category: product.categoria ? {
@@ -72,8 +73,9 @@ router.get('/', async (req, res) => {
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
 router.post('/add', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
-  const { nome, preco, descricao, categoriaId } = req.body;
+  const { nome, preco, descricao, categoriaId, isFeatured } = req.body;
   console.log('Categoria recebida:', categoriaId);
+  console.log('Destaque:', isFeatured);
   const imageFiles = req.files || [];
   console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
   console.log('Arquivos recebidos:', imageFiles.length);
@@ -93,6 +95,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
                 preco: parseFloat(preco),
                 descricao,
                 categoriaId: parseInt(categoriaId),
+                destaque: isFeatured === 'true' || isFeatured === true,
                 imagens_produto: imagesData.length > 0
                   ? { create: imagesData }
                   : undefined
@@ -114,6 +117,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
             price: newProduct.preco,
             categoryId: newProduct.categoriaId,
             isActive: newProduct.ativo,
+            isFeatured: newProduct.destaque || false,
             createdAt: newProduct.criadoEm || new Date(),
             updatedAt: newProduct.atualizadoEm || new Date(),
             category: newProduct.categoria ? {
@@ -137,7 +141,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
 // Rota para atualizar um produto existente (apenas para administradores)
 router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
     const { id } = req.params;
-    const { nome, preco, descricao, categoriaId, ativo } = req.body;
+    const { nome, preco, descricao, categoriaId, ativo, isFeatured } = req.body;
     const imageFiles = req.files || [];
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
     console.log('📝 Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
@@ -152,7 +156,8 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             nome,
             preco: parseFloat(preco),
             descricao: descricao || null,
-            ativo: ativo === 'true' || ativo === true
+            ativo: ativo === 'true' || ativo === true,
+            destaque: isFeatured === 'true' || isFeatured === true
         };
 
         // Add categoriaId if provided
@@ -228,6 +233,7 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             price: finalProduct.preco,
             categoryId: finalProduct.categoriaId,
             isActive: finalProduct.ativo,
+            isFeatured: finalProduct.destaque || false,
             createdAt: finalProduct.criadoEm || new Date(),
             updatedAt: finalProduct.atualizadoEm || new Date(),
             category: finalProduct.categoria ? {
@@ -299,6 +305,7 @@ router.get('/category/:categoriaId', async (req, res) => {
             price: product.preco,
             categoryId: product.categoriaId,
             isActive: product.ativo,
+            isFeatured: product.destaque || false,
             createdAt: product.criadoEm || new Date(),
             updatedAt: product.atualizadoEm || new Date(),
             category: product.categoria ? {

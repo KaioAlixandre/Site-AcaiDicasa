@@ -132,6 +132,8 @@ class ApiService {
       price: Number(p.price),
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
+      isFeatured: Boolean(p.isFeatured),
+      createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
       images: Array.isArray(p.images)
@@ -149,6 +151,8 @@ class ApiService {
       price: Number(p.price),
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
+      isFeatured: Boolean(p.isFeatured),
+      createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
       images: Array.isArray(p.images)
@@ -166,6 +170,8 @@ class ApiService {
       price: Number(p.price),
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
+      isFeatured: Boolean(p.isFeatured),
+      createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
       images: Array.isArray(p.images)

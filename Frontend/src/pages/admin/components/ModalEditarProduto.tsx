@@ -15,6 +15,7 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
     price: product.price.toString(),
     categoryId: product.category?.id?.toString() || '',
     isActive: product.isActive,
+    isFeatured: product.isFeatured || false,
     description: product.description || '',
     images: [] as File[]
   });
@@ -79,6 +80,7 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
     formData.append('categoriaId', form.categoryId);
     formData.append('descricao', form.description);
     formData.append('ativo', String(form.isActive));
+    formData.append('isFeatured', String(form.isFeatured));
     
     // Adicionar todas as novas imagens
     form.images.forEach((image) => {
@@ -250,19 +252,34 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
             </div>
           </div>
 
-          {/* Status Ativo */}
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-            <input 
-              type="checkbox" 
-              id="isActive"
-              name="isActive" 
-              checked={form.isActive} 
-              onChange={handleChange}
-              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-2 focus:ring-indigo-500"
-            />
-            <label htmlFor="isActive" className="text-sm font-medium text-slate-700 cursor-pointer">
-              Produto ativo e disponível para venda
-            </label>
+          {/* Status Ativo e Destaque */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+              <input 
+                type="checkbox" 
+                id="isActive"
+                name="isActive" 
+                checked={form.isActive} 
+                onChange={handleChange}
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-2 focus:ring-indigo-500"
+              />
+              <label htmlFor="isActive" className="text-sm font-medium text-slate-700 cursor-pointer">
+                Produto ativo e disponível para venda
+              </label>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+              <input 
+                type="checkbox" 
+                id="isFeatured"
+                name="isFeatured" 
+                checked={form.isFeatured} 
+                onChange={handleChange}
+                className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-2 focus:ring-amber-500"
+              />
+              <label htmlFor="isFeatured" className="text-sm font-medium text-slate-700 cursor-pointer">
+                ⭐ Produto em destaque (aparecerá primeiro)
+              </label>
+            </div>
           </div>
 
           {/* Buttons */}

@@ -32,6 +32,7 @@ export interface Product {
   price: number;
   description?: string;
   isActive: boolean;
+  isFeatured?: boolean;
   createdAt: string;
   images?: ProductImage[];
   options?: ProductOption[];

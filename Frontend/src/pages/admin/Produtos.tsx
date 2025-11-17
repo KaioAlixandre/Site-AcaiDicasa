@@ -56,6 +56,7 @@ const Produtos: React.FC<{
               <th className="p-3 text-xs">Categoria</th>
               <th className="p-3 text-right text-xs">Preço Base</th>
               <th className="p-3 text-center text-xs">Status</th>
+              <th className="p-3 text-center text-xs">Destaque</th>
               <th className="p-3 text-center text-xs">Ações</th>
             </tr>
           </thead>
@@ -71,6 +72,13 @@ const Produtos: React.FC<{
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${prod.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {prod.isActive ? 'Ativo' : 'Inativo'}
                   </span>
+                </td>
+                <td className="p-3 text-center">
+                  {prod.isFeatured && (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
+                      ⭐ Destaque
+                    </span>
+                  )}
                 </td>
                 <td className="p-3 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -102,7 +110,12 @@ const Produtos: React.FC<{
           <div key={prod.id} className="p-3 hover:bg-slate-50 transition-colors">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h3 className="font-medium text-slate-800 text-sm mb-1">{prod.name}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-medium text-slate-800 text-sm">{prod.name}</h3>
+                  {prod.isFeatured && (
+                    <span className="text-amber-500" title="Produto em destaque">⭐</span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>
               </div>
               <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${prod.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

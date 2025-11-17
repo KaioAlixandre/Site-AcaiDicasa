@@ -194,6 +194,7 @@ model produto {
   criadoEm           DateTime             @default(now())
   categoriaId        Int?
   ativo              Boolean              @default(true)
+  destaque           Boolean              @default(false)
   itens_carrinho     item_carrinho[]
   itens_pedido       item_pedido[]
   categoria          categoria_produto?   @relation(fields: [categoriaId], references: [id], map: "Product_categoryId_fkey")

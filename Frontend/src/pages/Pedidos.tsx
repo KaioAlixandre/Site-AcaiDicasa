@@ -237,6 +237,157 @@ const Orders: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
+        {/* Barra de Progresso do Pedido Ativo */}
+        {orders.length > 0 && orders.some(o => !['delivered', 'canceled'].includes(o.status)) && (
+          <div className="mb-3 md:mb-6 bg-white rounded-lg shadow-md border border-slate-200 p-3 md:p-6">
+            {(() => {
+              const activeOrder = orders.find(o => !['delivered', 'canceled'].includes(o.status));
+              if (!activeOrder) return null;
+              
+              const getProgressStep = (status: string) => {
+                switch (status) {
+                  case 'pending_payment':
+                    return 1;
+                  case 'being_prepared':
+                  case 'ready_for_pickup':
+                    return 2;
+                  case 'on_the_way':
+                    return 3;
+                  case 'delivered':
+                    return 4;
+                  default:
+                    return 0;
+                }
+              };
+
+              const currentStep = getProgressStep(activeOrder.status);
+              const steps = [
+                { 
+                  number: 1, 
+                  label: 'Aguardando', 
+                  sublabel: 'Pagamento',
+                  icon: <Clock className="w-3 h-3 md:w-5 md:h-5" />,
+                  status: 'pending_payment'
+                },
+                { 
+                  number: 2, 
+                  label: 'Preparando', 
+                  sublabel: 'Pedido',
+                  icon: <Package className="w-3 h-3 md:w-5 md:h-5" />,
+                  status: 'being_prepared'
+                },
+                { 
+                  number: 3, 
+                  label: 'A Caminho', 
+                  sublabel: activeOrder.deliveryType === 'pickup' ? 'Pronto' : 'Entregando',
+                  icon: activeOrder.deliveryType === 'pickup' ? <Home className="w-3 h-3 md:w-5 md:h-5" /> : <Truck className="w-3 h-3 md:w-5 md:h-5" />,
+                  status: 'on_the_way'
+                },
+                { 
+                  number: 4, 
+                  label: 'Finalizado', 
+                  sublabel: 'Concluído',
+                  icon: <CheckCircle className="w-3 h-3 md:w-5 md:h-5" />,
+                  status: 'delivered'
+                }
+              ];
+
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3 md:mb-6">
+                    <div>
+                      <h3 className="text-xs md:text-lg font-bold text-slate-900">
+                        Pedido #{activeOrder.id.toString().padStart(4, '0')} em andamento
+                      </h3>
+                      <p className="text-[10px] md:text-sm text-slate-600 mt-0.5">
+                        Acompanhe o status do seu pedido
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm md:text-xl font-bold text-purple-600">
+                        R$ {Number(activeOrder.totalPrice).toFixed(2)}
+                      </p>
+                      <p className="text-[9px] md:text-xs text-slate-500">
+                        {formatDate(activeOrder.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barra de Progresso */}
+                  <div className="relative">
+                    {/* Linha de conexão */}
+                    <div className="absolute top-5 md:top-7 left-0 right-0 h-0.5 md:h-1 bg-slate-200">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-600 to-purple-500 transition-all duration-500"
+                        style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+                      />
+                    </div>
+
+                    {/* Steps */}
+                    <div className="relative grid grid-cols-4 gap-0.5 md:gap-2">
+                      {steps.map((step) => {
+                        const isCompleted = step.number < currentStep;
+                        const isCurrent = step.number === currentStep;
+                        const isActive = isCompleted || isCurrent;
+
+                        return (
+                          <div key={step.number} className="flex flex-col items-center">
+                            {/* Círculo do step */}
+                            <div
+                              className={`relative z-10 w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                isActive
+                                  ? 'bg-purple-600 shadow-lg shadow-purple-200'
+                                  : 'bg-slate-200'
+                              }`}
+                            >
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 text-white" />
+                              ) : (
+                                <div className={`${isActive ? 'text-white' : 'text-slate-400'}`}>
+                                  {step.icon}
+                                </div>
+                              )}
+                              
+                              {/* Animação de pulso no step atual */}
+                              {isCurrent && (
+                                <span className="absolute inset-0 rounded-full bg-purple-600 animate-ping opacity-75" />
+                              )}
+                            </div>
+
+                            {/* Labels */}
+                            <div className="mt-1.5 md:mt-3 text-center">
+                              <p className={`text-[9px] md:text-xs font-bold leading-tight ${
+                                isActive ? 'text-purple-600' : 'text-slate-400'
+                              }`}>
+                                {step.label}
+                              </p>
+                              <p className={`text-[8px] md:text-[10px] leading-tight ${
+                                isActive ? 'text-slate-600' : 'text-slate-400'
+                              }`}>
+                                {step.sublabel}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Mensagem de status */}
+                  <div className="mt-3 md:mt-6 p-2 md:p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-[10px] md:text-sm text-purple-900 text-center font-medium leading-relaxed">
+                      {currentStep === 1 && ' Aguardando confirmação do pagamento...'}
+                      {currentStep === 2 && ' Seu pedido está sendo preparado com carinho!'}
+                      {currentStep === 3 && (activeOrder.deliveryType === 'pickup' ? ' Seu pedido está pronto para retirada!' : ' Seu pedido saiu para entrega!')}
+                      {currentStep === 4 && ' Pedido finalizado! Obrigado pela preferência!'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-4 md:mb-6">
           <div>
@@ -331,301 +482,212 @@ const Orders: React.FC = () => {
               
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-slate-200 hover:shadow-lg transition-all duration-200">
-                  {/* Header do pedido com informações principais */}
-                  <div className="px-3 md:px-4 py-2.5 md:py-3 border-b border-slate-200 bg-slate-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <div className="w-9 h-9 md:w-11 md:h-11 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                          <Package className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-xs md:text-base font-bold text-slate-900">
-                            Pedido #{order.id.toString().padStart(4, '0')}
-                          </h3>
-                          <div className="flex items-center flex-wrap gap-1.5 mt-0.5 md:mt-1">
-                            <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 rounded-md text-[9px] md:text-xs font-semibold ${getStatusColor(order.status)}`}>
-                              {getStatusIcon(order.status)}
-                              <span className="ml-1">{getStatusText(order.status)}</span>
-                            </span>
-                            <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 rounded-md text-[9px] md:text-xs font-semibold ${deliveryInfo.bgColor} ${deliveryInfo.color}`}>
-                              {deliveryInfo.icon}
-                              <span className="ml-1">{deliveryInfo.label}</span>
-                            </span>
-                          </div>
+                  {/* Card compacto - sempre visível */}
+                  <div className="px-3 md:px-4 py-3 md:py-4">
+                    <div className="flex items-start justify-between mb-2 md:mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-sm md:text-lg font-bold text-slate-900 mb-1.5 md:mb-2">
+                          Pedido #{order.id.toString().padStart(4, '0')}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
+                          <span className={`inline-flex items-center px-2 md:px-2.5 py-0.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold ${getStatusColor(order.status)}`}>
+                            {getStatusText(order.status)}
+                          </span>
+                          <span className={`inline-flex items-center px-2 md:px-2.5 py-0.5 md:py-1 rounded-md text-[10px] md:text-xs font-semibold ${deliveryInfo.bgColor} ${deliveryInfo.color}`}>
+                            {deliveryInfo.label}
+                          </span>
                         </div>
                       </div>
-                      
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm md:text-xl font-bold text-purple-600">
+                      <div className="text-right ml-3 md:ml-4">
+                        <p className="text-base md:text-2xl font-bold text-purple-600 mb-0.5 md:mb-1">
                           R$ {order.totalPrice != null ? Number(order.totalPrice).toFixed(2) : '--'}
                         </p>
-                        <p className="text-[9px] md:text-xs text-slate-600 flex items-center justify-end mt-0.5">
-                          <Calendar className="w-3 h-3 mr-0.5" />
-                          {formatDate(order.createdAt)}
-                        </p>
-                        <p className="text-[9px] md:text-xs text-slate-500">
-                          {totalItems} {totalItems === 1 ? 'item' : 'itens'}
-                        </p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Resumo rápido sempre visível */}
-                  <div className="px-3 md:px-4 py-2 md:py-3 bg-white border-b border-slate-100">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 md:w-8 md:h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-[9px] md:text-xs text-slate-500 font-medium">Total</p>
-                          <p className="text-xs md:text-sm font-bold text-slate-900">
-                            R$ {Number(order.totalPrice).toFixed(2)}
-                          </p>
-                        </div>
+                    
+                    <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-slate-200">
+                      <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4 text-xs md:text-sm text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+                          <span className="text-[10px] md:text-sm">{formatDate(order.createdAt)}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Package className="w-3 h-3 md:w-4 md:h-4" />
+                          <span className="text-[10px] md:text-sm">{totalItems} {totalItems === 1 ? 'item' : 'itens'}</span>
+                        </span>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[9px] md:text-xs text-slate-500 font-medium">Endereço</p>
-                          <p className="text-xs md:text-sm font-semibold text-slate-900 truncate">
-                            {order.shippingStreet}, {order.shippingNumber}
-                          </p>
-                          <p className="text-[9px] md:text-xs text-slate-600">{order.shippingNeighborhood}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {order.shippingPhone && (
-                          <>
-                            <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Phone className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="text-[9px] md:text-xs text-slate-500 font-medium">Contato</p>
-                              <p className="text-xs md:text-sm font-semibold text-slate-900">{order.shippingPhone}</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Prévia dos itens - sempre visível */}
-                  <div className="px-3 md:px-4 py-2 md:py-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-xs md:text-base font-bold text-slate-900 flex items-center">
-                        <Package className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1" />
-                        Itens do Pedido ({totalItems})
-                      </h4>
                       <button
                         onClick={() => toggleOrderExpansion(order.id)}
-                        className="flex items-center gap-1 px-2 md:px-2.5 py-1 md:py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-all text-[10px] md:text-xs font-medium"
+                        className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg bg-purple-600 text-white text-xs md:text-sm font-semibold hover:bg-purple-700 transition-all"
                       >
-                        {isExpanded ? <EyeOff className="w-3 h-3 md:w-3.5 md:h-3.5" /> : <Eye className="w-3 h-3 md:w-3.5 md:h-3.5" />}
-                        <span>{isExpanded ? 'Ocultar' : 'Ver Mais'}</span>
+                        {isExpanded ? (
+                          <>
+                            <EyeOff className="w-3 h-3 md:w-4 md:h-4" />
+                            <span className="hidden sm:inline">Ocultar</span>
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-3 h-3 md:w-4 md:h-4" />
+                            <span className="hidden sm:inline">Ver Mais</span>
+                          </>
+                        )}
                       </button>
-                    </div>
-
-                    {/* Lista de itens - limitada quando não expandida */}
-                    <div className="space-y-1.5 md:space-y-2">
-                      {(isExpanded ? (order.orderitem || []) : (order.orderitem || []).slice(0, 2)).map((item) => {
-                        // Verificar se é produto personalizado
-                        const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
-                        const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
-                        const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
-                        const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
-                        
-                        // Verificar se o produto existe
-                        if (!item.product) {
-                          return null;
-                        }
-                        
-                        return (
-                          <div key={item.id} className="flex items-start justify-between p-2 md:p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
-                            <div className="flex items-start gap-2 md:gap-3 flex-1">
-                              <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                                <span className="text-base md:text-xl">
-                                  {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : customData ? '🎨' : '🥤'}
-                                </span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1 md:gap-1.5 mb-0.5">
-                                  <p className="font-bold text-slate-900 text-xs md:text-sm">{item.product.name}</p>
-                                  {customData && (
-                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] md:text-[10px] font-semibold ${
-                                      isCustomAcai ? 'bg-purple-100 text-purple-700' :
-                                      isCustomSorvete ? 'bg-blue-100 text-blue-700' : 
-                                      'bg-green-100 text-green-700'
-                                    }`}>
-                                      {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} Personalizado
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[9px] md:text-xs text-slate-600">Qtd: {item.quantity} × R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}</p>
-                                
-                                {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
-                                  <div className="mt-1">
-                                    <p className="text-[9px] md:text-xs font-semibold text-slate-600 mb-0.5">Complementos:</p>
-                                    <div className="flex flex-wrap gap-0.5 md:gap-1">
-                                      {customData.complementNames.map((complement: string, idx: number) => (
-                                        <span 
-                                          key={idx}
-                                          className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] md:text-[10px] font-medium bg-green-100 text-green-700 border border-green-200"
-                                        >
-                                          {complement}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right ml-2 flex-shrink-0">
-                              <p className="text-xs md:text-sm font-bold text-purple-600">
-                                R$ {(Number(item.priceAtOrder ?? 0) * item.quantity).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      
-                      {!isExpanded && (order.orderitem?.length || 0) > 2 && (
-                        <div className="text-center py-1 md:py-2">
-                          <p className="text-xs md:text-sm text-gray-500">
-                            + {(order.orderitem?.length || 0) - 2} item(s) adicional(is)
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   {/* Informações detalhadas - só quando expandido */}
                   {isExpanded && (
                     <>
-                      {/* Informações de entrega detalhadas */}
-                      <div className="px-3 md:px-6 py-2 md:py-4 bg-blue-50 border-t border-gray-200">
-                        <h4 className="text-sm md:text-lg font-semibold text-gray-900 mb-2 md:mb-3 flex items-center">
-                          <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
-                          Informações de Entrega
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
-                          <div className="space-y-1 md:space-y-2">
-                            <div className="flex items-start space-x-2 md:space-x-3">
-                              <Home className="w-4 h-4 md:w-5 md:h-5 text-gray-600 mt-1" />
-                              <div>
-                                <p className="text-xs md:text-base font-medium text-gray-900">Endereço Completo</p>
-                                <p className="text-[10px] md:text-sm text-gray-700">
-                                  {order.shippingStreet}, {order.shippingNumber}
-                                  {order.shippingComplement && ` - ${order.shippingComplement}`}
-                                </p>
-                                <p className="text-[10px] md:text-sm text-gray-600">{order.shippingNeighborhood}</p>
-                              </div>
+                      {/* Endereço e Contato */}
+                      <div className="px-3 md:px-4 py-2.5 md:py-3 bg-slate-50 border-t border-slate-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-3">
+                          <div className="flex items-start gap-2 md:gap-3">
+                            <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <MapPin className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-0.5 md:mb-1">Endereço</p>
+                              <p className="text-xs md:text-sm font-semibold text-slate-900">
+                                {order.shippingStreet}, {order.shippingNumber}
+                              </p>
+                              {order.shippingComplement && (
+                                <p className="text-[10px] md:text-xs text-slate-600">{order.shippingComplement}</p>
+                              )}
+                              <p className="text-[10px] md:text-xs text-slate-600">{order.shippingNeighborhood}</p>
                             </div>
                           </div>
                           
-                          <div className="space-y-1 md:space-y-2">
-                            {order.shippingPhone && (
-                              <div className="flex items-center space-x-2 md:space-x-3">
-                                <Phone className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-                                <div>
-                                  <p className="text-xs md:text-base font-medium text-gray-900">Telefone de Contato</p>
-                                  <p className="text-[10px] md:text-sm text-gray-700">{order.shippingPhone}</p>
-                                </div>
+                          {order.shippingPhone && (
+                            <div className="flex items-start gap-2 md:gap-3">
+                              <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <Phone className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                               </div>
-                            )}
-                            
-                            <div className="flex items-center space-x-2 md:space-x-3">
-                              {deliveryInfo.icon}
                               <div>
-                                <p className="text-xs md:text-base font-medium text-gray-900">Tipo de Entrega</p>
-                                <p className="text-[10px] md:text-sm text-gray-700">{deliveryInfo.label}</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 font-medium mb-0.5 md:mb-1">Contato</p>
+                                <p className="text-xs md:text-sm font-semibold text-slate-900">{order.shippingPhone}</p>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Resumo financeiro detalhado */}
-                      <div className="px-3 md:px-6 py-2 md:py-4 bg-green-50 border-t border-gray-200">
-                        <h4 className="text-sm md:text-lg font-semibold text-gray-900 mb-2 md:mb-3 flex items-center">
-                          <CreditCard className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                      {/* Itens do Pedido */}
+                      <div className="px-3 md:px-4 py-2.5 md:py-4 border-t border-slate-200">
+                        <h4 className="text-sm md:text-base font-bold text-slate-900 mb-2 md:mb-3 flex items-center">
+                          <Package className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
+                          Itens do Pedido
+                        </h4>
+                        <div className="space-y-1.5 md:space-y-2">
+                          {(order.orderitem || []).map((item) => {
+                            const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                            const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
+                            const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
+                            const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
+                            
+                            if (!item.product) {
+                              return null;
+                            }
+                            
+                            return (
+                              <div key={item.id} className="flex items-start justify-between p-2 md:p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <div className="flex items-start gap-2 md:gap-3 flex-1">
+                                  <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
+                                    <span className="text-base md:text-xl">
+                                      {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : customData ? '🎨' : '🥤'}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
+                                      <p className="font-bold text-slate-900 text-xs md:text-sm">{item.product.name}</p>
+                                      {customData && (
+                                        <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 rounded-md text-[9px] md:text-xs font-semibold ${
+                                          isCustomAcai ? 'bg-purple-100 text-purple-700' :
+                                          isCustomSorvete ? 'bg-blue-100 text-blue-700' : 
+                                          'bg-green-100 text-green-700'
+                                        }`}>
+                                          Personalizado
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] md:text-xs text-slate-600 mb-1 md:mb-2">
+                                      Qtd: {item.quantity} × R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}
+                                    </p>
+                                    
+                                    {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
+                                      <div className="mt-1 md:mt-2">
+                                        <p className="text-[9px] md:text-xs font-semibold text-slate-600 mb-0.5 md:mb-1">Complementos:</p>
+                                        <div className="flex flex-wrap gap-0.5 md:gap-1">
+                                          {customData.complementNames.map((complement: string, idx: number) => (
+                                            <span 
+                                              key={idx}
+                                              className="inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-medium bg-green-100 text-green-700 border border-green-200"
+                                            >
+                                              {complement}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right ml-2 md:ml-3 flex-shrink-0">
+                                  <p className="text-xs md:text-sm font-bold text-purple-600">
+                                    R$ {(Number(item.priceAtOrder ?? 0) * item.quantity).toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Resumo Financeiro */}
+                      <div className="px-3 md:px-4 py-2.5 md:py-4 bg-green-50 border-t border-slate-200">
+                        <h4 className="text-sm md:text-base font-bold text-slate-900 mb-2 md:mb-3 flex items-center">
+                          <CreditCard className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
                           Resumo Financeiro
                         </h4>
-                        <div className="space-y-1 md:space-y-2">
-                          <div className="flex justify-between text-xs md:text-base">
-                            <span className="text-gray-700">Subtotal dos itens:</span>
-                            <span className="text-gray-900">
+                        <div className="space-y-1.5 md:space-y-2">
+                          <div className="flex justify-between text-xs md:text-sm">
+                            <span className="text-slate-700">Subtotal:</span>
+                            <span className="text-slate-900 font-semibold">
                               R$ {(order.orderitem || []).reduce((sum, item) => 
                                 sum + (Number(item.priceAtOrder ?? 0) * item.quantity), 0
                               ).toFixed(2)}
                             </span>
                           </div>
                           {order.deliveryType === 'delivery' && (
-                            <div className="flex justify-between text-xs md:text-base">
-                              <span className="text-gray-700">Taxa de entrega:</span>
-                              <span className="text-gray-900">R$ 5,00</span>
+                            <div className="flex justify-between text-xs md:text-sm">
+                              <span className="text-slate-700">Taxa de entrega:</span>
+                              <span className="text-slate-900 font-semibold">R$ 5,00</span>
                             </div>
                           )}
-                          <div className="border-t border-gray-300 pt-1 md:pt-2">
+                          <div className="border-t border-slate-300 pt-1.5 md:pt-2 mt-1.5 md:mt-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-base md:text-xl font-bold text-gray-900">Total:</span>
-                              <span className="text-lg md:text-2xl font-bold text-green-600">
+                              <span className="text-base md:text-lg font-bold text-slate-900">Total:</span>
+                              <span className="text-xl md:text-2xl font-bold text-green-600">
                                 R$ {Number(order.totalPrice).toFixed(2)}
                               </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </>
-                  )}
 
-                  {/* Ações do pedido */}
-                  <div className="px-3 md:px-4 py-2 md:py-2.5 border-t border-slate-200 bg-slate-50">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-                      <div className="flex items-center flex-wrap gap-2 md:gap-3">
-                        <div className="text-[9px] md:text-xs text-slate-600">
-                          Status: <span className="font-bold text-slate-900">{getStatusText(order.status)}</span>
-                        </div>
-                        <div className="text-[9px] md:text-xs text-slate-600">
-                          ID: <span className="font-mono font-bold text-slate-900">#{order.id.toString().padStart(4, '0')}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1.5 md:gap-2 w-full md:w-auto">
-                        {order.status === 'pending_payment' && (
+                      {/* Ações */}
+                      {order.status === 'pending_payment' && (
+                        <div className="px-3 md:px-4 py-2.5 md:py-3 border-t border-slate-200 bg-slate-50">
                           <button 
                             onClick={() => handleCancelOrder(order.id)}
                             disabled={cancelingOrders.has(order.id)}
-                            className="flex items-center px-2.5 md:px-3 py-1.5 bg-red-600 text-white text-[10px] md:text-xs font-semibold rounded-lg hover:bg-red-700 transition-all disabled:bg-red-400 disabled:cursor-not-allowed shadow-sm"
+                            className="w-full flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-red-600 text-white text-xs md:text-sm font-semibold rounded-lg hover:bg-red-700 transition-all disabled:bg-red-400 disabled:cursor-not-allowed"
                           >
-                            <XCircle className="w-3 h-3 mr-1" />
-                            {cancelingOrders.has(order.id) ? 'Cancelando...' : 'Cancelar'}
+                            <XCircle className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            {cancelingOrders.has(order.id) ? 'Cancelando...' : 'Cancelar Pedido'}
                           </button>
-                        )}
-                        
-                        <button 
-                          onClick={() => toggleOrderExpansion(order.id)}
-                          className="flex items-center px-2.5 md:px-3 py-1.5 border border-slate-300 text-slate-700 text-[10px] md:text-xs font-semibold rounded-lg hover:bg-slate-100 hover:border-slate-400 transition-all shadow-sm"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <EyeOff className="w-3 h-3 mr-1" />
-                              Ocultar
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-3 h-3 mr-1" />
-                              Detalhes
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               );
             })}

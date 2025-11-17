@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Clock, Truck, Heart, ShoppingCart, Plus, Instagram, MessageCircle } from 'lucide-react';
+import { Star, Clock, Truck, Heart, ShoppingCart, Plus, Instagram, MessageCircle, Package } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
@@ -8,7 +8,9 @@ import Loading from '../components/Loading';
 
 const Home: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [storeConfig, setStoreConfig] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
@@ -25,9 +27,14 @@ const Home: React.FC = () => {
           apiService.getStoreConfig()
         ]);
         
-        // Filtrar apenas produtos ativos e pegar os primeiros 4
-        const activeProducts = productsData.filter(product => product.isActive).slice(0, 4);
+        // Filtrar apenas produtos ativos E em destaque
+        const activeProducts = productsData.filter(product => product.isActive && product.isFeatured).slice(0, 4);
         setFeaturedProducts(activeProducts);
+        
+        // Todos os produtos ativos
+        const active = productsData.filter(product => product.isActive);
+        setAllProducts(active);
+        
         setCategories(categoriesData);
         setStoreConfig(storeData);
       } catch (error) {
@@ -114,23 +121,6 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Categorias */}
-      <div className="bg-white border-t border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
-          {categories.slice(0, 8).map((category) => (
-            <Link
-              key={category.id}
-              to="/products"
-              className="px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 text-xs md:text-sm hover:bg-slate-50"
-            >
-              {category.name}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      
-
       {/* Produtos em Destaque */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
         <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Destaques</h2>
@@ -164,6 +154,77 @@ const Home: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Todos os Produtos */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Produtos</h2>
+        
+        {/* Filtro de Categorias */}
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+              selectedCategory === null
+                ? 'bg-purple-600 text-white'
+                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            Todos
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                selectedCategory === category.id
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid de Produtos - Estilo Lista */}
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          {allProducts
+            .filter(product => selectedCategory === null || product.categoryId === selectedCategory)
+            .map((product) => (
+              <div key={product.id} className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  {product.images && product.images[0]?.url ? (
+                    <img
+                      src={`http://localhost:3001${product.images[0].url}`}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Package className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 mb-1 sm:mb-2 leading-tight">{product.name}</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 mb-2 sm:mb-3 leading-relaxed">
+                    {product.description || 'Produto delicioso e preparado na hora'}
+                  </p>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="font-bold text-base sm:text-lg text-slate-900">
+                      R$ {Number(product.price ?? 0).toFixed(2)}
+                    </span>
+                    <button
+                      onClick={() => handleAddToCart(product.id)}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto"
+                      title="Adicionar ao carrinho"
+                    >
+                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
 
