@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout
+  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout, X
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
@@ -29,6 +29,7 @@ const Admin: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -184,19 +185,38 @@ const handleDelivererSelected = async (delivererId: number) => {
 
   return (
     <div className="flex h-screen bg-slate-100 font-inter">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-800 text-white flex items-center justify-between px-4 z-50">
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <Sprout className="w-5 h-5" />
+          <span>Açaí Dicasa</span>
+        </h1>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <LayoutDashboard className="w-6 h-6" />}
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-800 text-slate-300 flex flex-col fixed h-full">
+      <aside className={`w-64 bg-slate-800 text-slate-300 flex flex-col fixed h-full z-40 transition-transform duration-300 ${
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}>
         <div className="h-20 flex items-center justify-center border-b border-slate-700">
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Sprout />
             <span>Açaí Dicasa</span>
           </h1>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {pages.map(page => (
             <button
               key={page.id}
-              onClick={() => setActivePage(page.id)}
+              onClick={() => {
+                setActivePage(page.id);
+                setIsMobileMenuOpen(false);
+              }}
               className={`sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg transition-all hover:bg-slate-700 w-full text-left ${
                 activePage === page.id ? 'active bg-indigo-600 text-white shadow' : ''
               }`}
@@ -220,8 +240,16 @@ const handleDelivererSelected = async (delivererId: number) => {
         </div>
       </aside>
 
+      {/* Overlay para mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-6 md:p-8 overflow-y-auto">
+      <main className="lg:ml-64 flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto pt-20 lg:pt-6">
         {/* Dashboard */}
         {activePage === 'dashboard' && <Dashboard />}
 

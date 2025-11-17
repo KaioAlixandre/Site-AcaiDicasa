@@ -4,7 +4,6 @@ import { Product, ProductCategory } from '../../types';
 import ModalAdicionarProduto from './components/ModalAdicionarProduto';
 import ModalEditarProduto from './components/ModalEditarProduto';
 import ModalAdicionarCategoria from './components/ModalAdicionarCategoria';
-import Products from '../Products';
 
 const Produtos: React.FC<{
   products: Product[],
@@ -25,69 +24,116 @@ const Produtos: React.FC<{
   editProduct, setEditProduct, handleAddProduct, handleAddCategory, handleEdit, handleUpdateProduct, handleDelete
 }) => (
   <div id="produtos" className="page">
-    <header className="mb-8 flex justify-between items-center">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">Produtos</h2>
-        <p className="text-slate-500">Cadastre e gerencie seus produtos, categorias e variações.</p>
+    <header className="mb-4 sm:mb-6">
+      <div className="mb-3">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Produtos</h2>
+        <p className="text-xs sm:text-sm text-slate-500">Cadastre e gerencie seus produtos, categorias e variações.</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <button
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors"
           onClick={() => setShowAddModal(true)}
         >
           <Pencil className="w-5 h-5" />
-          Novo Produto
+          <span className="text-sm sm:text-base">Novo Produto</span>
         </button>
         <button
-          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition-colors"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
           onClick={() => setShowAddCategoryModal(true)}
         >
           <Plus className="w-5 h-5" />
-          Nova Categoria
+          <span className="text-sm sm:text-base">Nova Categoria</span>
         </button>
       </div>
     </header>
-    <div className="bg-white p-2 rounded-xl shadow-md">
-      <div className="overflow-x-auto">
+    <div className="bg-white p-2 sm:p-3 rounded-xl shadow-md">
+      {/* Versão Desktop - Tabela */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left">
           <thead className="border-b border-slate-200 text-slate-500">
             <tr>
-              <th className="p-4">Produto</th>
-              <th className="p-4">Categoria</th>
-              <th className="p-4 text-right">Preço Base</th>
-              <th className="p-4 text-center">Status</th>
-              <th className="p-4 text-center">Ações</th>
+              <th className="p-3 text-xs">Produto</th>
+              <th className="p-3 text-xs">Categoria</th>
+              <th className="p-3 text-right text-xs">Preço Base</th>
+              <th className="p-3 text-center text-xs">Status</th>
+              <th className="p-3 text-center text-xs">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
             {products.map((prod) => (
               <tr key={prod.id} className="hover:bg-slate-50">
-                <td className="p-4 font-medium text-slate-800">{prod.name}</td>
-                <td className="p-4 text-slate-600">{prod.category?.name || '-'}</td>
-                <td className="p-4 text-right font-medium text-slate-800">R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}</td>
-                <td className="p-4 text-center">
+                <td className="p-3">
+                  <div className="font-medium text-slate-800 text-sm">{prod.name}</div>
+                </td>
+                <td className="p-3 text-slate-600 text-sm">{prod.category?.name || '-'}</td>
+                <td className="p-3 text-right font-medium text-slate-800 text-sm">R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}</td>
+                <td className="p-3 text-center">
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${prod.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {prod.isActive ? 'Ativo' : 'Inativo'}
                   </span>
                 </td>
-                <td className="p-4 text-center space-x-2">
-                  <button
-                    className="p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600"
-                    onClick={() => handleEdit(prod)}
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </button>
-                  <button
-                    className="p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-red-600"
-                    onClick={() => handleDelete(prod.id)}
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                <td className="p-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      className="p-1.5 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600"
+                      onClick={() => handleEdit(prod)}
+                      title="Editar"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="p-1.5 text-slate-500 rounded-md hover:bg-slate-200 hover:text-red-600"
+                      onClick={() => handleDelete(prod.id)}
+                      title="Deletar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Versão Mobile - Cards */}
+      <div className="md:hidden divide-y divide-slate-200">
+        {products.map((prod) => (
+          <div key={prod.id} className="p-3 hover:bg-slate-50 transition-colors">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <h3 className="font-medium text-slate-800 text-sm mb-1">{prod.name}</h3>
+                <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>
+              </div>
+              <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${prod.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {prod.isActive ? 'Ativo' : 'Inativo'}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="text-base font-bold text-slate-800">
+                R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center justify-center gap-1 px-3 py-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition-colors text-xs font-medium"
+                  onClick={() => handleEdit(prod)}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Editar</span>
+                </button>
+                <button
+                  className="flex items-center justify-center gap-1 px-3 py-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors text-xs font-medium"
+                  onClick={() => handleDelete(prod.id)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Deletar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
     {showAddModal && (

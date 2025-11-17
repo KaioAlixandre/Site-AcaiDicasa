@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ProductCategory } from '../../../types';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 
 interface Props {
   categories: ProductCategory[];
@@ -66,7 +66,7 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     formData.append('isActive', String(form.isActive));
     
     // Adicionar todas as imagens
-    form.images.forEach((image, index) => {
+    form.images.forEach((image) => {
       formData.append('images', image);
     });
 
@@ -77,18 +77,18 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl my-8">
         {/* Header */}
-        <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center rounded-t-xl">
-          <h3 className="text-2xl font-bold text-slate-800">Adicionar Novo Produto</h3>
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-3 flex justify-between items-center rounded-t-xl">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-800">Adicionar Novo Produto</h3>
           <button 
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         {/* Form */}
-        <form className="p-6 space-y-4" onSubmit={handleSubmit}>
+        <form className="p-3 sm:p-4 space-y-2 sm:space-y-3" onSubmit={handleSubmit}>
           <div className="grid md:grid-cols-2 gap-4">
             {/* Nome */}
             <div>

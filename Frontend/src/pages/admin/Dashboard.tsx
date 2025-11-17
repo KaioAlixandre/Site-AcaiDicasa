@@ -81,25 +81,25 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Visão geral do desempenho da sua loja
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="text-xs sm:text-sm text-gray-500">
                 Última atualização: {formatLastUpdate()}
               </div>
               <button
                 onClick={fetchMetrics}
                 disabled={loading}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center justify-center px-3 sm:px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Cards de Métricas Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <MetricCard
             title="Faturamento Hoje"
             value={metrics.daily.revenue}
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Status dos Pedidos e Ações */}
-        <div className="mb-8">
+        <div className="mb-4">
           <OrderStatusOverview 
             statusData={metrics.todayOrdersStatus}
             pendingOrders={metrics.pendingOrders}
@@ -154,7 +154,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Gráficos e Tabelas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
           {/* Vendas da Semana */}
           <WeeklyChart 
             data={metrics.weekly.data}
@@ -162,40 +162,40 @@ const Dashboard: React.FC = () => {
           />
 
           {/* Faturamento Semanal */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Resumo Semanal</h3>
-              <TrendingUp className="w-5 h-5 text-green-500" />
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Resumo Semanal</h3>
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
             </div>
             
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-green-700">Faturamento Total da Semana</p>
-                  <p className="text-2xl font-bold text-green-900">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-green-50 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-green-700">Faturamento Total da Semana</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-900">
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL'
                     }).format(metrics.weekly.revenue)}
                   </p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-blue-700">Total de Pedidos na Semana</p>
-                  <p className="text-2xl font-bold text-blue-900">
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-blue-50 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-blue-700">Total de Pedidos na Semana</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-900">
                     {metrics.weekly.data.reduce((sum, day) => sum + day.orders, 0)}
                   </p>
                 </div>
-                <ShoppingCart className="w-8 h-8 text-blue-600" />
+                <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-purple-700">Ticket Médio da Semana</p>
-                  <p className="text-2xl font-bold text-purple-900">
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-purple-50 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-purple-700">Ticket Médio da Semana</p>
+                  <p className="text-lg sm:text-2xl font-bold text-purple-900">
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL'
@@ -206,41 +206,41 @@ const Dashboard: React.FC = () => {
                     )}
                   </p>
                 </div>
-                <Target className="w-8 h-8 text-purple-600" />
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0 ml-2" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Produtos Mais Vendidos */}
-        <div className="mb-8">
+        <div className="mb-4">
           <TopProductsTable products={metrics.topProducts} />
         </div>
 
         {/* Insights e Dicas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">💡 Insights</h3>
-            <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">💡 Insights</h3>
+            <div className="space-y-2 sm:space-y-3">
               {metrics.daily.revenueChange > 10 && (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-green-800 text-sm">
+                <div className="p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-green-800 text-xs sm:text-sm">
                     🚀 Excelente! O faturamento de hoje está {metrics.daily.revenueChange.toFixed(1)}% maior que ontem!
                   </p>
                 </div>
               )}
               
               {metrics.topProducts.length > 0 && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-800 text-sm">
+                <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-blue-800 text-xs sm:text-sm">
                     🏆 Seu produto mais vendido é "{metrics.topProducts[0].name}" com {metrics.topProducts[0].quantitySold} unidades vendidas!
                   </p>
                 </div>
               )}
               
               {metrics.daily.ticketAverage > 0 && (
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-purple-800 text-sm">
+                <div className="p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-purple-800 text-xs sm:text-sm">
                     💰 Seu ticket médio hoje é de {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL'
@@ -251,27 +251,27 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Próximas Ações</h3>
-            <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">📊 Próximas Ações</h3>
+            <div className="space-y-2 sm:space-y-3">
               {metrics.pendingOrders > 5 && (
-                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-yellow-800 text-sm">
+                <div className="p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-yellow-800 text-xs sm:text-sm">
                     ⚠️ Você tem muitos pedidos pendentes. Considere processar os mais antigos primeiro.
                   </p>
                 </div>
               )}
               
               {metrics.daily.sales === 0 && (
-                <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <p className="text-orange-800 text-sm">
+                <div className="p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <p className="text-orange-800 text-xs sm:text-sm">
                     📈 Ainda não houve vendas hoje. Que tal criar uma promoção especial?
                   </p>
                 </div>
               )}
               
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-gray-800 text-sm">
+              <div className="p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-800 text-xs sm:text-sm">
                   ✅ Continue acompanhando suas métricas diariamente para melhores resultados!
                 </p>
               </div>

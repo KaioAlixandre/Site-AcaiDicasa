@@ -20,7 +20,6 @@ const DelivererSelectionModal: React.FC<DelivererSelectionModalProps> = ({
 }) => {
   const [deliverers, setDeliverers] = useState<Deliverer[]>([]);
   const [selectedDeliverer, setSelectedDeliverer] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -54,14 +53,14 @@ const DelivererSelectionModal: React.FC<DelivererSelectionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-200">
           <div>
-            <h3 className="text-lg font-semibold text-slate-800">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-800">
               Selecionar Entregador
             </h3>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs sm:text-sm text-slate-500">
               Pedido #{orderId} - {customerName}
             </p>
           </div>
@@ -73,7 +72,7 @@ const DelivererSelectionModal: React.FC<DelivererSelectionModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-4">
           {deliverers.length === 0 ? (
             <div className="text-center py-8">
               <Truck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -123,23 +122,23 @@ const DelivererSelectionModal: React.FC<DelivererSelectionModalProps> = ({
           )}
         </div>
 
-        <div className="flex gap-3 p-6 border-t border-slate-200">
+        <div className="flex gap-2 p-3 sm:p-4 border-t border-slate-200">
           <button
             onClick={handleCancel}
-            className="flex-1 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex-1 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm"
           >
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!selectedDeliverer || loading}
-            className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors ${
-              selectedDeliverer && !loading
+            disabled={!selectedDeliverer}
+            className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors text-sm ${
+              selectedDeliverer
                 ? 'bg-blue-600 hover:bg-blue-700'
                 : 'bg-slate-300 cursor-not-allowed'
             }`}
           >
-            {loading ? 'Confirmando...' : 'Confirmar Entrega'}
+            Confirmar Entrega
           </button>
         </div>
       </div>

@@ -79,9 +79,9 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
 
   return (
     <div id="pedidos" className="page">
-      <header className="mb-8 flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-800">Pedidos</h2>
+      <header className="mb-4 sm:mb-6">
+        <div className="mb-3">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Pedidos</h2>
           <p className="text-slate-500">
             Gerencie os pedidos recebidos. 
             {filteredOrders.length !== orders.length && (
@@ -91,7 +91,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
             )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors relative ${
@@ -238,7 +238,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
         </div>
       )}
 
-      <div className="bg-white p-2 rounded-xl shadow-md">
+      <div className="bg-white p-2 sm:p-3 rounded-xl shadow-md">
         {filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-slate-400 mb-4">
@@ -262,104 +262,108 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left min-w-[800px]">
               <thead className="border-b border-slate-200 text-slate-500">
                 <tr>
-                  <th className="p-4">Cliente</th>
-                  <th className="p-4">Itens</th>
-                  <th className="p-4">Tipo</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 text-right">Total</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm">Cliente</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm">Itens</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm hidden md:table-cell">Tipo</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm">Status</th>
+                  <th className="p-2 sm:p-4 text-right text-xs sm:text-sm">Total</th>
+                  <th className="p-2 sm:p-4 text-center text-xs sm:text-sm">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-slate-50">
-                    <td className="p-4">
-                      <div className="font-medium text-slate-800">{order.user?.username || '-'}</div>
+                    <td className="p-2 sm:p-4">
+                      <div className="font-medium text-slate-800 text-sm sm:text-base">{order.user?.username || '-'}</div>
                       <div className="text-sm text-slate-500">
                         {new Date(order.createdAt).toLocaleString('pt-BR')}
                       </div>
                     </td>
-                    <td className="p-4 text-slate-600">
-                      {(order.orderitem || []).map(item => {
-                        // Verificar se é produto personalizado
-                        const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
-                        const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
-                        const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
-                        const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
-                        
-                        // Verificar se o produto existe
-                        if (!item.product) {
-                          return null;
-                        }
-                        
-                        return (
-                          <div key={item.id} className="mb-2 last:mb-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                {item.product.name} x {item.quantity}
-                              </span>
-                              {customData && (
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  isCustomAcai ? 'bg-purple-100 text-purple-800' :
-                                  isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
-                                  'bg-green-100 text-green-800'
-                                }`}>
-                                  {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} Personalizado R$ {Number(customData.value).toFixed(2)}
+                    <td className="p-2 sm:p-4">
+                      <div className="text-xs sm:text-sm text-slate-600">
+                        {(order.orderitem || []).map(item => {
+                          // Verificar se é produto personalizado
+                          const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                          const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
+                          const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
+                          const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
+                          
+                          // Verificar se o produto existe
+                          if (!item.product) {
+                            return null;
+                          }
+                          
+                          return (
+                            <div key={item.id} className="mb-2 last:mb-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {item.product.name} x {item.quantity}
                                 </span>
+                                {customData && (
+                                  <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
+                                    isCustomAcai ? 'bg-purple-100 text-purple-800' :
+                                    isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} Personalizado R$ {Number(customData.value).toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                              {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
+                                <div className="mt-1 ml-2 sm:ml-4">
+                                  <span className="text-xs text-slate-500">Complementos: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {customData.complementNames.map((complement: string, idx: number) => (
+                                      <span 
+                                        key={idx}
+                                        className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
+                                      >
+                                        {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} {complement}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </div>
-                            {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
-                              <div className="mt-1 ml-4">
-                                <span className="text-xs text-slate-500">Complementos: </span>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {customData.complementNames.map((complement: string, idx: number) => (
-                                    <span 
-                                      key={idx}
-                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
-                                    >
-                                      {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} {complement}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </td>
-                    <td className="p-4">
+                    <td className="p-2 sm:p-4 hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         {order.deliveryType === 'delivery' ? (
                           <>
                             <Truck className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-600">Entrega</span>
+                            <span className="text-xs sm:text-sm font-medium text-blue-600">Entrega</span>
                           </>
                         ) : (
                           <>
                             <MapPin className="w-4 h-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-600">Retirada</span>
+                            <span className="text-xs sm:text-sm font-medium text-green-600">Retirada</span>
                           </>
                         )}
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusStyle(order.status)}`}>
+                    <td className="p-2 sm:p-4">
+                      <span className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getStatusStyle(order.status)}`}>
                         {getStatusInPortuguese(order.status)}
                       </span>
                     </td>
-                    <td className="p-4 text-right font-medium text-slate-800">
+                    <td className="p-2 sm:p-4 text-right font-medium text-slate-800 text-sm sm:text-base">
                       R$ {Number(order.totalPrice).toFixed(2)}
                     </td>
-                    <td className="p-4 text-center space-x-2">
-                      <button title="Imprimir Pedido" className="p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-blue-600">
-                        <Printer className="w-5 h-5" />
-                      </button>
-                      <button title="Avançar Status" onClick={() => handleAdvanceStatus(order)} className="p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-green-600">
-                        <ArrowRightCircle className="w-5 h-5" />
-                      </button>
+                    <td className="p-2 sm:p-4 text-center">
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
+                        <button title="Imprimir Pedido" className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-blue-600">
+                          <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <button title="Avançar Status" onClick={() => handleAdvanceStatus(order)} className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-green-600">
+                          <ArrowRightCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -47,17 +47,17 @@ const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
+          <div className={`p-2 sm:p-3 rounded-lg ${color} bg-opacity-10`}>
             <div className={`${color}`}>
               {icon}
             </div>
           </div>
-          <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">{title}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="ml-2 sm:ml-4">
+            <p className="text-[10px] sm:text-xs md:text-sm font-medium text-gray-600 uppercase tracking-wide">{title}</p>
+            <p className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mt-0.5 sm:mt-1">
               {formatValue(value)}
             </p>
           </div>
@@ -65,14 +65,14 @@ const MetricCard: React.FC<MetricCardProps> = ({
       </div>
       
       {change !== undefined && (
-        <div className="mt-4 flex items-center">
+        <div className="mt-2 sm:mt-3 md:mt-4 flex items-center">
           <div className={`flex items-center ${getChangeColor()}`}>
             {getChangeIcon()}
-            <span className="ml-1 text-sm font-medium">
+            <span className="ml-1 text-xs sm:text-sm font-medium">
               {Math.abs(change).toFixed(1)}%
             </span>
           </div>
-          <span className="text-gray-500 text-sm ml-2">
+          <span className="text-gray-500 text-[10px] sm:text-xs md:text-sm ml-2">
             comparado a ontem
           </span>
         </div>

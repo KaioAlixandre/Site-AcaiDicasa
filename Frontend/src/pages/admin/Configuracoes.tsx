@@ -94,13 +94,13 @@ const Configuracoes: React.FC = () => {
 
   return (
     <div id="configuracoes" className="page">
-      <header className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800">Configurações</h2>
-        <p className="text-slate-500">Configure o funcionamento da sua loja.</p>
+      <header className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Configurações</h2>
+        <p className="text-xs sm:text-sm text-slate-500">Configure o funcionamento da sua loja.</p>
       </header>
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-md">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Horário de Abertura
