@@ -295,6 +295,7 @@ export interface SalesHistory {
 export interface Complement {
   id: number;
   name: string;
+  imageUrl?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

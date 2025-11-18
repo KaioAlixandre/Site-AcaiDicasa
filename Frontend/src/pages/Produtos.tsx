@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, Package } from 'lucide-react';
 import { Product, ProductCategory } from '../types';
 import { apiService } from '../services/api';
-import { useCart } from '../contexts/CartContext';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
 import CustomAcaiModal from '../components/CustomAcaiModal';
@@ -16,13 +15,9 @@ const Products: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [storeStatus, setStoreStatus] = useState<any>(null);
-  const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
   const [showCustomAcaiModal, setShowCustomAcaiModal] = useState(false);
   const [showCustomSorveteModal, setShowCustomSorveteModal] = useState(false);
-  const { addItem } = useCart();
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,23 +67,6 @@ const Products: React.FC = () => {
 
     setFilteredProducts(filtered);
   }, [products, searchTerm, selectedCategory]);
-
-  const handleAddToCart = async (productId: number) => {
-    // Verificar se a loja está aberta antes de adicionar ao carrinho
-    if (storeStatus && !storeStatus.isOpen) {
-      alert(`Não é possível adicionar produtos: ${storeStatus.reason}\n${storeStatus.nextOpenTime || ''}`);
-      return;
-    }
-
-    try {
-      setAddingToCart(productId);
-      await addItem(productId, 1);
-    } catch (error) {
-      console.error('Erro ao adicionar ao carrinho:', error);
-    } finally {
-      setAddingToCart(null);
-    }
-  };
 
   if (loading) {
     return <Loading fullScreen text="Carregando produtos..." />;
@@ -190,7 +168,6 @@ const Products: React.FC = () => {
                     key={category.id}
                     title={category.name}
                     products={filteredProducts.filter(p => p.categoryId === category.id)}
-                    onAdd={handleAddToCart}
                     disabled={!storeStatus?.isOpen}
                   />
                 ))
@@ -200,7 +177,6 @@ const Products: React.FC = () => {
                     key={category.id}
                     title={category.name}
                     products={filteredProducts.filter(p => p.categoryId === category.id)}
-                    onAdd={handleAddToCart}
                     disabled={!storeStatus?.isOpen}
                   />
                 ))
@@ -210,7 +186,6 @@ const Products: React.FC = () => {
             <CategorySection
               title="Outros"
               products={filteredProducts.filter(p => !p.categoryId)}
-              onAdd={handleAddToCart}
               disabled={!storeStatus?.isOpen}
             />
           </div>
@@ -237,9 +212,8 @@ const Products: React.FC = () => {
 const CategorySection: React.FC<{
   title: string;
   products: Product[];
-  onAdd: (id: number) => void;
   disabled?: boolean;
-}> = ({ title, products, onAdd, disabled }) => {
+}> = ({ title, products, disabled }) => {
   if (!products || products.length === 0) return null;
   return (
     <section className="mb-8 md:mb-10">
@@ -249,7 +223,11 @@ const CategorySection: React.FC<{
       </div>
       <div className="grid grid-cols-1 gap-3 sm:gap-4">
         {products.map((product) => (
-          <div key={product.id} className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group">
+          <Link 
+            key={product.id} 
+            to={`/products/${product.id}`}
+            className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group cursor-pointer"
+          >
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
               {product.images?.[0]?.url ? (
                 <img
@@ -270,19 +248,17 @@ const CategorySection: React.FC<{
                 <span className="font-bold text-base sm:text-lg text-slate-900">
                   R$ {Number(product.price ?? 0).toFixed(2)}
                 </span>
-                <button
-                  onClick={() => onAdd(product.id)}
-                  disabled={disabled}
+                <div
                   className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto ${
-                    disabled ? 'bg-slate-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 active:scale-95'
+                    disabled ? 'bg-slate-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 active:scale-95 cursor-pointer'
                   }`}
-                  title={disabled ? 'Indisponível agora' : 'Adicionar ao carrinho'}
+                  title={disabled ? 'Indisponível agora' : 'Ver detalhes'}
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

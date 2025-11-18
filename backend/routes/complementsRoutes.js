@@ -2,9 +2,42 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // Middlewares de autenticação e autorização
 const { authenticateToken, authorize } = require('./auth');
+
+// Configuração do multer para upload de imagens
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/complements';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens são permitidas'));
+    }
+  }
+});
 
 // 🍓 GET - Listar todos os complementos (apenas ativos por padrão)
 router.get('/', async (req, res) => {
@@ -22,6 +55,7 @@ router.get('/', async (req, res) => {
     const transformedComplements = complements.map(complement => ({
       id: complement.id,
       name: complement.nome,
+      imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
@@ -54,6 +88,7 @@ router.get('/:id', async (req, res) => {
     const transformedComplement = {
       id: complement.id,
       name: complement.nome,
+      imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
@@ -68,7 +103,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ➕ POST - Criar novo complemento (APENAS ADMIN)
-router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
+router.post('/', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
   const { nome, ativo = true } = req.body;
   console.log(`➕ POST /complements - Usuário autenticado:`, {
     id: req.user?.id,
@@ -99,10 +134,17 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
       return res.status(409).json({ message: 'Já existe um complemento com este nome' });
     }
 
+    // Processar imagem se foi enviada
+    let imagemUrl = null;
+    if (req.file) {
+      imagemUrl = `/uploads/complements/${req.file.filename}`;
+    }
+
     // Criar o complemento
     const complement = await prisma.complemento.create({
       data: {
         nome: nome.trim(),
+        imagemUrl: imagemUrl,
         ativo: Boolean(ativo)
       }
     });
@@ -111,6 +153,7 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
     const transformedComplement = {
       id: complement.id,
       name: complement.nome,
+      imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
@@ -125,7 +168,7 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
 });
 
 // ✏️ PUT - Atualizar complemento (APENAS ADMIN)
-router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
+router.put('/:id', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
   const { id } = req.params;
   const { nome, ativo } = req.body;
   console.log(`✏️ PUT /complements/${id} - Admin ${req.user.username} atualizando complemento...`);
@@ -143,6 +186,18 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
 
     // Preparar dados para atualização
     const updateData = {};
+
+    // Processar nova imagem se foi enviada
+    if (req.file) {
+      // Deletar imagem antiga se existir
+      if (existingComplement.imagemUrl) {
+        const oldImagePath = path.join(__dirname, '..', existingComplement.imagemUrl);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      updateData.imagemUrl = `/uploads/complements/${req.file.filename}`;
+    }
 
     if (nome !== undefined) {
       if (!nome || nome.trim().length === 0) {
@@ -185,6 +240,7 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
     const transformedComplement = {
       id: complement.id,
       name: complement.nome,
+      imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
@@ -214,6 +270,14 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
       return res.status(404).json({ message: 'Complemento não encontrado' });
     }
 
+    // Deletar imagem se existir
+    if (existingComplement.imagemUrl) {
+      const imagePath = path.join(__dirname, '..', existingComplement.imagemUrl);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
     // Deletar o complemento
     await prisma.complemento.delete({
       where: { id: parseInt(id) }
@@ -223,6 +287,7 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
     const transformedComplement = {
       id: existingComplement.id,
       name: existingComplement.nome,
+      imageUrl: existingComplement.imagemUrl,
       isActive: existingComplement.ativo,
       createdAt: existingComplement.criadoEm,
       updatedAt: existingComplement.atualizadoEm
@@ -262,6 +327,7 @@ router.patch('/:id/toggle', authenticateToken, authorize('admin'), async (req, r
     const transformedComplement = {
       id: complement.id,
       name: complement.nome,
+      imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm

@@ -20,6 +20,7 @@ import apiService from '../../services/api';
 interface Complement {
   id: number;
   name: string;
+  imageUrl?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +29,7 @@ interface Complement {
 interface ComplementFormData {
   name: string;
   isActive: boolean;
+  image?: File;
 }
 
 const Complementos: React.FC = () => {
@@ -42,6 +44,7 @@ const Complementos: React.FC = () => {
     name: '',
     isActive: true
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
 
@@ -87,6 +90,7 @@ const Complementos: React.FC = () => {
   // Reset do formulário
   const resetForm = () => {
     setFormData({ name: '', isActive: true });
+    setImagePreview(null);
     setEditingComplement(null);
     setShowModal(false);
   };
@@ -104,7 +108,35 @@ const Complementos: React.FC = () => {
       name: complement.name,
       isActive: complement.isActive
     });
+    setImagePreview(complement.imageUrl ? `http://localhost:3001${complement.imageUrl}` : null);
     setShowModal(true);
+  };
+
+  // Manipular seleção de imagem
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, image: file });
+      
+      // Criar preview da imagem
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remover imagem
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image: undefined });
+    setImagePreview(null);
+    
+    // Limpar o input de arquivo
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   // Salvar complemento (criar ou editar)
@@ -305,6 +337,9 @@ const Complementos: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Imagem
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Nome
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -324,6 +359,24 @@ const Complementos: React.FC = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredComplements.map((complement) => (
                       <tr key={complement.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {complement.imageUrl ? (
+                            <img 
+                              src={`http://localhost:3001${complement.imageUrl}`} 
+                              alt={complement.name}
+                              className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = '<div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center"><span class="text-gray-400 text-xs">Erro</span></div>';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">Sem img</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{complement.name}</div>
                         </td>
@@ -391,7 +444,23 @@ const Complementos: React.FC = () => {
               <div className="md:hidden divide-y divide-gray-200">
                 {filteredComplements.map((complement) => (
                   <div key={complement.id} className="p-3 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start gap-3 mb-2">
+                      {complement.imageUrl ? (
+                        <img 
+                          src={`http://localhost:3001${complement.imageUrl}`} 
+                          alt={complement.name}
+                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-gray-200"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = '<div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-gray-400 text-xs text-center">Erro ao carregar</span></div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-gray-400 text-xs text-center">Sem imagem</span>
+                        </div>
+                      )}
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm mb-1">{complement.name}</h3>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -487,6 +556,44 @@ const Complementos: React.FC = () => {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Máximo 100 caracteres ({formData.name.length}/100)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Imagem do Complemento
+                  </label>
+                  {imagePreview && (
+                    <div className="mb-3 relative group">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-48 object-contain bg-gray-50 rounded-lg border-2 border-gray-200"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="105" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImagem não encontrada%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                        title="Remover imagem"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      onChange={handleImageChange}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos aceitos: JPG, PNG, GIF, WEBP. Tamanho máximo: 5MB
                   </p>
                 </div>
 

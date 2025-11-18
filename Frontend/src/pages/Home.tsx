@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Clock, Truck, Heart, ShoppingCart, Plus, Instagram, MessageCircle, Package } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
+import { Star, Truck, Heart, ShoppingCart, Instagram, MessageCircle, Package } from 'lucide-react';
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
 import Loading from '../components/Loading';
@@ -13,9 +12,6 @@ const Home: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [storeConfig, setStoreConfig] = useState<any>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const { addItem } = useCart();
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,41 +43,12 @@ const Home: React.FC = () => {
     loadData();
   }, []);
 
-  const handleAddToCart = async (productId: number) => {
-    try {
-      await addItem(productId, 1);
-      setToastMessage('Produto adicionado ao carrinho!');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    } catch (error) {
-      setToastMessage('Erro ao adicionar produto ao carrinho');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }
-  };
-
   if (loading) {
     return <Loading fullScreen text="Carregando produtos..." />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-top-5 duration-300">
-          <div className="bg-emerald-500 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 max-w-md">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-semibold">{toastMessage}</p>
-              <p className="text-xs text-emerald-100">Veja seu carrinho no menu superior</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top Banner */}
       <div className="relative h-56 md:h-64 flex items-center justify-center text-white" style={{ backgroundColor: '#740e93' }}>
         <div className="text-center">
           <h1 className="text-2xl md:text-5xl font-extrabold tracking-tight">Açaí DiCasa</h1>
@@ -126,7 +93,11 @@ const Home: React.FC = () => {
         <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-3 md:mb-4">Destaques</h2>
         <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-2 snap-x snap-mandatory">
           {featuredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-w-[48%] sm:min-w-[240px] snap-start">
+            <Link
+              key={product.id}
+              to={`/products/${product.id}`}
+              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-w-[48%] sm:min-w-[240px] snap-start hover:shadow-md transition-shadow duration-200"
+            >
               <div className="h-28 sm:h-32 bg-slate-100 flex items-center justify-center text-3xl overflow-hidden">
                 {product.images && product.images[0]?.url ? (
                   <img
@@ -143,16 +114,15 @@ const Home: React.FC = () => {
                 <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
                 <div className="mt-2 md:mt-3 flex items-center justify-between">
                   <span className="text-base md:text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
-                  <button
-                    onClick={() => handleAddToCart(product.id)}
-                    className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md"
-                    aria-label="Adicionar ao carrinho"
+                  <div
+                    className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md cursor-pointer"
+                    aria-label="Ver detalhes"
                   >
                     <ShoppingCart size={18} />
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -193,7 +163,11 @@ const Home: React.FC = () => {
           {allProducts
             .filter(product => selectedCategory === null || product.categoryId === selectedCategory)
             .map((product) => (
-              <div key={product.id} className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group">
+              <Link 
+                key={product.id} 
+                to={`/products/${product.id}`}
+                className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm hover:shadow-md p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all duration-200 group cursor-pointer"
+              >
                 <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
                   {product.images && product.images[0]?.url ? (
                     <img
@@ -214,16 +188,15 @@ const Home: React.FC = () => {
                     <span className="font-bold text-base sm:text-lg text-slate-900">
                       R$ {Number(product.price ?? 0).toFixed(2)}
                     </span>
-                    <button
-                      onClick={() => handleAddToCart(product.id)}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto"
-                      title="Adicionar ao carrinho"
+                    <div
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto cursor-pointer"
+                      title="Ver detalhes"
                     >
                       <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
         </div>
       </div>

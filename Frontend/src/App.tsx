@@ -18,6 +18,7 @@ import AddPhone from './pages/AddPhone';
 import Checkout from './pages/Checkout';
 import EsqueciSenha from './pages/EsqueciSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
+import ProdutoDetalhes from './pages/ProdutoDetalhes';
 
 function AppContent() {
   return (
@@ -31,6 +32,7 @@ function AppContent() {
           <Route path="/forgot-password" element={<EsqueciSenha />} />
           <Route path="/reset-password" element={<RedefinirSenha />} />
           <Route path="/products" element={<Produtos />} />
+          <Route path="/products/:id" element={<ProdutoDetalhes />} />
           <Route path="/cart" element={<Carrinho />} />
           <Route path="/about" element={<Sobre />} />
           <Route path="/contact" element={<Contato />} />

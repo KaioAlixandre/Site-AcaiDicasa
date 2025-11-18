@@ -399,20 +399,41 @@ async toggleDelivererStatus(id: number) {
     return response.data;
   }
 
-  async createComplement(data: { name: string; isActive: boolean }): Promise<any> {
-    const response = await this.api.post('/complements', { 
-      nome: data.name, 
-      ativo: data.isActive 
+  async createComplement(data: { name: string; isActive: boolean; image?: File }): Promise<any> {
+    const formData = new FormData();
+    formData.append('nome', data.name);
+    formData.append('ativo', String(data.isActive));
+    
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    
+    const response = await this.api.post('/complements', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
   }
 
-  async updateComplement(id: number, data: { name?: string; isActive?: boolean }): Promise<any> {
-    const updateData: any = {};
-    if (data.name !== undefined) updateData.nome = data.name;
-    if (data.isActive !== undefined) updateData.ativo = data.isActive;
+  async updateComplement(id: number, data: { name?: string; isActive?: boolean; image?: File }): Promise<any> {
+    const formData = new FormData();
     
-    const response = await this.api.put(`/complements/${id}`, updateData);
+    if (data.name !== undefined) {
+      formData.append('nome', data.name);
+    }
+    if (data.isActive !== undefined) {
+      formData.append('ativo', String(data.isActive));
+    }
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    
+    const response = await this.api.put(`/complements/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 

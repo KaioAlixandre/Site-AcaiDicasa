@@ -64,6 +64,7 @@ model relatorio_vendas_categoria {
 model complemento {
   id        Int      @id @default(autoincrement())
   nome      String   @db.VarChar(100)
+  imagemUrl String?  @db.VarChar(255)
   ativo     Boolean  @default(true)
   criadoEm  DateTime @default(now())
   atualizadoEm DateTime @updatedAt
