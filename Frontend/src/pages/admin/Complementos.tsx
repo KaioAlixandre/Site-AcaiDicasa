@@ -22,18 +22,31 @@ interface Complement {
   name: string;
   imageUrl?: string;
   isActive: boolean;
+  categoryId?: number | null;
+  category?: {
+    id: number;
+    name: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface ComplementCategory {
+  id: number;
+  name: string;
+  complementsCount?: number;
 }
 
 interface ComplementFormData {
   name: string;
   isActive: boolean;
+  categoryId?: number | null;
   image?: File;
 }
 
 const Complementos: React.FC = () => {
   const [complements, setComplements] = useState<Complement[]>([]);
+  const [categories, setCategories] = useState<ComplementCategory[]>([]);
   const [filteredComplements, setFilteredComplements] = useState<Complement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,11 +55,24 @@ const Complementos: React.FC = () => {
   const [editingComplement, setEditingComplement] = useState<Complement | null>(null);
   const [formData, setFormData] = useState<ComplementFormData>({
     name: '',
-    isActive: true
+    isActive: true,
+    categoryId: null
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Carregar categorias
+  const loadCategories = async () => {
+    try {
+      const data = await apiService.getComplementCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
 
   // Carregar complementos
   const loadComplements = async () => {
@@ -85,11 +111,12 @@ const Complementos: React.FC = () => {
   // Carregar dados ao montar o componente
   useEffect(() => {
     loadComplements();
+    loadCategories();
   }, [showInactive]);
 
   // Reset do formulário
   const resetForm = () => {
-    setFormData({ name: '', isActive: true });
+    setFormData({ name: '', isActive: true, categoryId: null });
     setImagePreview(null);
     setEditingComplement(null);
     setShowModal(false);
@@ -106,7 +133,8 @@ const Complementos: React.FC = () => {
     setEditingComplement(complement);
     setFormData({
       name: complement.name,
-      isActive: complement.isActive
+      isActive: complement.isActive,
+      categoryId: complement.categoryId || null
     });
     setImagePreview(complement.imageUrl ? `http://localhost:3001${complement.imageUrl}` : null);
     setShowModal(true);
@@ -195,6 +223,29 @@ const Complementos: React.FC = () => {
     } catch (error) {
       console.error('Erro ao deletar complemento:', error);
       alert('Erro ao deletar complemento');
+    }
+  };
+
+  // Criar nova categoria
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newCategoryName.trim()) {
+      alert('Nome da categoria é obrigatório!');
+      return;
+    }
+
+    try {
+      await apiService.createComplementCategory(newCategoryName.trim());
+      await loadCategories();
+      setNewCategoryName('');
+      setShowCategoryModal(false);
+      setShowModal(true);
+      alert('Categoria criada com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao criar categoria:', error);
+      const message = error.response?.data?.message || 'Erro ao criar categoria';
+      alert(message);
     }
   };
 
@@ -343,13 +394,13 @@ const Complementos: React.FC = () => {
                         Nome
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Categoria
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Criado em
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Atualizado em
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ações
@@ -381,6 +432,15 @@ const Complementos: React.FC = () => {
                           <div className="text-sm font-medium text-gray-900">{complement.name}</div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
+                          {complement.category ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {complement.category.name}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Sem categoria</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             complement.isActive 
                               ? 'bg-green-100 text-green-800' 
@@ -401,9 +461,6 @@ const Complementos: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(complement.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(complement.updatedAt)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
@@ -463,29 +520,40 @@ const Complementos: React.FC = () => {
                       )}
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm mb-1">{complement.name}</h3>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          complement.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {complement.isActive ? (
-                            <>
-                              <CheckCircle size={10} className="mr-1" />
-                              Ativo
-                            </>
-                          ) : (
-                            <>
-                              <X size={10} className="mr-1" />
-                              Inativo
-                            </>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            complement.isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {complement.isActive ? (
+                              <>
+                                <CheckCircle size={10} className="mr-1" />
+                                Ativo
+                              </>
+                            ) : (
+                              <>
+                                <X size={10} className="mr-1" />
+                                Inativo
+                              </>
+                            )}
+                          </span>
+                          {complement.category && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {complement.category.name}
+                            </span>
                           )}
-                        </span>
+                        </div>
                       </div>
                     </div>
                     
                     <div className="text-xs text-gray-500 space-y-1 mb-3">
                       <div>Criado: {formatDate(complement.createdAt)}</div>
-                      <div>Atualizado: {formatDate(complement.updatedAt)}</div>
+                      {complement.category ? (
+                        <div>Categoria: {complement.category.name}</div>
+                      ) : (
+                        <div className="italic text-gray-400">Sem categoria</div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -523,6 +591,72 @@ const Complementos: React.FC = () => {
         </div>
       )}
 
+      {/* Modal de Nova Categoria */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-4 sm:p-6">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+                  Nova Categoria de Complemento
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    setShowModal(true);
+                    setNewCategoryName('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={20} className="sm:w-6 sm:h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateCategory} className="space-y-4 sm:space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome da Categoria *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Ex: Frutas, Granolas, Cremes..."
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+                    required
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Máximo 100 caracteres ({newCategoryName.length}/100)
+                  </p>
+                </div>
+
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCategoryModal(false);
+                      setShowModal(true);
+                      setNewCategoryName('');
+                    }}
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-semibold flex items-center justify-center space-x-2"
+                  >
+                    <Save size={16} />
+                    <span>Criar</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Criação/Edição */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
@@ -556,6 +690,38 @@ const Complementos: React.FC = () => {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Máximo 100 caracteres ({formData.name.length}/100)
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Categoria do Complemento
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowModal(false);
+                        setShowCategoryModal(true);
+                      }}
+                      className="text-purple-600 hover:text-purple-700 text-xs font-medium flex items-center gap-1"
+                    >
+                      <Plus size={14} />
+                      Nova Categoria
+                    </button>
+                  </div>
+                  <select
+                    value={formData.categoryId || ''}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors bg-white"
+                  >
+                    <option value="">Sem categoria</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Categorias ajudam a organizar os complementos
                   </p>
                 </div>
 

@@ -15,6 +15,7 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     categoryId: '',
     isActive: true,
     isFeatured: false,
+    receiveComplements: false,
     description: '',
     images: [] as File[]
   });
@@ -66,6 +67,7 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     formData.append('descricao', form.description);
     formData.append('isActive', String(form.isActive));
     formData.append('isFeatured', String(form.isFeatured));
+    formData.append('receiveComplements', String(form.receiveComplements));
     
     // Adicionar todas as imagens
     form.images.forEach((image) => {
@@ -213,7 +215,7 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
             </div>
           </div>
 
-          {/* Status Ativo e Destaque */}
+          {/* Status Ativo, Destaque e Complementos */}
           <div className="space-y-2">
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
               <input 
@@ -238,7 +240,20 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
                 className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-2 focus:ring-amber-500"
               />
               <label htmlFor="isFeatured" className="text-sm font-medium text-slate-700 cursor-pointer">
-                ⭐ Produto em destaque (aparecerá primeiro)
+                Produto em destaque (aparecerá primeiro)
+              </label>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+              <input 
+                type="checkbox" 
+                id="receiveComplements"
+                name="receiveComplements" 
+                checked={form.receiveComplements} 
+                onChange={handleChange}
+                className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-2 focus:ring-purple-500"
+              />
+              <label htmlFor="receiveComplements" className="text-sm font-medium text-slate-700 cursor-pointer">
+                Produto aceita complementos
               </label>
             </div>
           </div>

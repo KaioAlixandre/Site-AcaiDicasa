@@ -50,6 +50,7 @@ connectDB().then(() => {
     app.use('/api/insights', insightsRoutes);
     app.use('/api/store-config', storeConfigRoutes);
     app.use('/api/complements', complementsRoutes);
+    app.use('/api/complement-categories', require('./routes/complementCategoriesRoutes'));
     
     // Rota de debug temporária
     const debugRoutes = require('./routes/debug');

@@ -57,6 +57,7 @@ const Produtos: React.FC<{
               <th className="p-3 text-right text-xs">Preço Base</th>
               <th className="p-3 text-center text-xs">Status</th>
               <th className="p-3 text-center text-xs">Destaque</th>
+              <th className="p-3 text-center text-xs">Complementos</th>
               <th className="p-3 text-center text-xs">Ações</th>
             </tr>
           </thead>
@@ -76,7 +77,14 @@ const Produtos: React.FC<{
                 <td className="p-3 text-center">
                   {prod.isFeatured && (
                     <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
-                      ⭐ Destaque
+                       Destaque
+                    </span>
+                  )}
+                </td>
+                <td className="p-3 text-center">
+                  {prod.receiveComplements && (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                       Sim
                     </span>
                   )}
                 </td>
@@ -114,6 +122,9 @@ const Produtos: React.FC<{
                   <h3 className="font-medium text-slate-800 text-sm">{prod.name}</h3>
                   {prod.isFeatured && (
                     <span className="text-amber-500" title="Produto em destaque">⭐</span>
+                  )}
+                  {prod.receiveComplements && (
+                    <span className="text-purple-500" title="Aceita complementos">🍓</span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>

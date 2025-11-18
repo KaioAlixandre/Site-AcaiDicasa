@@ -33,6 +33,7 @@ export interface Product {
   description?: string;
   isActive: boolean;
   isFeatured?: boolean;
+  receiveComplements?: boolean;
   createdAt: string;
   images?: ProductImage[];
   options?: ProductOption[];
@@ -297,8 +298,18 @@ export interface Complement {
   name: string;
   imageUrl?: string;
   isActive: boolean;
+  categoryId?: number | null;
+  category?: ComplementCategory | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ComplementCategory {
+  id: number;
+  name: string;
+  complementsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Custom Açaí types (customer chooses value and complements)

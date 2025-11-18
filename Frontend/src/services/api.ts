@@ -133,6 +133,7 @@ class ApiService {
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
+      receiveComplements: Boolean(p.receiveComplements),
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
@@ -152,6 +153,7 @@ class ApiService {
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
+      receiveComplements: Boolean(p.receiveComplements),
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
@@ -171,6 +173,7 @@ class ApiService {
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
+      receiveComplements: Boolean(p.receiveComplements),
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
@@ -399,10 +402,14 @@ async toggleDelivererStatus(id: number) {
     return response.data;
   }
 
-  async createComplement(data: { name: string; isActive: boolean; image?: File }): Promise<any> {
+  async createComplement(data: { name: string; isActive: boolean; image?: File; categoryId?: number | null }): Promise<any> {
     const formData = new FormData();
     formData.append('nome', data.name);
     formData.append('ativo', String(data.isActive));
+    
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      formData.append('categoriaId', String(data.categoryId));
+    }
     
     if (data.image) {
       formData.append('image', data.image);
@@ -416,7 +423,7 @@ async toggleDelivererStatus(id: number) {
     return response.data;
   }
 
-  async updateComplement(id: number, data: { name?: string; isActive?: boolean; image?: File }): Promise<any> {
+  async updateComplement(id: number, data: { name?: string; isActive?: boolean; image?: File; categoryId?: number | null }): Promise<any> {
     const formData = new FormData();
     
     if (data.name !== undefined) {
@@ -424,6 +431,13 @@ async toggleDelivererStatus(id: number) {
     }
     if (data.isActive !== undefined) {
       formData.append('ativo', String(data.isActive));
+    }
+    if (data.categoryId !== undefined) {
+      if (data.categoryId === null) {
+        formData.append('categoriaId', '');
+      } else {
+        formData.append('categoriaId', String(data.categoryId));
+      }
     }
     if (data.image) {
       formData.append('image', data.image);
@@ -444,6 +458,27 @@ async toggleDelivererStatus(id: number) {
 
   async toggleComplementStatus(id: number): Promise<any> {
     const response = await this.api.patch(`/complements/${id}/toggle`);
+    return response.data;
+  }
+
+  // ========== COMPLEMENT CATEGORIES METHODS ==========
+  async getComplementCategories(): Promise<any[]> {
+    const response = await this.api.get('/complement-categories');
+    return response.data;
+  }
+
+  async createComplementCategory(name: string): Promise<any> {
+    const response = await this.api.post('/complement-categories', { name });
+    return response.data;
+  }
+
+  async updateComplementCategory(id: number, name: string): Promise<any> {
+    const response = await this.api.put(`/complement-categories/${id}`, { name });
+    return response.data;
+  }
+
+  async deleteComplementCategory(id: number): Promise<any> {
+    const response = await this.api.delete(`/complement-categories/${id}`);
     return response.data;
   }
 

@@ -48,7 +48,10 @@ router.get('/', async (req, res) => {
     
     const complements = await prisma.complemento.findMany({
       where: includeInactive === 'true' ? {} : { ativo: true },
-      orderBy: { nome: 'asc' }
+      orderBy: { nome: 'asc' },
+      include: {
+        categoria: true
+      }
     });
 
     // Transformar campos do português para inglês
@@ -57,6 +60,11 @@ router.get('/', async (req, res) => {
       name: complement.nome,
       imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
+      categoryId: complement.categoriaId,
+      category: complement.categoria ? {
+        id: complement.categoria.id,
+        name: complement.categoria.nome
+      } : null,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
     }));
@@ -76,7 +84,10 @@ router.get('/:id', async (req, res) => {
   
   try {
     const complement = await prisma.complemento.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
+      include: {
+        categoria: true
+      }
     });
 
     if (!complement) {
@@ -90,6 +101,11 @@ router.get('/:id', async (req, res) => {
       name: complement.nome,
       imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
+      categoryId: complement.categoriaId,
+      category: complement.categoria ? {
+        id: complement.categoria.id,
+        name: complement.categoria.nome
+      } : null,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
     };
@@ -104,7 +120,7 @@ router.get('/:id', async (req, res) => {
 
 // ➕ POST - Criar novo complemento (APENAS ADMIN)
 router.post('/', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
-  const { nome, ativo = true } = req.body;
+  const { nome, ativo = true, categoriaId } = req.body;
   console.log(`➕ POST /complements - Usuário autenticado:`, {
     id: req.user?.id,
     username: req.user?.username,
@@ -145,7 +161,11 @@ router.post('/', authenticateToken, authorize('admin'), upload.single('image'), 
       data: {
         nome: nome.trim(),
         imagemUrl: imagemUrl,
-        ativo: Boolean(ativo)
+        ativo: Boolean(ativo),
+        categoriaId: categoriaId ? parseInt(categoriaId) : null
+      },
+      include: {
+        categoria: true
       }
     });
 
@@ -155,6 +175,11 @@ router.post('/', authenticateToken, authorize('admin'), upload.single('image'), 
       name: complement.nome,
       imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
+      categoryId: complement.categoriaId,
+      category: complement.categoria ? {
+        id: complement.categoria.id,
+        name: complement.categoria.nome
+      } : null,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
     };
@@ -170,7 +195,7 @@ router.post('/', authenticateToken, authorize('admin'), upload.single('image'), 
 // ✏️ PUT - Atualizar complemento (APENAS ADMIN)
 router.put('/:id', authenticateToken, authorize('admin'), upload.single('image'), async (req, res) => {
   const { id } = req.params;
-  const { nome, ativo } = req.body;
+  const { nome, ativo, categoriaId } = req.body;
   console.log(`✏️ PUT /complements/${id} - Admin ${req.user.username} atualizando complemento...`);
   
   try {
@@ -230,10 +255,17 @@ router.put('/:id', authenticateToken, authorize('admin'), upload.single('image')
       updateData.ativo = Boolean(ativo);
     }
 
+    if (categoriaId !== undefined) {
+      updateData.categoriaId = categoriaId ? parseInt(categoriaId) : null;
+    }
+
     // Atualizar o complemento
     const complement = await prisma.complemento.update({
       where: { id: parseInt(id) },
-      data: updateData
+      data: updateData,
+      include: {
+        categoria: true
+      }
     });
 
     // Transformar campos do português para inglês
@@ -242,6 +274,11 @@ router.put('/:id', authenticateToken, authorize('admin'), upload.single('image')
       name: complement.nome,
       imageUrl: complement.imagemUrl,
       isActive: complement.ativo,
+      categoryId: complement.categoriaId,
+      category: complement.categoria ? {
+        id: complement.categoria.id,
+        name: complement.categoria.nome
+      } : null,
       createdAt: complement.criadoEm,
       updatedAt: complement.atualizadoEm
     };

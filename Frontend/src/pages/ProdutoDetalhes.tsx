@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Search, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import apiService from '../services/api';
 import { Product, Complement } from '../types';
@@ -18,6 +18,8 @@ const ProdutoDetalhes: React.FC = () => {
   const [selectedComplements, setSelectedComplements] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     const loadProductDetails = async () => {
@@ -112,15 +114,6 @@ const ProdutoDetalhes: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
-        {/* Botão Voltar */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 md:mb-6 text-sm md:text-base"
-        >
-          <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
-          Voltar
-        </button>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* Coluna Esquerda - Imagens */}
           <div className="space-y-4">
@@ -235,68 +228,269 @@ const ProdutoDetalhes: React.FC = () => {
           </div>
 
             {/* Complementos */}
-            {complements.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-slate-200">
-                <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-3 md:mb-4">
+            {product.receiveComplements && complements.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-200">
+                <h2 className="text-base md:text-xl font-bold text-slate-900 mb-3 md:mb-5">
                   Complementos Disponíveis
                 </h2>
-                <div className="space-y-2 md:space-y-3">
-                  {complements.map((complement) => (
+
+                {/* Filtros de Busca */}
+                <div className="mb-4 md:mb-6 space-y-3">
+                  {/* Campo de Busca */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 md:w-5 md:h-5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar complemento..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 md:pl-10 pr-10 py-2 md:py-3 text-sm md:text-base border-2 border-slate-200 rounded-lg md:rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filtro por Categoria */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
                     <button
-                      key={complement.id}
-                      onClick={() => toggleComplement(complement.id)}
-                      className={`w-full p-3 md:p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                        selectedComplements.includes(complement.id)
-                          ? 'border-purple-600 bg-purple-50'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      onClick={() => setSelectedCategory('all')}
+                      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition-all ${
+                        selectedCategory === 'all'
+                          ? 'bg-purple-600 text-white shadow-md'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      <div className="flex items-center gap-3 md:gap-4">
-                        {/* Imagem do complemento */}
-                        {complement.imageUrl ? (
-                          <img
-                            src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
-                            alt={complement.name}
-                            className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg flex-shrink-0 border border-slate-200"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              if (!target.dataset.errorHandled) {
-                                target.dataset.errorHandled = 'true';
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-16 h-16 md:w-20 md:h-20 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-3xl">🍓</span></div>';
-                                }
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-3xl">🍓</span>
-                          </div>
-                        )}
-
-                        {/* Nome do complemento */}
-                        <div className="flex-1">
-                          <h3 className="text-sm md:text-base font-semibold text-slate-900">
-                            {complement.name}
-                          </h3>
-                        </div>
-
-                        {/* Checkbox */}
-                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                          selectedComplements.includes(complement.id)
-                            ? 'bg-purple-600 border-purple-600'
-                            : 'border-slate-300 bg-white'
-                        }`}>
-                          {selectedComplements.includes(complement.id) && (
-                            <Check className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                          )}
-                        </div>
-                      </div>
+                      Todos
                     </button>
-                  ))}
+                    {(() => {
+                      const categories = new Set<string>();
+                      complements.forEach((complement) => {
+                        if (complement.category?.name) {
+                          categories.add(complement.category.name);
+                        }
+                      });
+                      return Array.from(categories).map((categoryName) => (
+                        <button
+                          key={categoryName}
+                          onClick={() => setSelectedCategory(categoryName)}
+                          className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition-all ${
+                            selectedCategory === categoryName
+                              ? 'bg-purple-600 text-white shadow-md'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {categoryName}
+                        </button>
+                      ));
+                    })()}
+                    {complements.some((c) => !c.category) && (
+                      <button
+                        onClick={() => setSelectedCategory('uncategorized')}
+                        className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition-all ${
+                          selectedCategory === 'uncategorized'
+                            ? 'bg-purple-600 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Outros
+                      </button>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Agrupar complementos por categoria */}
+                {(() => {
+                  // Filtrar complementos por busca e categoria
+                  const filteredComplements = complements.filter((complement) => {
+                    // Filtro por nome
+                    const matchesSearch = complement.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    // Filtro por categoria
+                    let matchesCategory = true;
+                    if (selectedCategory !== 'all') {
+                      if (selectedCategory === 'uncategorized') {
+                        matchesCategory = !complement.category;
+                      } else {
+                        matchesCategory = complement.category?.name === selectedCategory;
+                      }
+                    }
+                    
+                    return matchesSearch && matchesCategory;
+                  });
+
+                  // Separar complementos filtrados por categoria
+                  const complementsByCategory: { [key: string]: Complement[] } = {};
+                  const uncategorized: Complement[] = [];
+                  
+                  filteredComplements.forEach((complement) => {
+                    if (complement.category?.name) {
+                      const categoryName = complement.category.name;
+                      if (!complementsByCategory[categoryName]) {
+                        complementsByCategory[categoryName] = [];
+                      }
+                      complementsByCategory[categoryName].push(complement);
+                    } else {
+                      uncategorized.push(complement);
+                    }
+                  });
+
+                  // Se não houver resultados
+                  if (filteredComplements.length === 0) {
+                    return (
+                      <div className="text-center py-8 md:py-12">
+                        <div className="text-4xl md:text-6xl mb-3 md:mb-4">🔍</div>
+                        <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-1 md:mb-2">
+                          Nenhum complemento encontrado
+                        </h3>
+                        <p className="text-xs md:text-sm text-slate-500">
+                          Tente ajustar os filtros de busca
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4 md:space-y-6">
+                      {/* Complementos com categoria */}
+                      {Object.entries(complementsByCategory).map(([categoryName, categoryComplements]) => (
+                        <div key={categoryName} className="space-y-2 md:space-y-3">
+                          <h3 className="text-sm md:text-lg font-semibold text-purple-700 bg-purple-50 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-purple-200">
+                            {categoryName}
+                          </h3>
+                          <div className="space-y-1.5 md:space-y-3">
+                            {categoryComplements.map((complement) => (
+                              <button
+                                key={complement.id}
+                                onClick={() => toggleComplement(complement.id)}
+                                className={`w-full p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all duration-200 text-left ${
+                                  selectedComplements.includes(complement.id)
+                                    ? 'border-purple-600 bg-purple-50'
+                                    : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 md:gap-4">
+                                  {/* Imagem do complemento */}
+                                  {complement.imageUrl ? (
+                                    <img
+                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                      alt={complement.name}
+                                      className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md md:rounded-lg flex-shrink-0 border border-slate-200"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        if (!target.dataset.errorHandled) {
+                                          target.dataset.errorHandled = 'true';
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent) {
+                                            parent.innerHTML = '<div class="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-2xl md:text-3xl">🍓</span></div>';
+                                          }
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0">
+                                      <span className="text-2xl md:text-3xl">🍓</span>
+                                    </div>
+                                  )}
+
+                                  {/* Nome do complemento */}
+                                  <div className="flex-1">
+                                    <h3 className="text-xs md:text-base font-semibold text-slate-900">
+                                      {complement.name}
+                                    </h3>
+                                  </div>
+
+                                  {/* Checkbox */}
+                                  <div className={`w-4 h-4 md:w-6 md:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                    selectedComplements.includes(complement.id)
+                                      ? 'bg-purple-600 border-purple-600'
+                                      : 'border-slate-300 bg-white'
+                                  }`}>
+                                    {selectedComplements.includes(complement.id) && (
+                                      <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Complementos sem categoria */}
+                      {uncategorized.length > 0 && (
+                        <div className="space-y-2 md:space-y-3">
+                          <h3 className="text-sm md:text-lg font-semibold text-slate-700 bg-slate-50 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-slate-200">
+                            Outros
+                          </h3>
+                          <div className="space-y-1.5 md:space-y-3">
+                            {uncategorized.map((complement) => (
+                              <button
+                                key={complement.id}
+                                onClick={() => toggleComplement(complement.id)}
+                                className={`w-full p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all duration-200 text-left ${
+                                  selectedComplements.includes(complement.id)
+                                    ? 'border-purple-600 bg-purple-50'
+                                    : 'border-slate-200 bg-white hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 md:gap-4">
+                                  {/* Imagem do complemento */}
+                                  {complement.imageUrl ? (
+                                    <img
+                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                      alt={complement.name}
+                                      className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md md:rounded-lg flex-shrink-0 border border-slate-200"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        if (!target.dataset.errorHandled) {
+                                          target.dataset.errorHandled = 'true';
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent) {
+                                            parent.innerHTML = '<div class="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-2xl md:text-3xl">🍓</span></div>';
+                                          }
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0">
+                                      <span className="text-2xl md:text-3xl">🍓</span>
+                                    </div>
+                                  )}
+
+                                  {/* Nome do complemento */}
+                                  <div className="flex-1">
+                                    <h3 className="text-xs md:text-base font-semibold text-slate-900">
+                                      {complement.name}
+                                    </h3>
+                                  </div>
+
+                                  {/* Checkbox */}
+                                  <div className={`w-4 h-4 md:w-6 md:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                    selectedComplements.includes(complement.id)
+                                      ? 'bg-purple-600 border-purple-600'
+                                      : 'border-slate-300 bg-white'
+                                  }`}>
+                                    {selectedComplements.includes(complement.id) && (
+                                      <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
