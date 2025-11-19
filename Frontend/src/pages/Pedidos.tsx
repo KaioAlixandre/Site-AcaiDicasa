@@ -237,12 +237,10 @@ const Orders: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
-        {/* Barra de Progresso do Pedido Ativo */}
-        {orders.length > 0 && orders.some(o => !['delivered', 'canceled'].includes(o.status)) && (
-          <div className="mb-3 md:mb-6 bg-white rounded-lg shadow-md border border-slate-200 p-3 md:p-6">
-            {(() => {
-              const activeOrder = orders.find(o => !['delivered', 'canceled'].includes(o.status));
-              if (!activeOrder) return null;
+        {/* Barra de Progresso dos Pedidos Ativos */}
+        {orders.length > 0 && orders.filter(o => !['delivered', 'canceled'].includes(o.status)).length > 0 && (
+          <div className="mb-3 md:mb-6 space-y-3 md:space-y-4">
+            {orders.filter(o => !['delivered', 'canceled'].includes(o.status)).map((activeOrder) => {
               
               const getProgressStep = (status: string) => {
                 switch (status) {
@@ -293,7 +291,7 @@ const Orders: React.FC = () => {
               ];
 
               return (
-                <div>
+                <div key={activeOrder.id} className="bg-white rounded-lg shadow-md border border-slate-200 p-3 md:p-6">
                   <div className="flex items-center justify-between mb-3 md:mb-6">
                     <div>
                       <h3 className="text-xs md:text-lg font-bold text-slate-900">
@@ -384,7 +382,7 @@ const Orders: React.FC = () => {
                   </div>
                 </div>
               );
-            })()}
+            })}
           </div>
         )}
 
@@ -593,7 +591,7 @@ const Orders: React.FC = () => {
                                 <div className="flex items-start gap-2 md:gap-3 flex-1">
                                   <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
                                     <span className="text-base md:text-xl">
-                                      {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : customData ? '🎨' : '🥤'}
+                                      
                                     </span>
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -613,6 +611,7 @@ const Orders: React.FC = () => {
                                       Qtd: {item.quantity} × R$ {Number(item.priceAtOrder ?? 0).toFixed(2)}
                                     </p>
                                     
+                                    {/* Complementos de produtos personalizados (açaí/sorvete personalizados) */}
                                     {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
                                       <div className="mt-1 md:mt-2">
                                         <p className="text-[9px] md:text-xs font-semibold text-slate-600 mb-0.5 md:mb-1">Complementos:</p>
@@ -623,6 +622,33 @@ const Orders: React.FC = () => {
                                               className="inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-medium bg-green-100 text-green-700 border border-green-200"
                                             >
                                               {complement}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Complementos regulares do produto */}
+                                    {item.complements && item.complements.length > 0 && (
+                                      <div className="mt-1 md:mt-2">
+                                        <p className="text-[9px] md:text-xs font-semibold text-slate-600 mb-0.5 md:mb-1">Complementos:</p>
+                                        <div className="flex flex-wrap gap-0.5 md:gap-1">
+                                          {item.complements.map((complement) => (
+                                            <span 
+                                              key={complement.id}
+                                              className="inline-flex items-center gap-1 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md text-[9px] md:text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200"
+                                            >
+                                              {complement.imageUrl && (
+                                                <img
+                                                  src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                                  alt={complement.name}
+                                                  className="w-3 h-3 rounded-full object-cover"
+                                                  onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                  }}
+                                                />
+                                              )}
+                                              {complement.name}
                                             </span>
                                           ))}
                                         </div>

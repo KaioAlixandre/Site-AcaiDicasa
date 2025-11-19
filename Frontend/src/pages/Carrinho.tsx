@@ -171,11 +171,10 @@ const Cart: React.FC = () => {
                           onError={(e) => {
                             console.error('Erro ao carregar imagem:', productImage);
                             e.currentTarget.style.display = 'none';
-                            e.currentTarget.parentElement!.innerHTML = '<span class="text-lg sm:text-2xl md:text-3xl">🥤</span>';
                           }}
                         />
                       ) : (
-                        <span className="text-lg sm:text-2xl md:text-3xl">🥤</span>
+                        <span className="text-lg sm:text-2xl md:text-3xl"></span>
                       )}
                     </div>
 
@@ -209,6 +208,23 @@ const Cart: React.FC = () => {
                         </span>
                         <span className="text-[9px] sm:text-xs text-slate-500">un.</span>
                       </div>
+
+                      {/* Complementos */}
+                      {item.complements && item.complements.length > 0 && (
+                        <div className="mb-2 sm:mb-3">
+                          <p className="text-[10px] sm:text-xs text-slate-600 font-medium mb-1">Complementos:</p>
+                          <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                            {item.complements.map((complement) => (
+                              <span
+                                key={complement.id}
+                                className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md text-[9px] sm:text-xs font-medium border border-purple-200"
+                              >
+                                {complement.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Controles de quantidade e preço total */}
                       <div className="flex items-center justify-between gap-2">

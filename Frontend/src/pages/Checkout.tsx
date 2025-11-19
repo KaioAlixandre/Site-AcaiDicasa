@@ -8,8 +8,7 @@ import {
   Package, 
   Truck, 
   Store, 
-  CheckCircle, 
-  ShoppingCart,
+  CheckCircle,
   Clock,
   Star
 } from 'lucide-react';
@@ -292,13 +291,6 @@ const Checkout: React.FC = () => {
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 md:py-8">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
-          {/* Header */}
-          <div className="bg-purple-600 p-4 md:p-6 text-center">
-            <ShoppingCart size={40} className="md:w-12 md:h-12 text-white mx-auto mb-2 md:mb-3" />
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Finalizar Pedido</h2>
-            <p className="text-purple-100 text-xs md:text-sm">Revise seus itens e escolha as opções de entrega</p>
-          </div>
-
           <div className="p-4 md:p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Left Column - Options */}

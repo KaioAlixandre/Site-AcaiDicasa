@@ -151,7 +151,31 @@ router.get('/users', authenticateToken, authorize('admin'), async (req, res) => 
                         id: true,
                         precoTotal: true,
                         status: true,
-                        criadoEm: true
+                        criadoEm: true,
+                        itens_pedido: {
+                            select: {
+                                id: true,
+                                quantidade: true,
+                                precoNoPedido: true,
+                                produto: {
+                                    select: {
+                                        id: true,
+                                        nome: true
+                                    }
+                                },
+                                complementos: {
+                                    select: {
+                                        complemento: {
+                                            select: {
+                                                id: true,
+                                                nome: true,
+                                                imagemUrl: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

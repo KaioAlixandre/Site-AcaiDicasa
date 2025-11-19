@@ -38,10 +38,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  const addItem = async (productId: number, quantity: number) => {
+  const addItem = async (productId: number, quantity: number, complementIds?: number[]) => {
     try {
       setLoading(true);
-      await apiService.addToCart(productId, quantity);
+      await apiService.addToCart(productId, quantity, complementIds);
       await loadCart(); // Recarregar carrinho após adicionar item
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao adicionar item ao carrinho');

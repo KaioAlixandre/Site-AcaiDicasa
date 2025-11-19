@@ -45,7 +45,12 @@ router.post('/', authenticateToken, async (req, res) => {
                 include: {
                     itens: {
                         include: {
-                            produto: true
+                            produto: true,
+                            complementos: {
+                                include: {
+                                    complemento: true
+                                }
+                            }
                         }
                     }
                 }
@@ -110,42 +115,72 @@ router.post('/', authenticateToken, async (req, res) => {
                     status: initialStatus,
                     tipoEntrega: tipoEntrega,
                     taxaEntrega: tipoEntrega === 'delivery' ? taxaEntrega : 0,
+                    metodoPagamento: paymentMethod,
                     atualizadoEm: new Date(),
                     ruaEntrega: shippingAddress?.rua || null,
                     numeroEntrega: shippingAddress?.numero || null,
                     complementoEntrega: shippingAddress?.complemento || null,
                     bairroEntrega: shippingAddress?.bairro || null,
-                    itens_pedido: {
-                        createMany: {
-                            data: cart.itens.map(item => {
-                                // Verificar se é produto personalizado
-                                let itemPrice = item.produto.preco;
-                                if (item.opcoesSelecionadas) {
-                                    if (item.opcoesSelecionadas.customAcai) {
-                                        itemPrice = item.opcoesSelecionadas.customAcai.value;
-                                    } else if (item.opcoesSelecionadas.customSorvete) {
-                                        itemPrice = item.opcoesSelecionadas.customSorvete.value;
-                                    } else if (item.opcoesSelecionadas.customProduct) {
-                                        itemPrice = item.opcoesSelecionadas.customProduct.value;
-                                    }
-                                }
-                                
-                                return {
-                                    produtoId: item.produtoId,
-                                    quantidade: item.quantidade,
-                                    precoNoPedido: itemPrice,
-                                    opcoesSelecionadasSnapshot: item.opcoesSelecionadas
-                                };
-                            })
-                        }
-                    }
                 },
                 include: {
                     itens_pedido: true
                 }
             });
 
-            // 2. Esvaziar o carrinho do usuário
+            // 2. Criar os itens do pedido com seus complementos
+            for (const item of cart.itens) {
+                // Verificar se é produto personalizado
+                let itemPrice = item.produto.preco;
+                if (item.opcoesSelecionadas) {
+                    if (item.opcoesSelecionadas.customAcai) {
+                        itemPrice = item.opcoesSelecionadas.customAcai.value;
+                    } else if (item.opcoesSelecionadas.customSorvete) {
+                        itemPrice = item.opcoesSelecionadas.customSorvete.value;
+                    } else if (item.opcoesSelecionadas.customProduct) {
+                        itemPrice = item.opcoesSelecionadas.customProduct.value;
+                    }
+                }
+
+                // Criar item do pedido
+                const orderItem = await tx.item_pedido.create({
+                    data: {
+                        pedidoId: order.id,
+                        produtoId: item.produtoId,
+                        quantidade: item.quantidade,
+                        precoNoPedido: itemPrice,
+                        opcoesSelecionadasSnapshot: item.opcoesSelecionadas
+                    }
+                });
+
+                // Adicionar complementos ao item do pedido
+                if (item.complementos && item.complementos.length > 0) {
+                    const complementData = item.complementos.map(c => ({
+                        itemPedidoId: orderItem.id,
+                        complementoId: c.complementoId,
+                    }));
+
+                    await tx.item_pedido_complemento.createMany({
+                        data: complementData,
+                    });
+
+                    console.log(`🍓 [POST /api/orders] ${complementData.length} complementos adicionados ao item do pedido ${orderItem.id}.`);
+                }
+            }
+
+            // 3. Criar o registro de pagamento
+            await tx.pagamento.create({
+                data: {
+                    pedidoId: order.id,
+                    valor: precoTotal,
+                    metodo: paymentMethod,
+                    status: (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') ? 'PAID' : 'PENDING',
+                    atualizadoEm: new Date()
+                }
+            });
+
+            console.log(`💳 [POST /api/orders] Pagamento criado para o pedido ${order.id} com método ${paymentMethod}.`);
+
+            // 4. Esvaziar o carrinho do usuário
             await tx.item_carrinho.deleteMany({
                 where: { carrinhoId: cart.id }
             });
@@ -248,6 +283,11 @@ router.get('/history', authenticateToken, async (req, res) => {
                             include: {
                                 imagens_produto: true
                             }
+                        },
+                        complementos: {
+                            include: {
+                                complemento: true
+                            }
                         }
                     }
                 },
@@ -279,6 +319,12 @@ router.get('/history', authenticateToken, async (req, res) => {
                 quantity: item.quantidade,
                 priceAtOrder: item.precoNoPedido,
                 selectedOptionsSnapshot: item.opcoesSelecionadasSnapshot,
+                complements: item.complementos ? item.complementos.map(c => ({
+                    id: c.complemento.id,
+                    name: c.complemento.nome,
+                    imageUrl: c.complemento.imagemUrl,
+                    isActive: c.complemento.ativo
+                })) : [],
                 product: {
                     id: item.produto.id,
                     name: item.produto.nome,
@@ -599,7 +645,20 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
             id: true,
             nomeUsuario: true,
             email: true,
-            telefone: true
+            telefone: true,
+            enderecos: {
+              where: {
+                padrao: true
+              },
+              select: {
+                id: true,
+                rua: true,
+                numero: true,
+                complemento: true,
+                bairro: true,
+                padrao: true
+              }
+            }
           }
         },
         itens_pedido: {
@@ -607,6 +666,17 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
             produto: {
               include: {
                 imagens_produto: true
+              }
+            },
+            complementos: {
+              include: {
+                complemento: {
+                  select: {
+                    id: true,
+                    nome: true,
+                    imagemUrl: true
+                  }
+                }
               }
             }
           }
@@ -625,6 +695,7 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
       totalPrice: order.precoTotal,
       status: order.status,
       deliveryType: order.tipoEntrega,
+      paymentMethod: order.metodoPagamento,
       createdAt: order.criadoEm,
       shippingStreet: order.ruaEntrega,
       shippingNumber: order.numeroEntrega,
@@ -636,7 +707,15 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
         id: order.usuario.id,
         username: order.usuario.nomeUsuario,
         email: order.usuario.email,
-        phone: order.usuario.telefone
+        phone: order.usuario.telefone,
+        enderecos: order.usuario.enderecos ? order.usuario.enderecos.map(addr => ({
+          id: addr.id,
+          street: addr.rua,
+          number: addr.numero,
+          complement: addr.complemento,
+          neighborhood: addr.bairro,
+          isDefault: addr.padrao
+        })) : []
       } : null,
       orderitem: order.itens_pedido.map(item => ({
         id: item.id,
@@ -645,6 +724,11 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
         quantity: item.quantidade,
         priceAtOrder: item.precoNoPedido,
         selectedOptionsSnapshot: item.opcoesSelecionadas,
+        complements: item.complementos ? item.complementos.map(comp => ({
+          id: comp.complemento.id,
+          name: comp.complemento.nome,
+          imageUrl: comp.complemento.imagemUrl
+        })) : [],
         product: item.produto ? {
           id: item.produto.id,
           name: item.produto.nome,
@@ -663,8 +747,8 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
       payment: order.pagamento ? {
         id: order.pagamento.id,
         orderId: order.pagamento.pedidoId,
-        method: order.pagamento.metodoPagamento,
-        status: order.pagamento.statusPagamento,
+        method: order.pagamento.metodo,
+        status: order.pagamento.status,
         amount: order.pagamento.valor,
         paidAt: order.pagamento.pagoEm
       } : null

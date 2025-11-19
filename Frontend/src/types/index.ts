@@ -84,6 +84,7 @@ export interface CartItem {
   productId: number;
   product: Product;
   selectedOptions?: any;
+  complements?: Complement[];
   totalPrice?: number;
 }
 
@@ -116,6 +117,7 @@ export interface OrderItem {
   productId: number;
   product: Product;
   selectedOptionsSnapshot?: any;
+  complements?: Complement[];
 }
 
 export interface Payment {
@@ -225,7 +227,7 @@ export interface AuthContextType {
 export interface CartContextType {
   items: CartItem[];
   total: number;
-  addItem: (productId: number, quantity: number) => Promise<void>;
+  addItem: (productId: number, quantity: number, complementIds?: number[]) => Promise<void>;
   addCustomAcai: (customAcai: CustomAcai, quantity: number) => Promise<void>;
   addCustomProduct: (productName: string, selectedOptions: any, quantity: number) => Promise<void>;
   updateItem: (cartItemId: number, quantity: number) => Promise<void>;

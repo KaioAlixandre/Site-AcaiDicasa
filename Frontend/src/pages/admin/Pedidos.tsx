@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X } from 'lucide-react';
+import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign } from 'lucide-react';
 import { Order } from '../../types';
 
 // Função para traduzir status para português
@@ -33,6 +33,7 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Função para verificar se uma data é hoje
   const isToday = (date: string) => {
@@ -308,10 +309,12 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                                     isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
                                     'bg-green-100 text-green-800'
                                   }`}>
-                                    {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} Personalizado R$ {Number(customData.value).toFixed(2)}
+                                    Personalizado R$ {Number(customData.value).toFixed(2)}
                                   </span>
                                 )}
                               </div>
+                              
+                              {/* Complementos de produtos personalizados */}
                               {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
                                 <div className="mt-1 ml-2 sm:ml-4">
                                   <span className="text-xs text-slate-500">Complementos: </span>
@@ -321,7 +324,24 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                                         key={idx}
                                         className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
                                       >
-                                        {isCustomAcai ? '🍓' : isCustomSorvete ? '🍦' : '🎨'} {complement}
+                                        {complement}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Complementos regulares do produto */}
+                              {item.complements && item.complements.length > 0 && (
+                                <div className="mt-1 ml-2 sm:ml-4">
+                                  <span className="text-xs text-slate-500">Complementos: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {item.complements.map((complement) => (
+                                      <span 
+                                        key={complement.id}
+                                        className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200"
+                                      >
+                                        {complement.name}
                                       </span>
                                     ))}
                                   </div>
@@ -357,6 +377,13 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                     </td>
                     <td className="p-2 sm:p-4 text-center">
                       <div className="flex items-center justify-center gap-1 sm:gap-2">
+                        <button 
+                          title="Ver Detalhes" 
+                          onClick={() => setSelectedOrder(order)}
+                          className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600"
+                        >
+                          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
                         <button title="Imprimir Pedido" className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-blue-600">
                           <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
@@ -372,6 +399,245 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
           </div>
         )}
       </div>
+
+      {/* Modal de Detalhes do Pedido */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
+          <div className="bg-white rounded-md shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            {/* Header do Modal */}
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-indigo-700 p-2.5 sm:p-3 md:p-4 text-white flex justify-between items-start sm:items-center gap-2 rounded-t-md">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm sm:text-base md:text-lg font-bold truncate">Pedido #{selectedOrder.id}</h2>
+                <p className="text-indigo-100 text-[10px] sm:text-xs mt-0.5">
+                  {new Date(selectedOrder.createdAt).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedOrder(null)}
+                className="p-1.5 sm:p-2 hover:bg-indigo-500 rounded-lg transition-colors flex-shrink-0"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-2.5 sm:p-3 md:p-4 space-y-2.5 sm:space-y-3">
+              {/* Informações do Cliente */}
+              <div className="bg-slate-50 rounded-lg p-2.5 sm:p-3 border border-slate-200">
+                <h3 className="text-xs sm:text-sm md:text-base font-bold text-slate-800 mb-1.5 sm:mb-2 flex items-center gap-1 sm:gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 flex-shrink-0" />
+                  Informações do Cliente
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-600">Cliente</p>
+                    <p className="font-semibold text-slate-800 text-xs sm:text-sm break-words">{selectedOrder.user?.username || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] sm:text-xs text-slate-600">Telefone</p>
+                    <p className="font-semibold text-slate-800 text-xs sm:text-sm">{(selectedOrder.user as any)?.telefone || (selectedOrder.user as any)?.phone || '-'}</p>
+                  </div>
+                  
+                  {/* Endereço Principal do Cliente */}
+                  {(selectedOrder.user as any)?.enderecos && (selectedOrder.user as any).enderecos.length > 0 && (
+                    <div className="md:col-span-2">
+                      <p className="text-[10px] sm:text-xs text-slate-600 mb-1">Endereço Principal</p>
+                      <div className="bg-white rounded-lg p-2 border-l-4 border-indigo-500">
+                        <p className="font-semibold text-slate-800 text-[10px] sm:text-xs break-words">
+                          {(selectedOrder.user as any).enderecos[0].street}, {(selectedOrder.user as any).enderecos[0].number}
+                          {(selectedOrder.user as any).enderecos[0].complement && ` - ${(selectedOrder.user as any).enderecos[0].complement}`}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5">
+                          {(selectedOrder.user as any).enderecos[0].neighborhood}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status e Tipo de Entrega */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="bg-slate-50 rounded-lg p-2 sm:p-2.5 border border-slate-200">
+                  <p className="text-[10px] sm:text-xs text-slate-600 mb-1">Status do Pedido</p>
+                  <span className={`inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${getStatusStyle(selectedOrder.status)}`}>
+                    {getStatusInPortuguese(selectedOrder.status)}
+                  </span>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 sm:p-2.5 border border-slate-200">
+                  <p className="text-[10px] sm:text-xs text-slate-600 mb-1">Tipo de Entrega</p>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {selectedOrder.deliveryType === 'delivery' ? (
+                      <>
+                        <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0" />
+                        <span className="font-semibold text-blue-600 text-xs sm:text-sm">Entrega</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                        <span className="font-semibold text-green-600 text-xs sm:text-sm">Retirada</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 sm:p-2.5 border border-slate-200 sm:col-span-2 md:col-span-1">
+                  <p className="text-[10px] sm:text-xs text-slate-600 mb-1">Forma de Pagamento</p>
+                  <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                    {(selectedOrder as any).paymentMethod === 'CREDIT_CARD' && (
+                      <>
+                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 flex-shrink-0" />
+                        <span className="font-semibold text-purple-600 text-xs sm:text-sm">Cartão de Crédito</span>
+                      </>
+                    )}
+                    {(selectedOrder as any).paymentMethod === 'PIX' && (
+                      <>
+                        <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                        <span className="font-semibold text-green-600 text-xs sm:text-sm">PIX</span>
+                      </>
+                    )}
+                    {(selectedOrder as any).paymentMethod === 'CASH_ON_DELIVERY' && (
+                      <>
+                        <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 flex-shrink-0" />
+                        <span className="font-semibold text-yellow-600 text-xs sm:text-sm">Dinheiro</span>
+                      </>
+                    )}
+                    {!(selectedOrder as any).paymentMethod && (
+                      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                        <span className="text-[10px] sm:text-xs text-slate-500">⚠️ Não registrado</span>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400">(pedido antigo)</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Itens do Pedido */}
+              <div className="bg-slate-50 rounded-lg p-2.5 sm:p-3 border border-slate-200">
+                <h3 className="text-xs sm:text-sm md:text-base font-bold text-slate-800 mb-2">Itens do Pedido</h3>
+                <div className="space-y-1.5 sm:space-y-2">
+                  {(selectedOrder.orderitem || []).map(item => {
+                    const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
+                    const isCustomSorvete = item.selectedOptionsSnapshot?.customSorvete;
+                    const isCustomProduct = item.selectedOptionsSnapshot?.customProduct;
+                    const customData = isCustomAcai || isCustomSorvete || isCustomProduct;
+                    
+                    if (!item.product) return null;
+                    
+                    return (
+                      <div key={item.id} className="bg-white rounded-lg p-2 sm:p-2.5 border border-slate-200">
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 flex-wrap">
+                              <span className="font-bold text-slate-800 text-[11px] sm:text-xs break-words">{item.product.name}</span>
+                              {customData && (
+                                <span className={`inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
+                                  isCustomAcai ? 'bg-purple-100 text-purple-800' :
+                                  isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  Personalizado
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-slate-600">
+                              Qtd: {item.quantity} × R$ {Number(item.priceAtOrder).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-bold text-indigo-600 text-xs sm:text-sm">
+                              R$ {(Number(item.priceAtOrder) * item.quantity).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Complementos de produtos personalizados */}
+                        {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
+                          <div className="mt-1 pt-1 border-t border-slate-200">
+                            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 mb-0.5 sm:mb-1">Complementos:</p>
+                            <div className="flex flex-wrap gap-0.5">
+                              {customData.complementNames.map((complement: string, idx: number) => (
+                                <span 
+                                  key={idx}
+                                  className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] bg-green-50 text-green-700 border border-green-200 font-medium break-all">
+                                
+                                  {complement}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Complementos regulares do produto */}
+                        {item.complements && item.complements.length > 0 && (
+                          <div className="mt-1 pt-1 border-t border-slate-200">
+                            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 mb-0.5 sm:mb-1">Complementos:</p>
+                            <div className="flex flex-wrap gap-0.5">
+                              {item.complements.map((complement) => (
+                                <span 
+                                  key={complement.id}
+                                  className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] bg-purple-50 text-purple-700 border border-purple-200 font-medium break-all"
+                                >
+                                  {complement.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Resumo Financeiro */}
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-2.5 sm:p-3 border border-indigo-200">
+                <h3 className="text-xs sm:text-sm md:text-base font-bold text-slate-800 mb-1.5 sm:mb-2">Resumo Financeiro</h3>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-slate-700 text-[10px] sm:text-xs">
+                    <span>Subtotal:</span>
+                    <span className="font-semibold">R$ {Number(selectedOrder.totalPrice).toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.deliveryType === 'delivery' && (
+                    <div className="flex justify-between text-slate-700 text-[10px] sm:text-xs">
+                      <span>Taxa de Entrega:</span>
+                      <span className="font-semibold">R$ 3,00</span>
+                    </div>
+                  )}
+                  <div className="border-t border-indigo-300 pt-1 flex justify-between">
+                    <span className="text-sm sm:text-base font-bold text-slate-900">Total:</span>
+                    <span className="text-sm sm:text-base md:text-lg font-bold text-indigo-600">
+                      R$ {Number(selectedOrder.totalPrice).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
+                <button 
+                  onClick={() => handleAdvanceStatus(selectedOrder)}
+                  className="flex-1 bg-green-600 text-white px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm"
+                >
+                  <ArrowRightCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span>Avançar Status</span>
+                </button>
+                <button 
+                  className="flex-1 bg-blue-600 text-white px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm"
+                >
+                  <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span>Imprimir</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

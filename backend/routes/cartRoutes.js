@@ -7,9 +7,9 @@ const { authenticateToken } = require('./auth');
 // Rota para adicionar um produto ao carrinho
 router.post('/add', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { produtoId, quantity } = req.body;
+    const { produtoId, quantity, complementIds } = req.body;
 
-    console.log(`➡️ [POST /api/cart/add] Requisição para adicionar item. Usuário ID: ${userId}, Produto ID: ${produtoId}, Quantidade: ${quantity}.`);
+    console.log(`➡️ [POST /api/cart/add] Requisição para adicionar item. Usuário ID: ${userId}, Produto ID: ${produtoId}, Quantidade: ${quantity}, Complementos: ${JSON.stringify(complementIds)}.`);
 
     if (!produtoId || !quantity) {
         console.warn('⚠️ [POST /api/cart/add] Falha ao adicionar item: ID do produto ou quantidade ausente.');
@@ -31,14 +31,25 @@ router.post('/add', authenticateToken, async (req, res) => {
             });
         }
 
+        // Verificar se existe item idêntico (mesmo produto E mesmos complementos)
+        const complementIdsArray = complementIds || [];
         const existingCartItem = await prisma.item_carrinho.findFirst({
             where: {
                 carrinhoId: cart.id,
                 produtoId: produtoId,
             },
+            include: {
+                complementos: true
+            }
         });
 
-        if (existingCartItem) {
+        // Verificar se os complementos são idênticos
+        const hasSameComplements = existingCartItem && 
+            existingCartItem.complementos.length === complementIdsArray.length &&
+            existingCartItem.complementos.every(c => complementIdsArray.includes(c.complementoId));
+
+        if (existingCartItem && hasSameComplements) {
+            // Atualizar quantidade do item existente
             const updatedItem = await prisma.item_carrinho.update({
                 where: { id: existingCartItem.id },
                 data: { quantidade: existingCartItem.quantidade + quantity },
@@ -46,6 +57,7 @@ router.post('/add', authenticateToken, async (req, res) => {
             console.log(`🔄 [POST /api/cart/add] Quantidade do item no carrinho atualizada. Item ID: ${updatedItem.id}`);
             return res.status(200).json({ message: 'Quantidade do item atualizada com sucesso.', cartItem: updatedItem });
         } else {
+            // Criar novo item no carrinho
             const newCartItem = await prisma.item_carrinho.create({
                 data: {
                     carrinhoId: cart.id,
@@ -53,6 +65,21 @@ router.post('/add', authenticateToken, async (req, res) => {
                     quantidade: quantity,
                 },
             });
+
+            // Adicionar complementos ao item do carrinho, se houver
+            if (complementIdsArray && complementIdsArray.length > 0) {
+                const complementData = complementIdsArray.map(complementId => ({
+                    itemCarrinhoId: newCartItem.id,
+                    complementoId: complementId,
+                }));
+
+                await prisma.item_carrinho_complemento.createMany({
+                    data: complementData,
+                });
+
+                console.log(`🍓 [POST /api/cart/add] ${complementData.length} complementos adicionados ao item do carrinho.`);
+            }
+
             console.log(`✅ [POST /api/cart/add] Novo item adicionado ao carrinho. Item ID: ${newCartItem.id}`);
             return res.status(201).json({ message: 'Item adicionado ao carrinho com sucesso.', cartItem: newCartItem });
         }
@@ -76,6 +103,11 @@ router.get('/', authenticateToken, async (req, res) => {
                         produto: {
                             include: {
                                 imagens_produto: true
+                            }
+                        },
+                        complementos: {
+                            include: {
+                                complemento: true
                             }
                         }
                     }
@@ -110,6 +142,14 @@ router.get('/', authenticateToken, async (req, res) => {
                 }
             }
             
+            // Mapear complementos
+            const complements = item.complementos ? item.complementos.map(c => ({
+                id: c.complemento.id,
+                name: c.complemento.nome,
+                imageUrl: c.complemento.imagemUrl,
+                isActive: c.complemento.ativo
+            })) : [];
+            
             // Transformar campos do português para inglês
             return {
                 id: item.id,
@@ -118,6 +158,7 @@ router.get('/', authenticateToken, async (req, res) => {
                 cartId: item.carrinhoId,
                 productId: item.produtoId,
                 selectedOptions: item.opcoesSelecionadas,
+                complements: complements,
                 totalPrice: item.quantidade * itemPrice,
                 product: {
                     id: item.produto.id,

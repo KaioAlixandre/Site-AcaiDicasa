@@ -42,10 +42,24 @@ model item_carrinho {
   opcoesSelecionadas Json?
   carrinho        carrinho @relation(fields: [carrinhoId], references: [id], onDelete: Cascade, map: "CartItem_cartId_fkey")
   produto         produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "CartItem_productId_fkey")
+  complementos    item_carrinho_complemento[]
 
   @@unique([carrinhoId, produtoId], map: "CartItem_cartId_productId_key")
   @@index([produtoId], map: "CartItem_productId_fkey")
   @@map("itens_carrinho")
+}
+
+model item_carrinho_complemento {
+  id              Int           @id @default(autoincrement())
+  itemCarrinhoId  Int
+  complementoId   Int
+  criadoEm        DateTime      @default(now())
+  itemCarrinho    item_carrinho @relation(fields: [itemCarrinhoId], references: [id], onDelete: Cascade)
+  complemento     complemento   @relation(fields: [complementoId], references: [id], onDelete: Cascade)
+
+  @@index([itemCarrinhoId])
+  @@index([complementoId])
+  @@map("itens_carrinho_complementos")
 }
 
 model relatorio_vendas_categoria {
@@ -70,6 +84,8 @@ model complemento {
   criadoEm    DateTime                 @default(now())
   atualizadoEm DateTime                @updatedAt
   categoria   categoria_complemento?   @relation(fields: [categoriaId], references: [id], map: "Complement_categoryId_fkey")
+  itensCarrinho item_carrinho_complemento[]
+  itensPedido   item_pedido_complemento[]
   
   @@index([categoriaId], map: "Complement_categoryId_fkey")
   @@map("complementos")
@@ -146,6 +162,7 @@ model pedido {
   telefoneEntrega        String?
   taxaEntrega          Decimal      @default(0.00) @db.Decimal(10, 2)
   tipoEntrega          String       @default("delivery")
+  metodoPagamento      metodo_pagamento?
   entregadorId          Int?
   atualizadoEm         DateTime
   entregador           entregador?  @relation(fields: [entregadorId], references: [id], map: "Order_delivererId_fkey")
@@ -180,10 +197,24 @@ model item_pedido {
   opcoesSelecionadasSnapshot Json?
   pedido                  pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade, map: "OrderItem_orderId_fkey")
   produto                 produto @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "OrderItem_productId_fkey")
+  complementos            item_pedido_complemento[]
 
   @@index([pedidoId], map: "OrderItem_orderId_fkey")
   @@index([produtoId], map: "OrderItem_productId_fkey")
   @@map("itens_pedido")
+}
+
+model item_pedido_complemento {
+  id            Int         @id @default(autoincrement())
+  itemPedidoId  Int
+  complementoId Int
+  criadoEm      DateTime    @default(now())
+  itemPedido    item_pedido @relation(fields: [itemPedidoId], references: [id], onDelete: Cascade)
+  complemento   complemento @relation(fields: [complementoId], references: [id], onDelete: Cascade)
+
+  @@index([itemPedidoId])
+  @@index([complementoId])
+  @@map("itens_pedido_complementos")
 }
 
 model pagamento {

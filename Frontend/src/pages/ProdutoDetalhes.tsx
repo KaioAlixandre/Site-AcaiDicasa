@@ -78,7 +78,7 @@ const ProdutoDetalhes: React.FC = () => {
     
     try {
       setAddingToCart(true);
-      await addItem(product.id, quantity);
+      await addItem(product.id, quantity, selectedComplements);
       
       // Feedback visual
       alert('Produto adicionado ao carrinho!');
