@@ -275,9 +275,83 @@ Obrigado pela preferência! 🍋✨
   }
 };
 
+// Serviço para notificação de pedido em preparo para cozinheiro
+const sendCookNotification = async (order, cook) => {
+  try {
+    console.log('👨‍🍳 [MessageService] Enviando notificação para cozinheiro');
+    console.log('📋 [MessageService] Dados do pedido:', {
+      id: order.id,
+      totalPrice: order.totalPrice,
+      cook: cook?.nome,
+      itemsCount: order.itens_pedido?.length
+    });
+
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.item_pedido_complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
+    // Mensagem para o cozinheiro
+    const cookMessage = `
+👨‍🍳 NOVO PEDIDO PARA PREPARAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Pedido: #${order.id}
+👤 Cliente: ${order.usuario?.nomeUsuario || 'N/A'}
+${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
+💰 Valor: R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+
+🍽️ ITENS DO PEDIDO:
+${itemsList}
+
+${order.observacoes ? `📝 OBSERVAÇÕES DO CLIENTE:\n${order.observacoes}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ Tempo estimado: 30 minutos
+🔔 Inicie o preparo o quanto antes!
+    `.trim();
+
+    console.log('📱 Enviando notificação para cozinheiro via Z-API...');
+    
+    // Enviar mensagem para o cozinheiro
+    if (cook?.telefone) {
+      console.log('\n👨‍🍳 ENVIANDO MENSAGEM PARA COZINHEIRO:');
+      console.log(cookMessage);
+      const result = await sendWhatsAppMessageZApi(cook.telefone, cookMessage);
+      
+      if (result.success) {
+        console.log('✅ Notificação para cozinheiro enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar notificação para cozinheiro');
+      }
+
+      return {
+        success: result.success,
+        cookMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cozinheiro não disponível');
+      return {
+        success: false,
+        error: 'Telefone do cozinheiro não disponível'
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificação para cozinheiro:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 module.exports = {
   sendDeliveryNotifications,
   sendPickupNotification,
   sendPaymentConfirmationNotification,
+  sendCookNotification,
   sendWhatsAppMessageZApi
 };

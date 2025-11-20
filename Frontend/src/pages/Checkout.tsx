@@ -8,9 +8,7 @@ import {
   Package, 
   Truck, 
   Store, 
-  CheckCircle,
-  Clock,
-  Star
+  CheckCircle
 } from 'lucide-react';
 import apiService from '../services/api';
 import { useCart } from '../contexts/CartContext';
@@ -33,7 +31,7 @@ const Checkout: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' ou 'pickup'
   const [loading, setLoading] = useState(false);
-  const [pixInfo, setPixInfo] = useState<any>(null);
+  const [pixInfo] = useState<any>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState<AddressForm>({
     street: '',
@@ -43,19 +41,30 @@ const Checkout: React.FC = () => {
     isDefault: true
   });
   const [addressLoading, setAddressLoading] = useState(false);
-  const [storeConfig, setStoreConfig] = useState<any>(null);
   const [orderNotes, setOrderNotes] = useState('');
+  const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
+  const [promoFreteValorMinimo, setPromoFreteValorMinimo] = useState(0);
   const navigate = useNavigate();
 
-  const deliveryFee = 3.00; // Taxa de entrega atualizada para R$3
-  const finalTotal = deliveryType === 'delivery' ? total + deliveryFee : total;
+  const deliveryFee = 3.00; // Taxa de entrega base
+  
+  // Calcular se tem direito ao frete grátis
+  const temFreteGratis = promoFreteAtiva && total >= promoFreteValorMinimo && deliveryType === 'delivery';
+  const finalTotal = deliveryType === 'delivery' ? total + (temFreteGratis ? 0 : deliveryFee) : total;
 
-  // Verificar se a loja está aberta
+  // Verificar se a loja está aberta e se há promoção ativa
   useEffect(() => {
     const loadStoreConfig = async () => {
       try {
-        const config = await apiService.getStoreConfig();
-        setStoreConfig(config);
+        const [config, promoCheck] = await Promise.all([
+          apiService.getStoreConfig(),
+          fetch('http://localhost:3001/api/store-config/promo-frete-check').then(r => r.json())
+        ]);
+        
+        if (promoCheck.ativa) {
+          setPromoFreteAtiva(true);
+          setPromoFreteValorMinimo(promoCheck.valorMinimo);
+        }
         
         if (config) {
           const status = checkStoreStatus(config);
@@ -292,6 +301,32 @@ const Checkout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 md:py-8">
+        {/* Banner de Promoção */}
+        {promoFreteAtiva && deliveryType === 'delivery' && (
+          <div className="mb-4 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg p-4 text-white">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg">Promoção de Frete Grátis Hoje!</h3>
+                <p className="text-sm text-emerald-50">
+                  Pedidos acima de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong> ganham frete grátis!
+                  {total >= promoFreteValorMinimo ? (
+                    <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-semibold">
+                      ✓ Você conseguiu!
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-xs">
+                      Faltam apenas R$ {(promoFreteValorMinimo - total).toFixed(2)}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
           <div className="p-4 md:p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
@@ -409,7 +444,14 @@ const Checkout: React.FC = () => {
                     {deliveryType === 'delivery' && (
                       <div className="flex justify-between text-slate-700 text-xs md:text-sm">
                         <span className="font-semibold">Taxa de entrega:</span>
-                        <span className="font-bold">R$ {deliveryFee.toFixed(2)}</span>
+                        {temFreteGratis ? (
+                          <span className="font-bold text-emerald-600">
+                            <span className="line-through text-slate-400 text-xs mr-1">R$ {deliveryFee.toFixed(2)}</span>
+                            GRÁTIS!
+                          </span>
+                        ) : (
+                          <span className="font-bold">R$ {deliveryFee.toFixed(2)}</span>
+                        )}
                       </div>
                     )}
                     

@@ -22,7 +22,10 @@ const Configuracoes: React.FC = () => {
       const mappedData = {
         ...data,
         openTime: data.openingTime,
-        closeTime: data.closingTime
+        closeTime: data.closingTime,
+        promocaoTaxaAtiva: data.promocaoTaxaAtiva || false,
+        promocaoDias: data.promocaoDias || '',
+        promocaoValorMinimo: data.promocaoValorMinimo || ''
       };
       console.log('Dados mapeados para o frontend:', mappedData);
       setConfig(mappedData);
@@ -49,6 +52,17 @@ const Configuracoes: React.FC = () => {
     setConfig((prev: any) => ({
       ...prev,
       openDays: newDays.sort().join(','),
+    }));
+  };
+
+  const handlePromoDayToggle = (day: string) => {
+    const days = config.promocaoDias ? config.promocaoDias.split(',') : [];
+    const newDays = days.includes(day)
+      ? days.filter((d: string) => d !== day)
+      : [...days, day];
+    setConfig((prev: any) => ({
+      ...prev,
+      promocaoDias: newDays.sort().join(','),
     }));
   };
 
@@ -161,6 +175,85 @@ const Configuracoes: React.FC = () => {
             <label htmlFor="isOpen" className="ml-2 block text-sm text-slate-700">
               Loja aberta (desmarque para fechar temporariamente)
             </label>
+          </div>
+
+          {/* Seção de Promoção de Taxa de Entrega */}
+          <div className="border-t border-slate-200 pt-6 mt-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">🎉 Promoção de Frete Grátis</h3>
+            
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="promocaoTaxaAtiva"
+                name="promocaoTaxaAtiva"
+                checked={config.promocaoTaxaAtiva || false}
+                onChange={handleChange}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+              />
+              <label htmlFor="promocaoTaxaAtiva" className="ml-2 block text-sm text-slate-700 font-medium">
+                Ativar promoção de frete grátis
+              </label>
+            </div>
+
+            {config.promocaoTaxaAtiva && (
+              <div className="space-y-4 pl-6 border-l-2 border-indigo-200">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Valor mínimo para frete grátis (R$)
+                  </label>
+                  <input
+                    type="number"
+                    name="promocaoValorMinimo"
+                    value={config.promocaoValorMinimo || ''}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex: 30.00"
+                    className="w-full md:w-64 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Clientes que gastarem este valor ou mais terão frete grátis
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Dias da promoção
+                  </label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {diasSemana.map((dia) => (
+                      <button
+                        key={dia.value}
+                        type="button"
+                        onClick={() => handlePromoDayToggle(dia.value)}
+                        className={`p-2 text-sm font-medium rounded-lg border transition-colors ${
+                          config.promocaoDias?.split(',').includes(dia.value)
+                            ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {dia.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Selecione os dias em que a promoção estará ativa
+                  </p>
+                </div>
+
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                  <p className="text-sm text-indigo-800">
+                    <strong>💡 Resumo:</strong> {config.promocaoDias ? (
+                      <>
+                        Frete grátis para pedidos acima de <strong>R$ {config.promocaoValorMinimo || '0,00'}</strong> nos dias selecionados.
+                      </>
+                    ) : (
+                      'Selecione os dias e o valor mínimo para ativar a promoção.'
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-4">

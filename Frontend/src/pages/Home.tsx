@@ -15,15 +15,18 @@ const Home: React.FC = () => {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [storeStatusMessage, setStoreStatusMessage] = useState<string>('');
+  const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
+  const [promoFreteMensagem, setPromoFreteMensagem] = useState<string>('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [productsData, categoriesData, storeData] = await Promise.all([
+        const [productsData, categoriesData, storeData, promoCheck] = await Promise.all([
           apiService.getProducts(),
           apiService.getCategories(),
-          apiService.getStoreConfig()
+          apiService.getStoreConfig(),
+          fetch('http://localhost:3001/api/store-config/promo-frete-check').then(r => r.json()).catch(() => ({ ativa: false }))
         ]);
         
         // Filtrar apenas produtos ativos E em destaque
@@ -36,6 +39,12 @@ const Home: React.FC = () => {
         
         setCategories(categoriesData);
         setStoreConfig(storeData);
+        
+        // Verificar se há promoção ativa
+        if (promoCheck.ativa) {
+          setPromoFreteAtiva(true);
+          setPromoFreteMensagem(promoCheck.mensagem);
+        }
         
         // Verificar se a loja está aberta com base no horário
         if (storeData) {
@@ -83,8 +92,27 @@ const Home: React.FC = () => {
         </div>
       </div>
 
+      {/* Banner de Promoção de Frete Grátis */}
+      {promoFreteAtiva && (
+        <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 -mt-6">
+          <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg p-4 text-white">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-base md:text-lg">Promoção Especial Hoje!</h3>
+                <p className="text-sm text-emerald-50">
+                  {promoFreteMensagem}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Card de informações */}
-      <div className="relative z-10 -mt-10">
+      <div className={`relative z-10 ${promoFreteAtiva ? '-mt-4' : '-mt-10'}`}>
         <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md px-4 py-4 md:px-6 md:py-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>

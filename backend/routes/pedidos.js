@@ -3,7 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
-const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification } = require('../services/messageService');
+const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification } = require('../services/messageService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -37,7 +37,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const tipo = deliveryType || tipoEntrega || 'delivery';
     
     // Aceitar tanto deliveryFee (do frontend) quanto taxaEntrega
-    const taxa = deliveryFee || taxaEntrega || 0;
+    let taxa = deliveryFee || taxaEntrega || 0;
     
     if (!paymentMethod) {
         return res.status(400).json({ message: 'Forma de pagamento não informada.' });
@@ -89,7 +89,7 @@ router.post('/', authenticateToken, async (req, res) => {
             }
         }
         
-        // Calcular o preço total do pedido (incluindo taxa de entrega)
+        // Calcular o preço total do pedido (SEM taxa de entrega ainda)
         const subprecoTotal = cart.itens.reduce((acc, item) => {
             // Verificar se é produto personalizado
             let itemPrice = item.produto.preco;
@@ -105,15 +105,38 @@ router.post('/', authenticateToken, async (req, res) => {
             return acc + (item.quantidade * itemPrice);
         }, 0);
         
+        // Verificar se há promoção de frete grátis ativa
+        let freteGratis = false;
+        if (tipo === 'delivery' && taxa > 0) {
+            const storeConfig = await prisma.configuracao_loja.findFirst();
+            if (storeConfig && storeConfig.promocaoTaxaAtiva) {
+                const hoje = new Date().getDay().toString(); // 0 = domingo, 1 = segunda, etc.
+                const diasPromo = storeConfig.promocaoDias ? storeConfig.promocaoDias.split(',') : [];
+                
+                // Verificar se hoje é um dia de promoção
+                if (diasPromo.includes(hoje)) {
+                    const valorMinimo = parseFloat(storeConfig.promocaoValorMinimo || 0);
+                    // Verificar se o subtotal atinge o valor mínimo
+                    if (subprecoTotal >= valorMinimo) {
+                        taxa = 0; // Frete grátis!
+                        freteGratis = true;
+                        console.log(`🎉 [POST /api/orders] PROMOÇÃO APLICADA! Frete grátis para pedido acima de R$ ${valorMinimo.toFixed(2)}. Subtotal: R$ ${subprecoTotal.toFixed(2)}`);
+                    }
+                }
+            }
+        }
+        
         const precoTotal = subprecoTotal + (tipo === 'delivery' ? taxa : 0);
 
-        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${precoTotal.toFixed(2)} (${tipo}, Taxa: R$ ${taxa}).`);
+        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${precoTotal.toFixed(2)} (${tipo}, Taxa: R$ ${taxa}${freteGratis ? ' - FRETE GRÁTIS' : ''}).`);
 
+        // Determinar status inicial antes da transação
+        const initialStatus = (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') ? 'being_prepared' : 'pending_payment';
+        
         // Iniciar uma transação para garantir que tudo seja feito ou nada seja feito
         const newOrder = await prisma.$transaction(async (tx) => {
             // 1. Criar o pedido, incluindo o telefone e o endereço de entrega
             // Se for cartão de crédito ou dinheiro na entrega, já inicia como "being_prepared", senão "pending_payment"
-            const initialStatus = (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') ? 'being_prepared' : 'pending_payment';
             
             const order = await tx.pedido.create({
                 data: {
@@ -275,6 +298,44 @@ router.post('/', authenticateToken, async (req, res) => {
             }
         }
 
+        // Se o pedido já está em preparo (cartão ou dinheiro), notificar cozinheiro
+        if (initialStatus === 'being_prepared') {
+            try {
+                // Buscar um cozinheiro ativo
+                const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
+                    where: { ativo: true },
+                    orderBy: { criadoEm: 'asc' } // Pega o mais antigo (FIFO)
+                });
+
+                if (cozinheiroAtivo) {
+                    // Buscar pedido completo com relacionamentos
+                    const pedidoCompleto = await prisma.pedido.findUnique({
+                        where: { id: newOrder.id },
+                        include: {
+                            usuario: true,
+                            itens_pedido: {
+                                include: {
+                                    produto: true,
+                                    item_pedido_complementos: {
+                                        include: {
+                                            complemento: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    console.log(`👨‍🍳 Notificando cozinheiro: ${cozinheiroAtivo.nome}`);
+                    await sendCookNotification(pedidoCompleto, cozinheiroAtivo);
+                } else {
+                    console.log('⚠️ Nenhum cozinheiro ativo encontrado para notificar');
+                }
+            } catch (err) {
+                console.error('❌ Erro ao notificar cozinheiro:', err);
+            }
+        }
+
         res.status(201).json({ message: 'Pedido criado com sucesso!', order: newOrder });
     } catch (err) {
         console.error(`[POST /api/orders] Erro ao criar o pedido para o usuário ${userId}:`, err.message);
@@ -429,7 +490,12 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
             include: {
                 itens_pedido: {
                     include: {
-                        produto: true
+                        produto: true,
+                        item_pedido_complementos: {
+                            include: {
+                                complemento: true
+                            }
+                        }
                     }
                 },
                 usuario: {
@@ -455,6 +521,19 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
                 await sendPaymentConfirmationNotification(updatedOrder);
+                
+                // Notificar cozinheiro quando pedido entra em preparo
+                const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
+                    where: { ativo: true },
+                    orderBy: { criadoEm: 'asc' }
+                });
+
+                if (cozinheiroAtivo) {
+                    console.log(`👨‍🍳 Notificando cozinheiro: ${cozinheiroAtivo.nome}`);
+                    await sendCookNotification(updatedOrder, cozinheiroAtivo);
+                } else {
+                    console.log('⚠️ Nenhum cozinheiro ativo encontrado para notificar');
+                }
             } catch (error) {
                 console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
                 // Não falha a operação se as notificações falharem
@@ -465,7 +544,22 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         if (status === 'on_the_way' && updatedOrder.entregador) {
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                await sendDeliveryNotifications(updatedOrder, updatedOrder.entregador);
+                // Mapear campos para compatibilidade com messageService
+                const orderForNotification = {
+                    ...updatedOrder,
+                    totalPrice: updatedOrder.precoTotal,
+                    user: updatedOrder.usuario ? {
+                        username: updatedOrder.usuario.nomeUsuario,
+                        phone: updatedOrder.usuario.telefone
+                    } : null,
+                    orderItems: updatedOrder.itens_pedido,
+                    shippingStreet: updatedOrder.ruaEntrega,
+                    shippingNumber: updatedOrder.numeroEntrega,
+                    shippingComplement: updatedOrder.complementoEntrega,
+                    shippingNeighborhood: updatedOrder.bairroEntrega,
+                    shippingPhone: updatedOrder.usuario?.telefone
+                };
+                await sendDeliveryNotifications(orderForNotification, updatedOrder.entregador);
             } catch (error) {
                 console.error('❌ Erro ao enviar notificações:', error);
                 // Não falha a operação se as notificações falharem
@@ -572,6 +666,19 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
                 await sendPaymentConfirmationNotification(order);
+                
+                // Notificar cozinheiro quando pedido entra em preparo
+                const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
+                    where: { ativo: true },
+                    orderBy: { criadoEm: 'asc' }
+                });
+
+                if (cozinheiroAtivo) {
+                    console.log(`👨‍🍳 Notificando cozinheiro: ${cozinheiroAtivo.nome}`);
+                    await sendCookNotification(order, cozinheiroAtivo);
+                } else {
+                    console.log('⚠️ Nenhum cozinheiro ativo encontrado para notificar');
+                }
             } catch (error) {
                 console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
                 // Não falha a operação se as notificações falharem
@@ -583,7 +690,22 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             // Notificação para entrega com entregador
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                await sendDeliveryNotifications(order, order.entregador);
+                // Mapear campos para compatibilidade com messageService
+                const orderForNotification = {
+                    ...order,
+                    totalPrice: order.precoTotal,
+                    user: order.usuario ? {
+                        username: order.usuario.nomeUsuario,
+                        phone: order.usuario.telefone
+                    } : null,
+                    orderItems: order.itens_pedido,
+                    shippingStreet: order.ruaEntrega,
+                    shippingNumber: order.numeroEntrega,
+                    shippingComplement: order.complementoEntrega,
+                    shippingNeighborhood: order.bairroEntrega,
+                    shippingPhone: order.usuario?.telefone
+                };
+                await sendDeliveryNotifications(orderForNotification, order.entregador);
             } catch (error) {
                 console.error('❌ Erro ao enviar notificações de entrega:', error);
             }

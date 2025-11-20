@@ -319,9 +319,23 @@ model configuracao_loja {
   horaAbertura String   @db.VarChar(5)
   horaFechamento String @db.VarChar(5)
   diasAbertos String   @db.VarChar(20)
+  promocaoTaxaAtiva Boolean @default(false)
+  promocaoDias String?  @db.VarChar(20)
+  promocaoValorMinimo Decimal? @db.Decimal(10, 2)
   atualizadoEm DateTime @updatedAt
   
   @@map("configuracoes_loja")
+}
+
+model cozinheiro {
+  id        Int      @id @default(autoincrement())
+  nome      String   @db.VarChar(100)
+  telefone  String   @db.VarChar(20)
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  
+  @@map("cozinheiros")
 }
 
 model usuario {

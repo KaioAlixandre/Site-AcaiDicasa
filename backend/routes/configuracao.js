@@ -54,7 +54,10 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
     horaFechamento: backendClosingTime, 
     openTime: frontendOpenTime,
     closeTime: frontendCloseTime,
-    diasAbertos 
+    diasAbertos,
+    promocaoTaxaAtiva,
+    promocaoDias,
+    promocaoValorMinimo
   } = req.body;
   
   // Usar os valores do frontend se disponíveis, senão usar os do backend
@@ -66,6 +69,9 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
     openingTime,
     closingTime,
     diasAbertos,
+    promocaoTaxaAtiva,
+    promocaoDias,
+    promocaoValorMinimo,
     'fonte-openingTime': frontendOpenTime ? 'frontend (openTime)' : 'backend (horaAbertura)',
     'fonte-closingTime': frontendCloseTime ? 'frontend (closeTime)' : 'backend (horaFechamento)'
   });
@@ -74,8 +80,24 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
     console.log('💾 [PUT /api/store-config] Executando upsert no banco de dados...');
     const config = await prisma.configuracao_loja.upsert({
       where: { id: 1 },
-      update: { aberto, horaAbertura: openingTime, horaFechamento: closingTime, diasAbertos },
-      create: { aberto, horaAbertura: openingTime, horaFechamento: closingTime, diasAbertos }
+      update: { 
+        aberto, 
+        horaAbertura: openingTime, 
+        horaFechamento: closingTime, 
+        diasAbertos,
+        promocaoTaxaAtiva: promocaoTaxaAtiva || false,
+        promocaoDias: promocaoDias || null,
+        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null
+      },
+      create: { 
+        aberto, 
+        horaAbertura: openingTime, 
+        horaFechamento: closingTime, 
+        diasAbertos,
+        promocaoTaxaAtiva: promocaoTaxaAtiva || false,
+        promocaoDias: promocaoDias || null,
+        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null
+      }
     });
     
     console.log('✅ [PUT /api/store-config] Configuração atualizada com sucesso:', config);
@@ -84,6 +106,44 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
   } catch (error) {
     console.error('❌ [PUT /api/store-config] Erro ao atualizar configuração:', error);
     res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
+  }
+});
+
+// Verificar se a promoção de frete grátis está ativa hoje
+router.get('/promo-frete-check', async (req, res) => {
+  console.log('🎉 [GET /api/store-config/promo-frete-check] Verificando promoção de frete grátis');
+  
+  try {
+    const config = await prisma.configuracao_loja.findFirst();
+    
+    if (!config || !config.promocaoTaxaAtiva) {
+      return res.json({
+        ativa: false,
+        mensagem: null,
+        valorMinimo: null
+      });
+    }
+    
+    const hoje = new Date().getDay().toString(); // 0 = domingo, 1 = segunda, etc.
+    const diasPromo = config.promocaoDias ? config.promocaoDias.split(',') : [];
+    
+    if (diasPromo.includes(hoje)) {
+      const valorMinimo = parseFloat(config.promocaoValorMinimo || 0);
+      return res.json({
+        ativa: true,
+        mensagem: `🎉 Promoção de Frete Grátis! Pedidos acima de R$ ${valorMinimo.toFixed(2)} ganham frete grátis hoje!`,
+        valorMinimo: valorMinimo
+      });
+    }
+    
+    res.json({
+      ativa: false,
+      mensagem: null,
+      valorMinimo: null
+    });
+  } catch (error) {
+    console.error('❌ [GET /api/store-config/promo-frete-check] Erro ao verificar promoção:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 

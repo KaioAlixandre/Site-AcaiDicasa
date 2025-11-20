@@ -5,7 +5,6 @@ import {
   CheckCircle, 
   XCircle, 
   Truck, 
-  AlertCircle,
   MapPin,
   Phone,
   CreditCard,
@@ -13,9 +12,7 @@ import {
   Eye,
   EyeOff,
   Bike,
-  Home,
-  DollarSign,
-  User
+  Home
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Order } from '../types';
@@ -147,24 +144,24 @@ const Orders: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending_payment':
-        return <Clock size={20} className="text-yellow-500" />;
-      case 'being_prepared':
-        return <Package size={20} className="text-blue-500" />;
-      case 'ready_for_pickup':
-        return <Package size={20} className="text-orange-500" />;
-      case 'on_the_way':
-        return <Truck size={20} className="text-purple-500" />;
-      case 'delivered':
-        return <CheckCircle size={20} className="text-green-500" />;
-      case 'canceled':
-        return <XCircle size={20} className="text-red-500" />;
-      default:
-        return <Clock size={20} className="text-gray-500" />;
-    }
-  };
+  // const getStatusIcon = (status: string) => {
+  //   switch (status) {
+  //     case 'pending_payment':
+  //       return <Clock size={20} className="text-yellow-500" />;
+  //     case 'being_prepared':
+  //       return <Package size={20} className="text-blue-500" />;
+  //     case 'ready_for_pickup':
+  //       return <Package size={20} className="text-orange-500" />;
+  //     case 'on_the_way':
+  //       return <Truck size={20} className="text-purple-500" />;
+  //     case 'delivered':
+  //       return <CheckCircle size={20} className="text-green-500" />;
+  //     case 'canceled':
+  //       return <XCircle size={20} className="text-red-500" />;
+  //     default:
+  //       return <Clock size={20} className="text-gray-500" />;
+  //   }
+  // };
 
   const getStatusText = (status: string) => {
     switch (status) {

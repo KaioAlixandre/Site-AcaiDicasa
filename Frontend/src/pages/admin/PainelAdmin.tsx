@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout, X
+  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout, X, ChefHat
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
@@ -13,6 +13,7 @@ import Clientes from './Clientes';
 import Configuracoes from './Configuracoes';
 import Entregadores from './Entregadores';
 import Complementos from './Complementos';
+import Cozinheiros from './Cozinheiros';
 import ModalSelecaoEntregador from './components/ModalSelecaoEntregador';
 
 const pages = [
@@ -22,6 +23,7 @@ const pages = [
   { id: 'complementos', label: 'Complementos', icon: <Plus /> },
   { id: 'clientes', label: 'Clientes', icon: <Users /> },
   { id: 'entregadores', label: 'Entregadores', icon: <Truck /> },
+  { id: 'cozinheiros', label: 'Cozinheiros', icon: <ChefHat /> },
   { id: 'configuracoes', label: 'Configurações', icon: <Settings /> }
 ];
 
@@ -283,6 +285,9 @@ const handleDelivererSelected = async (delivererId: number) => {
 
         {/* Entregadores */}
         {activePage === 'entregadores' && <Entregadores />}
+
+        {/* Cozinheiros */}
+        {activePage === 'cozinheiros' && <Cozinheiros />}
 
         {/* Configurações */}
         {activePage === 'configuracoes' && <Configuracoes />}
