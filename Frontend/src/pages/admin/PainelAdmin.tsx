@@ -158,14 +158,14 @@ interface AdvanceStatusOrder {
 const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => {
   const nextStatus = getNextStatus(order.status, order.deliveryType);
   
-  // Se está mudando de "being_prepared" para "on_the_way", mostrar modal de seleção de entregador
-  if (order.status === 'being_prepared' && nextStatus === 'on_the_way') {
+  // Se está mudando de "being_prepared" para "on_the_way" E é entrega (delivery), mostrar modal de seleção de entregador
+  if (order.status === 'being_prepared' && nextStatus === 'on_the_way' && order.deliveryType === 'delivery') {
     setSelectedOrderForDelivery(order as Order);
     setShowDelivererModal(true);
     return;
   }
   
-  // Para outros casos, avançar status normalmente
+  // Para outros casos (incluindo retirada), avançar status normalmente sem entregador
   await apiService.advanceOrderStatus(order.id, nextStatus);
   setOrders(await apiService.getOrdersAdmin());
 };

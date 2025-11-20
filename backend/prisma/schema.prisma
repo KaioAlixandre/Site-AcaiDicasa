@@ -164,6 +164,7 @@ model pedido {
   tipoEntrega          String       @default("delivery")
   metodoPagamento      metodo_pagamento?
   entregadorId          Int?
+  observacoes          String?      @db.Text
   atualizadoEm         DateTime
   entregador           entregador?  @relation(fields: [entregadorId], references: [id], map: "Order_delivererId_fkey")
   usuario              usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Order_userId_fkey")
@@ -235,7 +236,7 @@ model produto {
   id                 Int                  @id @default(autoincrement())
   nome               String               @db.VarChar(255)
   preco              Decimal              @db.Decimal(10, 2)
-  descricao          String?              @db.Text
+  descricao          String?              @db.VarChar(70)
   criadoEm           DateTime             @default(now())
   categoriaId        Int?
   ativo              Boolean              @default(true)

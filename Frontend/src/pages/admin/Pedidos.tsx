@@ -378,11 +378,14 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                     <td className="p-2 sm:p-4 text-center">
                       <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <button 
-                          title="Ver Detalhes" 
+                          title={order.notes && order.notes.trim() ? "Ver Detalhes (com observações)" : "Ver Detalhes"}
                           onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600"
+                          className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600 relative"
                         >
                           <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                          {order.notes && order.notes.trim() && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-500 rounded-full border border-white"></span>
+                          )}
                         </button>
                         <button title="Imprimir Pedido" className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-blue-600">
                           <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -594,6 +597,21 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
                   })}
                 </div>
               </div>
+
+              {/* Observações do Pedido */}
+              {selectedOrder.notes && selectedOrder.notes.trim() && (
+                <div className="bg-yellow-50 rounded-lg p-2.5 sm:p-3 border-2 border-yellow-200">
+                  <h3 className="text-xs sm:text-sm md:text-base font-bold text-yellow-900 mb-1.5 sm:mb-2 flex items-center gap-1 sm:gap-1.5">
+                    <span className="text-base sm:text-lg">📝</span>
+                    Observações do Cliente
+                  </h3>
+                  <div className="bg-white rounded-lg p-2 sm:p-2.5 border border-yellow-200">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-slate-700 whitespace-pre-wrap break-words">
+                      {selectedOrder.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Resumo Financeiro */}
               <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-2.5 sm:p-3 border border-indigo-200">

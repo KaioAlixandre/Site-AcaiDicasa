@@ -31,11 +31,18 @@ async function sendWhatsAppMessageZApi(phone, message) {
 // Rota para criar um pedido a partir do carrinho
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { paymentMethod, tipoEntrega = 'delivery', taxaEntrega = 0 } = req.body;
+    const { paymentMethod, tipoEntrega, deliveryType, taxaEntrega, deliveryFee, notes } = req.body;
+    
+    // Aceitar tanto deliveryType (do frontend) quanto tipoEntrega
+    const tipo = deliveryType || tipoEntrega || 'delivery';
+    
+    // Aceitar tanto deliveryFee (do frontend) quanto taxaEntrega
+    const taxa = deliveryFee || taxaEntrega || 0;
+    
     if (!paymentMethod) {
         return res.status(400).json({ message: 'Forma de pagamento não informada.' });
     }
-    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${tipoEntrega}`);
+    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${tipo}, Taxa: R$ ${taxa}${notes ? ', Observações: Sim' : ''}`);
 
     try {
         // Encontrar o carrinho e o usuário com seus endereços em uma única busca
@@ -70,7 +77,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
         // Para entrega, verificar se tem endereço
         let shippingAddress = null;
-        if (tipoEntrega === 'delivery') {
+        if (tipo === 'delivery') {
             shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
             
             if (!shippingAddress) {
@@ -98,9 +105,9 @@ router.post('/', authenticateToken, async (req, res) => {
             return acc + (item.quantidade * itemPrice);
         }, 0);
         
-        const precoTotal = subprecoTotal + (tipoEntrega === 'delivery' ? taxaEntrega : 0);
+        const precoTotal = subprecoTotal + (tipo === 'delivery' ? taxa : 0);
 
-        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${precoTotal.toFixed(2)} (${tipoEntrega}).`);
+        console.log(`[POST /api/orders] Criando pedido para o usuário ${userId} com preço total de ${precoTotal.toFixed(2)} (${tipo}, Taxa: R$ ${taxa}).`);
 
         // Iniciar uma transação para garantir que tudo seja feito ou nada seja feito
         const newOrder = await prisma.$transaction(async (tx) => {
@@ -113,9 +120,10 @@ router.post('/', authenticateToken, async (req, res) => {
                     usuarioId: userId,
                     precoTotal: precoTotal,
                     status: initialStatus,
-                    tipoEntrega: tipoEntrega,
-                    taxaEntrega: tipoEntrega === 'delivery' ? taxaEntrega : 0,
+                    tipoEntrega: tipo,
+                    taxaEntrega: tipo === 'delivery' ? taxa : 0,
                     metodoPagamento: paymentMethod,
+                    observacoes: notes && notes.trim() ? notes.trim() : null,
                     atualizadoEm: new Date(),
                     ruaEntrega: shippingAddress?.rua || null,
                     numeroEntrega: shippingAddress?.numero || null,
@@ -199,9 +207,12 @@ router.post('/', authenticateToken, async (req, res) => {
             ).join('\n');
             
             // Informações de entrega/retirada
-            const deliveryInfo = tipoEntrega === 'pickup' 
+            const deliveryInfo = tipo === 'pickup' 
                 ? `📍 *Retirada no local*\n🏪 Endereço da loja: [SEU ENDEREÇO AQUI]\n⏰ Horário: Segunda a Domingo, 8h às 22h`
                 : `🚚 *Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\n🏘️ Bairro: ${shippingAddress.bairro}`;
+            
+            // Adicionar observações se houver
+            const notesSection = notes && notes.trim() ? `\n\n📝 *Observações:*\n${notes.trim()}` : '';
             
             let message;
             
@@ -211,14 +222,15 @@ router.post('/', authenticateToken, async (req, res) => {
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
                     `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💳 *Forma de pagamento:* Cartão de Crédito\n\n` +
-                    `${deliveryInfo}\n\n` +
+                    `${deliveryInfo}` +
+                    notesSection + `\n\n` +
                     `📍 *Para pagamento via PIX (opcional):*\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `⏰ *Seu pedido já está sendo preparado!*\n` +
-                    (tipoEntrega === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
+                    (tipo === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
                     `💜 *Obrigado por escolher a gente!*\n` +
                     `Qualquer dúvida, estamos aqui! 😊`;
             } else if (paymentMethod === 'CASH_ON_DELIVERY') {
@@ -227,14 +239,15 @@ router.post('/', authenticateToken, async (req, res) => {
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
                     `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
-                    `💵 *Forma de pagamento:* Dinheiro ${tipoEntrega === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
-                    `${deliveryInfo}\n\n` +
+                    `💵 *Forma de pagamento:* Dinheiro ${tipo === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
+                    `${deliveryInfo}` +
+                    notesSection + `\n\n` +
                     `📍 *Para pagamento via PIX (opcional):*\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `⏰ *Seu pedido já está sendo preparado!*\n` +
-                    (tipoEntrega === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
+                    (tipo === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
                     `💜 *Obrigado por escolher a gente!*\n` +
                     `Qualquer dúvida, estamos aqui! 😊`;
             } else {
@@ -243,11 +256,12 @@ router.post('/', authenticateToken, async (req, res) => {
                     `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
                     `🛍️ *Itens:*\n${itens}\n\n` +
                     `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipoEntrega === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxaEntrega).toFixed(2)}\n` : '') +
+                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💸 *Forma de pagamento:* PIX\n` +
                     `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
-                    `${deliveryInfo}\n\n` +
+                    `${deliveryInfo}` +
+                    notesSection + `\n\n` +
                     `📸 *Após o pagamento, por favor envie o comprovante aqui.*\n\n` +
                     `💜 *Obrigado por escolher a gente!*\n` +
                     `Qualquer dúvida, estamos aqui! 😊`;
@@ -312,6 +326,7 @@ router.get('/history', authenticateToken, async (req, res) => {
             shippingNeighborhood: order.bairroEntrega,
             shippingPhone: order.telefoneEntrega,
             deliveryFee: order.taxaEntrega,
+            notes: order.observacoes,
             orderitem: order.itens_pedido.map(item => ({
                 id: item.id,
                 orderId: item.pedidoId,
@@ -703,6 +718,7 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
       shippingNeighborhood: order.bairroEntrega,
       shippingPhone: order.telefoneEntrega,
       deliveryFee: order.taxaEntrega,
+      notes: order.observacoes,
       user: order.usuario ? {
         id: order.usuario.id,
         username: order.usuario.nomeUsuario,

@@ -1,11 +1,11 @@
-interface StoreConfig {
+export interface StoreConfig {
   isOpen: boolean;
   openingTime: string;
   closingTime: string;
   openDays: string; // '1,2,3,4,5' formato
 }
 
-interface StoreStatus {
+export interface StoreStatus {
   isOpen: boolean;
   reason?: string;
   nextOpenTime?: string;

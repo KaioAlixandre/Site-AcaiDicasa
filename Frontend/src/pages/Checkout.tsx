@@ -44,6 +44,7 @@ const Checkout: React.FC = () => {
   });
   const [addressLoading, setAddressLoading] = useState(false);
   const [storeConfig, setStoreConfig] = useState<any>(null);
+  const [orderNotes, setOrderNotes] = useState('');
   const navigate = useNavigate();
 
   const deliveryFee = 3.00; // Taxa de entrega atualizada para R$3
@@ -134,6 +135,7 @@ const Checkout: React.FC = () => {
         addressId: deliveryType === 'delivery' ? user.enderecos?.[0]?.id : undefined,
         deliveryType,
         deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
+        notes: orderNotes.trim() || undefined, // Adiciona observações se houver
       });
       clearCart();
       alert('Pedido realizado com sucesso!');
@@ -418,6 +420,24 @@ const Checkout: React.FC = () => {
                           R$ {finalTotal.toFixed(2)}
                         </span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Observações do Pedido */}
+                  <div className="border-t border-slate-300 pt-3 md:pt-4">
+                    <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-2">
+                      Observações do Pedido (opcional)
+                    </label>
+                    <textarea
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      placeholder="Ex: Remover algum ingrediente, preferências, etc."
+                      maxLength={500}
+                      rows={3}
+                      className="w-full px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200 resize-none"
+                    />
+                    <div className="text-[10px] md:text-xs text-slate-500 mt-1 text-right">
+                      {orderNotes.length}/500 caracteres
                     </div>
                   </div>
 

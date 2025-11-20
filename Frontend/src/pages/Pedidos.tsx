@@ -685,7 +685,7 @@ const Orders: React.FC = () => {
                           {order.deliveryType === 'delivery' && (
                             <div className="flex justify-between text-xs md:text-sm">
                               <span className="text-slate-700">Taxa de entrega:</span>
-                              <span className="text-slate-900 font-semibold">R$ 5,00</span>
+                              <span className="text-slate-900 font-semibold">R$ 3,00</span>
                             </div>
                           )}
                           <div className="border-t border-slate-300 pt-1.5 md:pt-2 mt-1.5 md:mt-2">

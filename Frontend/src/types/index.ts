@@ -101,6 +101,7 @@ export interface Order {
   shippingComplement?: string;
   shippingNeighborhood: string;
   shippingPhone?: string;
+  notes?: string;
   orderitem: OrderItem[];
   payment?: Payment;
   user?: {

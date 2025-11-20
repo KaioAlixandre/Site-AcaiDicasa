@@ -4,6 +4,7 @@ import { Star, Truck, Heart, ShoppingCart, Instagram, MessageCircle, Package } f
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
 import Loading from '../components/Loading';
+import { checkStoreStatus, StoreConfig } from '../utils/storeUtils';
 
 const Home: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -11,7 +12,9 @@ const Home: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [storeConfig, setStoreConfig] = useState<any>(null);
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [isStoreOpen, setIsStoreOpen] = useState(false);
+  const [storeStatusMessage, setStoreStatusMessage] = useState<string>('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -33,6 +36,15 @@ const Home: React.FC = () => {
         
         setCategories(categoriesData);
         setStoreConfig(storeData);
+        
+        // Verificar se a loja está aberta com base no horário
+        if (storeData) {
+          const status = checkStoreStatus(storeData);
+          setIsStoreOpen(status.isOpen);
+          if (!status.isOpen && status.reason) {
+            setStoreStatusMessage(status.reason);
+          }
+        }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
@@ -42,6 +54,21 @@ const Home: React.FC = () => {
 
     loadData();
   }, []);
+
+  // Atualizar status da loja a cada minuto
+  useEffect(() => {
+    if (!storeConfig) return;
+
+    const interval = setInterval(() => {
+      const status = checkStoreStatus(storeConfig);
+      setIsStoreOpen(status.isOpen);
+      if (!status.isOpen && status.reason) {
+        setStoreStatusMessage(status.reason);
+      }
+    }, 60000); // Verificar a cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, [storeConfig]);
 
   if (loading) {
     return <Loading fullScreen text="Carregando produtos..." />;
@@ -74,8 +101,8 @@ const Home: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-semibold ${storeConfig?.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                {storeConfig?.isOpen ? 'ABERTO' : 'FECHADO'}
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-semibold ${isStoreOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                {isStoreOpen ? 'ABERTO' : 'FECHADO'}
               </span>
               <a href="#" aria-label="Instagram" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Instagram className="w-5 h-5" />
@@ -85,6 +112,17 @@ const Home: React.FC = () => {
               </a>
             </div>
           </div>
+          
+          {/* Mensagem quando a loja estiver fechada */}
+          {!isStoreOpen && storeStatusMessage && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 text-center">
+                <span className="font-semibold">⏰ Loja fechada no momento.</span>
+                <br />
+                {storeStatusMessage}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

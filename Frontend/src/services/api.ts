@@ -272,6 +272,7 @@ class ApiService {
     addressId: number | undefined; 
     deliveryType?: string;
     deliveryFee?: number;
+    notes?: string;
   }): Promise<ApiResponse<Order>> {
     const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders', orderData);
     return response.data;
