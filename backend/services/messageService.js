@@ -44,6 +44,15 @@ const sendPickupNotification = async (order) => {
       deliveryType: order.deliveryType
     });
 
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.item_pedido_complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
     // Construir endereço da loja (pode vir de configurações)
     const storeAddress = "Rua da Loja, 123 - Centro"; // TODO: Pegar das configurações da loja
 
@@ -54,7 +63,7 @@ const sendPickupNotification = async (order) => {
 
 📍 Retire em: ${storeAddress}
 💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${order.orderItems?.map(item => `${item.quantity}x ${item.product?.name || 'Produto'}`).join(', ') || 'Itens não disponíveis'}
+🍽️ Itens: ${itemsList}
 
 ⏰ Horário de funcionamento: 8h às 18h
 💵 ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
@@ -107,9 +116,18 @@ const sendDeliveryNotifications = async (order, deliverer) => {
       id: order.id,
       totalPrice: order.totalPrice,
       user: order.user?.username,
-      deliverer: deliverer?.name,
+      deliverer: deliverer?.nome,
       itemsCount: order.orderItems?.length
     });
+
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.item_pedido_complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
 
     // Construir endereço
     const address = [
@@ -128,7 +146,7 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 📞 Telefone: ${order.user?.phone || order.shippingPhone || 'N/A'}
 📍 Endereço: ${address || 'Endereço não informado'}
 💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${order.orderItems?.map(item => `${item.quantity}x ${item.product?.name || 'Produto'}`).join(', ') || 'Itens não disponíveis'}
+🍽️ Itens: ${itemsList}
 ━━━━━━━━━━━━━━━━━━━━━━
 ⏰ Prepare-se para a entrega!
     `.trim();
@@ -139,8 +157,8 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎉 Seu pedido #${order.id} está a caminho!
 
-🚚 Entregador: ${deliverer?.name || 'N/A'}
-📞 Contato: ${deliverer?.phone || 'N/A'}
+🚚 Entregador: ${deliverer?.nome || 'N/A'}
+📞 Contato: ${deliverer?.telefone || 'N/A'}
 📍 Endereço: ${address || 'Endereço não informado'}
 💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
 
@@ -150,7 +168,7 @@ Obrigado pela preferência! 🍋✨
     `.trim();
 
     console.log('📱 Enviando notificações via Z-API...');
-    console.log('📨 Para entregador:', deliverer?.name || 'N/A', '(' + (deliverer?.phone || 'N/A') + ')');
+    console.log('📨 Para entregador:', deliverer?.nome || 'N/A', '(' + (deliverer?.telefone || 'N/A') + ')');
     console.log('📨 Para cliente:', order.user?.username || 'N/A', '(' + (order.user?.phone || order.shippingPhone || 'N/A') + ')');
     
     const results = {
@@ -159,12 +177,15 @@ Obrigado pela preferência! 🍋✨
     };
 
     // Enviar mensagem para o entregador
-    if (deliverer?.phone) {
+    if (deliverer?.telefone) {
       console.log('\n🚚 ENVIANDO MENSAGEM PARA ENTREGADOR:');
-      console.log(delivererMessage);
-      results.deliverer = await sendWhatsAppMessageZApi(deliverer.phone, delivererMessage);
+      console.log('📞 Telefone do entregador:', deliverer.telefone);
+      console.log('📝 Mensagem:', delivererMessage);
+      results.deliverer = await sendWhatsAppMessageZApi(deliverer.telefone, delivererMessage);
+      console.log('📊 Resultado envio entregador:', JSON.stringify(results.deliverer, null, 2));
     } else {
       console.log('⚠️ Telefone do entregador não disponível');
+      console.log('📋 Objeto deliverer:', JSON.stringify(deliverer, null, 2));
     }
 
     // Enviar mensagem para o cliente
@@ -217,6 +238,15 @@ const sendPaymentConfirmationNotification = async (order) => {
       deliveryType: order.deliveryType
     });
 
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.item_pedido_complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
     const customerMessage = `
 🍋 AÇAÍ DA CASA - Pagamento Confirmado! ✅
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -224,7 +254,7 @@ const sendPaymentConfirmationNotification = async (order) => {
 
 📋 Pedido #${order.id}
 💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${order.orderitem?.map(item => `${item.quantity}x ${item.product?.name || 'Produto'}`).join(', ') || 'Itens não disponíveis'}
+🍽️ Itens: ${itemsList}
 
 👨‍🍳 Seu pedido já está em preparo!
 ${order.deliveryType === 'delivery' ? 

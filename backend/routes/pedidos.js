@@ -316,7 +316,7 @@ router.post('/', authenticateToken, async (req, res) => {
                             itens_pedido: {
                                 include: {
                                     produto: true,
-                                    item_pedido_complementos: {
+                                    complementos: {
                                         include: {
                                             complemento: true
                                         }
@@ -491,7 +491,7 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                 itens_pedido: {
                     include: {
                         produto: true,
-                        item_pedido_complementos: {
+                        complementos: {
                             include: {
                                 complemento: true
                             }
@@ -552,7 +552,10 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                         username: updatedOrder.usuario.nomeUsuario,
                         phone: updatedOrder.usuario.telefone
                     } : null,
-                    orderItems: updatedOrder.itens_pedido,
+                    orderItems: updatedOrder.itens_pedido.map(item => ({
+                        ...item,
+                        product: item.produto // garantir campo 'product' (inglês)
+                    })),
                     shippingStreet: updatedOrder.ruaEntrega,
                     shippingNumber: updatedOrder.numeroEntrega,
                     shippingComplement: updatedOrder.complementoEntrega,
@@ -698,7 +701,10 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                         username: order.usuario.nomeUsuario,
                         phone: order.usuario.telefone
                     } : null,
-                    orderItems: order.itens_pedido,
+                    orderItems: order.itens_pedido.map(item => ({
+                        ...item,
+                        product: item.produto // garantir campo 'product' (inglês)
+                    })),
                     shippingStreet: order.ruaEntrega,
                     shippingNumber: order.numeroEntrega,
                     shippingComplement: order.complementoEntrega,
@@ -710,13 +716,30 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                 console.error('❌ Erro ao enviar notificações de entrega:', error);
             }
         } else if (dbStatus === 'ready_for_pickup' && order.tipoEntrega === 'pickup') {
-            // Notificação para retirada
-            try {
-                console.log('🏪 Enviando notificação de retirada...');
-                await sendPickupNotification(order);
-            } catch (error) {
-                console.error('❌ Erro ao enviar notificação de retirada:', error);
-            }
+                        // Notificação para retirada
+                        try {
+                                console.log('🏪 Enviando notificação de retirada...');
+                                // Mapear campos para compatibilidade com messageService
+                                const orderForNotification = {
+                                    ...order,
+                                    totalPrice: order.precoTotal,
+                                    deliveryType: order.tipoEntrega,
+                                    paymentMethod: order.metodoPagamento,
+                                    user: order.usuario ? {
+                                        username: order.usuario.nomeUsuario,
+                                        phone: order.usuario.telefone
+                                    } : null,
+                                    orderItems: order.itens_pedido,
+                                    shippingStreet: order.ruaEntrega,
+                                    shippingNumber: order.numeroEntrega,
+                                    shippingComplement: order.complementoEntrega,
+                                    shippingNeighborhood: order.bairroEntrega,
+                                    shippingPhone: order.usuario?.telefone
+                                };
+                                await sendPickupNotification(orderForNotification);
+                        } catch (error) {
+                                console.error('❌ Erro ao enviar notificação de retirada:', error);
+                        }
         }
 
         console.log(`[PUT /api/orders/${orderId}] Pedido atualizado com sucesso.`);
