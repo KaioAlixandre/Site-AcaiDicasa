@@ -154,9 +154,12 @@ const Cart: React.FC = () => {
                 
                 // Obter dados do produto
                 const product = item.product;
-                const productImage = product.images && product.images.length > 0 && product.images[0]?.url
-                  ? `http://localhost:3001${product.images[0].url}`
-                  : null;
+                let productImage = null;
+                if (product.images && product.images.length > 0 && product.images[0]?.url) {
+                  const url = product.images[0].url;
+                  // Se já for uma URL absoluta, usa direto, senão concatena com o domínio
+                  productImage = url.startsWith('http') ? url : `http://localhost:3001${url}`;
+                }
                 
                 return (
                 <div key={item.id} className={`p-2.5 sm:p-4 md:p-6 ${index !== items.length - 1 ? 'border-b border-slate-200' : ''}`}>
