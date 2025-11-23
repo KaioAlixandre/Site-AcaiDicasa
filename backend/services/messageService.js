@@ -57,19 +57,16 @@ const sendPickupNotification = async (order) => {
     const storeAddress = "Rua da Loja, 123 - Centro"; // TODO: Pegar das configurações da loja
 
     const customerMessage = `
-🍋 AÇAÍ DA CASA - Pedido Pronto para Retirada! 🏪
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎉 Seu pedido #${order.id} está pronto!
 
-📍 Retire em: ${storeAddress}
-💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${itemsList}
+ Seu pedido #${order.id} está pronto para retirada!
 
-⏰ Horário de funcionamento: 8h às 18h
-💵 ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
+ Retire em: ${storeAddress}
+ Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+ Itens: ${itemsList}
+
+ ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📞 Dúvidas? Entre em contato conosco!
-Obrigado pela preferência! 🍋✨
+
     `.trim();
 
     console.log('📱 Enviando notificação de retirada via Z-API...');
@@ -139,32 +136,26 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 
     // Mensagem para o entregador
     const delivererMessage = `
-🚚 NOVA ENTREGA ATRIBUÍDA
-━━━━━━━━━━━━━━━━━━━━━━
 📋 Pedido: #${order.id}
-👤 Cliente: ${order.user?.username || 'N/A'}
-📞 Telefone: ${order.user?.phone || order.shippingPhone || 'N/A'}
-📍 Endereço: ${address || 'Endereço não informado'}
-💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${itemsList}
-━━━━━━━━━━━━━━━━━━━━━━
-⏰ Prepare-se para a entrega!
+
+  Cliente: ${order.user?.username || 'N/A'}
+  Telefone: ${order.user?.phone || order.shippingPhone || 'N/A'}
+  📍Endereço: ${address || 'Endereço não informado'}
+  Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+  Itens: ${itemsList}
+━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
     // Mensagem para o cliente
     const customerMessage = `
-🍋 AÇAÍ DA CASA - Pedido Saiu Para Entrega! 🚚
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎉 Seu pedido #${order.id} está a caminho!
+  Seu pedido #${order.id} está a caminho!
 
-🚚 Entregador: ${deliverer?.nome || 'N/A'}
-📞 Contato: ${deliverer?.telefone || 'N/A'}
-📍 Endereço: ${address || 'Endereço não informado'}
-💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-
-⏱️ Tempo estimado: 30-45 minutos
+  Entregador: ${deliverer?.nome || 'N/A'}
+  Contato: ${deliverer?.telefone || 'N/A'}
+  📍 Endereço: ${address || 'Endereço não informado'}
+  Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Obrigado pela preferência! 🍋✨
+Obrigado pela preferência!
     `.trim();
 
     console.log('📱 Enviando notificações via Z-API...');
@@ -233,45 +224,38 @@ const sendPaymentConfirmationNotification = async (order) => {
     console.log('💳 [MessageService] Enviando notificação de pagamento confirmado');
     console.log('📋 [MessageService] Dados do pedido:', {
       id: order.id,
-      totalPrice: order.totalPrice,
-      user: order.user?.username,
-      deliveryType: order.deliveryType
+      precoTotal: order.precoTotal,
+      usuario: order.usuario?.nomeUsuario,
+      tipoEntrega: order.tipoEntrega
     });
 
     // Construir lista de itens
     const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.item_pedido_complementos?.map(ic => 
+      const complementos = item.complementos?.map(ic => 
         ic.complemento?.nome
       ).filter(Boolean).join(', ');
-      
       return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
     }).join('\n') || 'Itens não disponíveis';
 
     const customerMessage = `
-🍋 AÇAÍ DA CASA - Pagamento Confirmado! ✅
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎉 Seu PIX foi confirmado com sucesso!
+  Seu pagamento foi confirmado com sucesso!✅
 
-📋 Pedido #${order.id}
-💰 Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-🍽️ Itens: ${itemsList}
+  Pedido #${order.id}
+  Valor: R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+  Itens: ${itemsList}
 
-👨‍🍳 Seu pedido já está em preparo!
-${order.deliveryType === 'delivery' ? 
-  `🚚 Será entregue em: ${order.shippingStreet}, ${order.shippingNumber}${order.shippingComplement ? ` - ${order.shippingComplement}` : ''} - ${order.shippingNeighborhood}` :
-  '🏪 Aguarde a notificação para retirada'
+  Seu pedido já está em preparo!
+${order.tipoEntrega === 'delivery' ? 
+  `Será entregue em: ${order.ruaEntrega}, ${order.numeroEntrega}${order.complementoEntrega ? ` - ${order.complementoEntrega}` : ''} - ${order.bairroEntrega}` :
+  ' Aguarde a notificação para retirada'
 }
 
-⏰ Tempo estimado: 30-45 minutos
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📞 Dúvidas? Entre em contato conosco!
-Obrigado pela preferência! 🍋✨
+━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
     console.log('📱 Enviando notificação de pagamento confirmado via Z-API...');
-    
-    // Enviar mensagem para o cliente
-    const customerPhone = order.user?.phone || order.shippingPhone;
+    // Buscar telefone do usuário (preferencial) ou telefone de entrega
+    const customerPhone = order.usuario?.telefone || order.telefoneEntrega;
     if (customerPhone) {
       console.log('\n💳 ENVIANDO NOTIFICAÇÃO DE PAGAMENTO CONFIRMADO:');
       console.log(customerMessage);
@@ -327,19 +311,17 @@ const sendCookNotification = async (order, cook) => {
 
     // Mensagem para o cozinheiro
     const cookMessage = `
-👨‍🍳 NOVO PEDIDO PARA PREPARAR
+ NOVO PEDIDO PARA PREPARAR
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 Pedido: #${order.id}
-👤 Cliente: ${order.usuario?.nomeUsuario || 'N/A'}
+ Pedido: #${order.id}
+ Cliente: ${order.usuario?.nomeUsuario || 'N/A'}
 ${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
 💰 Valor: R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
 
 🍽️ ITENS DO PEDIDO:
 ${itemsList}
 
-${order.observacoes ? `📝 OBSERVAÇÕES DO CLIENTE:\n${order.observacoes}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⏰ Tempo estimado: 30 minutos
-🔔 Inicie o preparo o quanto antes!
+${order.observacoes ? ` OBSERVAÇÕES DO CLIENTE:\n${order.observacoes}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
     console.log('📱 Enviando notificação para cozinheiro via Z-API...');

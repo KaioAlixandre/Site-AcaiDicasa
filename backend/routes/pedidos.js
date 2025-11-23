@@ -231,8 +231,9 @@ router.post('/', authenticateToken, async (req, res) => {
             
             // Informações de entrega/retirada
             const deliveryInfo = tipo === 'pickup' 
-                ? `📍 *Retirada no local*\n🏪 Endereço da loja: [SEU ENDEREÇO AQUI]\n⏰ Horário: Segunda a Domingo, 8h às 22h`
-                : `🚚 *Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\n🏘️ Bairro: ${shippingAddress.bairro}`;
+                ? `📍 *Retirada no local*\n🏪 Endereço da loja: Açaidicasa, praça Geraldo Sá.`+
+                `Localizaçao maps: https://maps.app.goo.gl/LGe84k24KogZWXMt6?g_st=ipc`
+                : `*Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\nBairro: ${shippingAddress.bairro}`;
             
             // Adicionar observações se houver
             const notesSection = notes && notes.trim() ? `\n\n📝 *Observações:*\n${notes.trim()}` : '';
@@ -241,53 +242,40 @@ router.post('/', authenticateToken, async (req, res) => {
             
             if (paymentMethod === 'CREDIT_CARD') {
                 message =
-                    `🎉 *Pedido Confirmado!* 🎉\n\n` +
-                    `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
-                    `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
+                    ` *Pedido Confirmado!* 🎉\n\n` +
+                    ` *Pedido Nº:* ${newOrder.id}\n\n` +
+                    ` *Itens:*\n${itens}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💳 *Forma de pagamento:* Cartão de Crédito\n\n` +
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
-                    `📍 *Para pagamento via PIX (opcional):*\n` +
-                    `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
-                    `⏰ *Seu pedido já está sendo preparado!*\n` +
+                    ` *Seu pedido já está sendo preparado!*\n` +
                     (tipo === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
-                    `💜 *Obrigado por escolher a gente!*\n` +
-                    `Qualquer dúvida, estamos aqui! 😊`;
+                    ` *Obrigado por escolher a gente! 💜*\n`;
             } else if (paymentMethod === 'CASH_ON_DELIVERY') {
                 message =
-                    `🎉 *Pedido Confirmado!* 🎉\n\n` +
-                    `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
-                    `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
+                    ` *Pedido Confirmado!* 🎉\n\n` +
+                    ` *Pedido Nº:* ${newOrder.id}\n\n` +
+                    ` *Itens:*\n${itens}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💵 *Forma de pagamento:* Dinheiro ${tipo === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
-                    `📍 *Para pagamento via PIX (opcional):*\n` +
-                    `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
                     `⏰ *Seu pedido já está sendo preparado!*\n` +
                     (tipo === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
-                    `💜 *Obrigado por escolher a gente!*\n` +
-                    `Qualquer dúvida, estamos aqui! 😊`;
+                    ` *Obrigado por escolher a gente! 💜*\n`;
             } else {
                 message =
-                    `🎉 *Pedido Confirmado!* 🎉\n\n` +
-                    `📋 *Pedido Nº:* ${newOrder.id}\n\n` +
-                    `🛍️ *Itens:*\n${itens}\n\n` +
-                    `💰 *Subtotal:* R$ ${Number(subprecoTotal).toFixed(2)}\n` +
-                    (tipo === 'delivery' ? `🚚 *Taxa de entrega:* R$ ${Number(taxa).toFixed(2)}\n` : '') +
+                    ` *Pedido Confirmado!* 🎉\n\n` +
+                    ` *Pedido Nº:* ${newOrder.id}\n\n` +
+                    ` *Itens:*\n${itens}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💸 *Forma de pagamento:* PIX\n` +
-                    `🔑 *Chave PIX:* chave-pix@seudominio.com\n\n` +
+                    `🔑 *Chave PIX:* 99984959718\n\n` +
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
                     `📸 *Após o pagamento, por favor envie o comprovante aqui.*\n\n` +
-                    `💜 *Obrigado por escolher a gente!*\n` +
-                    `Qualquer dúvida, estamos aqui! 😊`;
+                    ` *Obrigado por escolher a gente! 💜*\n`;
             }
 
             try {
