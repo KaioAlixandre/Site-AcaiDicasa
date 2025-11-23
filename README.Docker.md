@@ -17,11 +17,15 @@ Copie o arquivo `.env.example` para `.env` e preencha as variáveis:
 cp .env.example .env
 ```
 
+
 Edite o arquivo `.env` e configure:
 - `JWT_SECRET`: Segredo para tokens JWT (use algo seguro)
 - `zapApiToken`: Token da sua conta Z-API
 - `zapApiInstance`: ID da instância Z-API
 - `zapApiClientToken`: Token do cliente Z-API
+- `CLOUDINARY_CLOUD_NAME`: Nome do Cloudinary (obrigatório para upload de imagens)
+- `CLOUDINARY_API_KEY`: API Key do Cloudinary
+- `CLOUDINARY_API_SECRET`: API Secret do Cloudinary
 
 ### 2. Iniciar os Containers
 

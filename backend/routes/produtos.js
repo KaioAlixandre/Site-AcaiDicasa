@@ -4,19 +4,11 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../services/cloudinary');
+const streamifier = require('streamifier');
 
-// Configuração do destino e nome do arquivo
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // pasta onde as imagens serão salvas
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // nome único
-  }
-});
-const upload = multer({ storage });
+// Usar armazenamento em memória para processar upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ========== ROTAS ESPECÍFICAS (devem vir antes de rotas com parâmetros dinâmicos) ==========
 
@@ -125,23 +117,35 @@ router.get('/category/:categoriaId', async (req, res) => {
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
 router.post('/add', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
-  const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements } = req.body;
-  console.log('Categoria recebida:', categoriaId);
-  console.log('Destaque:', isFeatured);
-  console.log('Recebe complementos:', receiveComplements);
-  const imageFiles = req.files || [];
-  console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
-  console.log('Arquivos recebidos:', imageFiles.length);
-  console.log('Arquivos detalhes:', imageFiles.map(f => f.filename));
-  
-  try {
-        // Criar array de imagens
-        const imagesData = imageFiles.map((file) => ({
-          url: `/uploads/${file.filename}`
-        }));
-        
-        console.log('Imagens a serem criadas:', imagesData);
-
+    const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements } = req.body;
+    console.log('Categoria recebida:', categoriaId);
+    console.log('Destaque:', isFeatured);
+    console.log('Recebe complementos:', receiveComplements);
+    const imageFiles = req.files || [];
+    console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
+    console.log('Arquivos recebidos:', imageFiles.length);
+    console.log('Arquivos detalhes:', imageFiles.map(f => f.originalname));
+    try {
+        // Upload das imagens para o Cloudinary
+        const imagesData = [];
+        const streamifier = require('streamifier');
+        for (const file of imageFiles) {
+            const streamUpload = () => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream({ folder: 'produtos' }, (error, result) => {
+                        if (result) {
+                            resolve({ url: result.secure_url });
+                        } else {
+                            reject(error);
+                        }
+                    });
+                    streamifier.createReadStream(file.buffer).pipe(stream);
+                });
+            };
+            const uploadResult = await streamUpload();
+            imagesData.push(uploadResult);
+        }
+        console.log('Imagens a serem criadas (Cloudinary):', imagesData);
         const newProduct = await prisma.produto.create({
             data: {
                 nome,
@@ -150,19 +154,15 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
                 categoriaId: parseInt(categoriaId),
                 destaque: isFeatured === 'true' || isFeatured === true,
                 recebeComplementos: receiveComplements === 'true' || receiveComplements === true,
-                imagens_produto: imagesData.length > 0
-                  ? { create: imagesData }
-                  : undefined
+                imagens_produto: imagesData.length > 0 ? { create: imagesData } : undefined
             },
-            include: {
-              imagens_produto: true
-            }
+            include: { imagens_produto: true }
         });
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.nome}.`);
         console.log('🖼️ Imagens criadas:', newProduct.imagens_produto);
         res.status(201).json({ 
-          message: 'Produto adicionado com sucesso.', 
-          product: newProduct 
+            message: 'Produto adicionado com sucesso.', 
+            product: newProduct 
         });
     } catch (err) {
         console.error('❌ POST /api/products/add: Erro ao adicionar produto:', err.message);
@@ -178,8 +178,8 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
     console.log('📝 Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
     console.log('🖼️ Arquivos de imagem recebidos:', imageFiles.length);
-    if (imageFiles.length > 0) {
-      console.log('🖼️ Detalhes das imagens:', imageFiles.map(f => ({ filename: f.filename, path: f.path })));
+        if (imageFiles.length > 0) {
+            console.log('🖼️ Detalhes das imagens:', imageFiles.map(f => ({ originalname: f.originalname, size: f.size })));
     }
     
     try {
@@ -205,31 +205,34 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             recebeComplementos: receiveComplements === 'true' || receiveComplements === true
         };
         
-        // Se houver novas imagens, deletar as antigas e adicionar as novas
+        // Se houver novas imagens, deletar as antigas do banco e enviar as novas para o Cloudinary
         if (imageFiles.length > 0) {
             console.log(`🗑️ Deletando ${existingProduct.imagens_produto.length} imagens antigas...`);
-            
-            // Deletar arquivos físicos das imagens antigas
-            existingProduct.imagens_produto.forEach(img => {
-                const filePath = path.join(__dirname, '..', img.url);
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                    console.log(`🗑️ Arquivo deletado: ${filePath}`);
-                }
-            });
-            
             // Deletar registros de imagens antigas no banco
             await prisma.imagem_produto.deleteMany({
                 where: { produtoId: parseInt(id) }
             });
-            
-            // Criar novos registros de imagens
-            const imagesData = imageFiles.map((file) => ({
-                url: `/uploads/${file.filename}`
-            }));
-            
+            // Upload das novas imagens para o Cloudinary
+            const imagesData = [];
+            const streamifier = require('streamifier');
+            for (const file of imageFiles) {
+                const streamUpload = () => {
+                    return new Promise((resolve, reject) => {
+                        const stream = cloudinary.uploader.upload_stream({ folder: 'produtos' }, (error, result) => {
+                            if (result) {
+                                resolve(result.secure_url);
+                            } else {
+                                reject(error);
+                            }
+                        });
+                        streamifier.createReadStream(file.buffer).pipe(stream);
+                    });
+                };
+                const uploadResult = await streamUpload();
+                imagesData.push({ url: uploadResult });
+            }
             updateData.imagens_produto = { create: imagesData };
-            console.log(`✨ ${imageFiles.length} novas imagens serão adicionadas`);
+            console.log(`✨ ${imageFiles.length} novas imagens enviadas para o Cloudinary e adicionadas ao produto.`);
         }
         
         // Atualizar o produto

@@ -167,7 +167,7 @@ const Home: React.FC = () => {
               <div className="h-28 sm:h-32 bg-slate-100 flex items-center justify-center text-3xl overflow-hidden">
                 {product.images && product.images[0]?.url ? (
                   <img
-                    src={`http://localhost:3001${product.images[0].url}`}
+                    src={product.images[0].url}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
@@ -237,7 +237,7 @@ const Home: React.FC = () => {
                 <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-lg sm:rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
                   {product.images && product.images[0]?.url ? (
                     <img
-                      src={`http://localhost:3001${product.images[0].url}`}
+                      src={product.images[0].url}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />

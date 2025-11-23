@@ -136,7 +136,7 @@ const Complementos: React.FC = () => {
       isActive: complement.isActive,
       categoryId: complement.categoryId || null
     });
-    setImagePreview(complement.imageUrl ? `http://localhost:3001${complement.imageUrl}` : null);
+    setImagePreview(complement.imageUrl ? complement.imageUrl : null);
     setShowModal(true);
   };
 
@@ -167,32 +167,33 @@ const Complementos: React.FC = () => {
     }
   };
 
-  // Salvar complemento (criar ou editar)
+  // Salvar complemento (criar ou editar) - envia como FormData para Cloudinary
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.name.trim()) {
       alert('Nome do complemento é obrigatório!');
       return;
     }
-
     try {
       setFormLoading(true);
+      const dataToSend = {
+        name: formData.name,
+        isActive: formData.isActive,
+        categoryId: formData.categoryId,
+        image: formData.image
+      };
       
       if (editingComplement) {
-        // Atualizar
-        await apiService.updateComplement(editingComplement.id, formData);
+        await apiService.updateComplement(editingComplement.id, dataToSend);
       } else {
-        // Criar
-        await apiService.createComplement(formData);
+        await apiService.createComplement(dataToSend);
       }
-
       await loadComplements();
       resetForm();
       alert(`Complemento ${editingComplement ? 'atualizado' : 'criado'} com sucesso!`);
     } catch (error: any) {
       console.error('Erro ao salvar complemento:', error);
-      const message = error.response?.data?.message || 'Erro ao salvar complemento';
+      const message = error?.response?.data?.message || 'Erro ao salvar complemento';
       alert(message);
     } finally {
       setFormLoading(false);
@@ -413,7 +414,7 @@ const Complementos: React.FC = () => {
                         <td className="px-4 py-3 whitespace-nowrap">
                           {complement.imageUrl ? (
                             <img 
-                              src={`http://localhost:3001${complement.imageUrl}`} 
+                              src={complement.imageUrl}
                               alt={complement.name}
                               className="w-12 h-12 object-cover rounded-lg border border-gray-200"
                               onError={(e) => {
@@ -504,7 +505,7 @@ const Complementos: React.FC = () => {
                     <div className="flex items-start gap-3 mb-2">
                       {complement.imageUrl ? (
                         <img 
-                          src={`http://localhost:3001${complement.imageUrl}`} 
+                          src={complement.imageUrl}
                           alt={complement.name}
                           className="w-16 h-16 object-cover rounded-lg flex-shrink-0 border border-gray-200"
                           onError={(e) => {

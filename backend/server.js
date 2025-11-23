@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME);
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');

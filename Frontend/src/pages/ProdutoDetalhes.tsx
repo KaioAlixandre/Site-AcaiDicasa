@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, Check, Search, X } from 'lucide-react';
@@ -24,18 +25,14 @@ const ProdutoDetalhes: React.FC = () => {
   useEffect(() => {
     const loadProductDetails = async () => {
       if (!id) return;
-      
       try {
         setLoading(true);
         const [productData, complementsData] = await Promise.all([
           apiService.getProductById(parseInt(id)),
           apiService.getComplements()
         ]);
-        
         setProduct(productData);
         setComplements(complementsData);
-        
-        // Definir primeira imagem como selecionada
         if (productData.images && productData.images.length > 0) {
           setSelectedImage(productData.images[0].url);
         }
@@ -45,18 +42,18 @@ const ProdutoDetalhes: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadProductDetails();
   }, [id]);
 
+
   const handleQuantityChange = (delta: number) => {
-    setQuantity(prev => Math.max(1, prev + delta));
+    setQuantity((prev) => Math.max(1, prev + delta));
   };
 
   const toggleComplement = (complementId: number) => {
-    setSelectedComplements(prev => {
+    setSelectedComplements((prev) => {
       if (prev.includes(complementId)) {
-        return prev.filter(id => id !== complementId);
+        return prev.filter((id) => id !== complementId);
       } else {
         return [...prev, complementId];
       }
@@ -65,22 +62,16 @@ const ProdutoDetalhes: React.FC = () => {
 
   const calculateTotal = () => {
     if (!product) return 0;
-    
     let total = Number(product.price) * quantity;
-    
-    // Nota: Complementos não afetam o preço (campo price não existe no modelo)
-    
+    // Complementos não afetam o preço
     return total;
   };
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
     try {
       setAddingToCart(true);
       await addItem(product.id, quantity, selectedComplements);
-      
-      // Feedback visual
       alert('Produto adicionado ao carrinho!');
       navigate('/cart');
     } catch (error) {
@@ -121,7 +112,7 @@ const ProdutoDetalhes: React.FC = () => {
               <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                 {selectedImage ? (
                   <img
-                    src={`http://localhost:3001${selectedImage}`}
+                    src={selectedImage}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
@@ -146,7 +137,7 @@ const ProdutoDetalhes: React.FC = () => {
                       }`}
                     >
                       <img
-                        src={`http://localhost:3001${image.url}`}
+                        src={image.url}
                         alt={`${product.name} - ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -378,7 +369,7 @@ const ProdutoDetalhes: React.FC = () => {
                                   {/* Imagem do complemento */}
                                   {complement.imageUrl ? (
                                     <img
-                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : complement.imageUrl}
                                       alt={complement.name}
                                       className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md md:rounded-lg flex-shrink-0 border border-slate-200"
                                       onError={(e) => {
@@ -388,7 +379,7 @@ const ProdutoDetalhes: React.FC = () => {
                                           target.style.display = 'none';
                                           const parent = target.parentElement;
                                           if (parent) {
-                                            parent.innerHTML = '<div class="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-2xl md:text-3xl">🍓</span></div>';
+                                            parent.innerHTML = '<div class=\"w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0\"><span class=\"text-2xl md:text-3xl\">🍓</span></div>';
                                           }
                                         }
                                       }}
@@ -444,7 +435,7 @@ const ProdutoDetalhes: React.FC = () => {
                                   {/* Imagem do complemento */}
                                   {complement.imageUrl ? (
                                     <img
-                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                      src={complement.imageUrl.startsWith('http') ? complement.imageUrl : complement.imageUrl}
                                       alt={complement.name}
                                       className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md md:rounded-lg flex-shrink-0 border border-slate-200"
                                       onError={(e) => {
@@ -454,7 +445,7 @@ const ProdutoDetalhes: React.FC = () => {
                                           target.style.display = 'none';
                                           const parent = target.parentElement;
                                           if (parent) {
-                                            parent.innerHTML = '<div class="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-2xl md:text-3xl">🍓</span></div>';
+                                            parent.innerHTML = '<div class=\"w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0\"><span class=\"text-2xl md:text-3xl\">🍓</span></div>';
                                           }
                                         }
                                       }}

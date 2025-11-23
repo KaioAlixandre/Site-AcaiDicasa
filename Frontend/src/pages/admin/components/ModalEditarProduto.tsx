@@ -26,7 +26,8 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
   // Carregar imagens existentes do produto
   useEffect(() => {
     if (product.images && product.images.length > 0) {
-      const imageUrls = product.images.map(img => `http://localhost:3001${img.url}`);
+      // Usar a URL Cloudinary diretamente
+      const imageUrls = product.images.map(img => img.url);
       setExistingImages(imageUrls);
     }
   }, [product]);

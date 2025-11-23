@@ -27,8 +27,6 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY . .
 
-# Criar diretório para uploads
-RUN mkdir -p uploads/complements
 
 # Expor porta
 EXPOSE 3001

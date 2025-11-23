@@ -2,35 +2,22 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const router = express.Router();
+
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../services/cloudinary');
+const streamifier = require('streamifier');
 
 // Middlewares de autenticação e autorização
 const { authenticateToken, authorize } = require('./auth');
 
-// Configuração do multer para upload de imagens
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/complements';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
+// Configuração do multer para upload em memória
 const upload = multer({ 
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test((file.originalname || '').toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -150,10 +137,23 @@ router.post('/', authenticateToken, authorize('admin'), upload.single('image'), 
       return res.status(409).json({ message: 'Já existe um complemento com este nome' });
     }
 
-    // Processar imagem se foi enviada
+
+    // Processar imagem se foi enviada (Cloudinary)
     let imagemUrl = null;
     if (req.file) {
-      imagemUrl = `/uploads/complements/${req.file.filename}`;
+      const streamUpload = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream({ folder: 'complements' }, (error, result) => {
+            if (result) {
+              resolve(result.secure_url);
+            } else {
+              reject(error);
+            }
+          });
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+      };
+      imagemUrl = await streamUpload();
     }
 
     // Criar o complemento
@@ -197,7 +197,7 @@ router.put('/:id', authenticateToken, authorize('admin'), upload.single('image')
   const { id } = req.params;
   const { nome, ativo, categoriaId } = req.body;
   console.log(`✏️ PUT /complements/${id} - Admin ${req.user.username} atualizando complemento...`);
-  
+
   try {
     // Verificar se o complemento existe
     const existingComplement = await prisma.complemento.findUnique({
@@ -210,19 +210,26 @@ router.put('/:id', authenticateToken, authorize('admin'), upload.single('image')
     }
 
     // Preparar dados para atualização
-    const updateData = {};
-
-    // Processar nova imagem se foi enviada
+    let imagemUrl = existingComplement.imagemUrl;
     if (req.file) {
-      // Deletar imagem antiga se existir
-      if (existingComplement.imagemUrl) {
-        const oldImagePath = path.join(__dirname, '..', existingComplement.imagemUrl);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-      updateData.imagemUrl = `/uploads/complements/${req.file.filename}`;
+      const streamUpload = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream({ folder: 'complements' }, (error, result) => {
+            if (result) {
+              resolve(result.secure_url);
+            } else {
+              reject(error);
+            }
+          });
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+      };
+      imagemUrl = await streamUpload();
     }
+
+    const updateData = {
+      imagemUrl
+    };
 
     if (nome !== undefined) {
       if (!nome || nome.trim().length === 0) {
@@ -237,7 +244,7 @@ router.put('/:id', authenticateToken, authorize('admin'), upload.single('image')
 
       // Verificar se já existe outro complemento com o mesmo nome
       const duplicateComplement = await prisma.complemento.findFirst({
-        where: { 
+        where: {
           nome: nome.trim(),
           id: { not: parseInt(id) }
         }
@@ -307,13 +314,7 @@ router.delete('/:id', authenticateToken, authorize('admin'), async (req, res) =>
       return res.status(404).json({ message: 'Complemento não encontrado' });
     }
 
-    // Deletar imagem se existir
-    if (existingComplement.imagemUrl) {
-      const imagePath = path.join(__dirname, '..', existingComplement.imagemUrl);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
+    // Não é necessário deletar imagem local, pois agora as imagens são salvas no Cloudinary
 
     // Deletar o complemento
     await prisma.complemento.delete({

@@ -65,7 +65,19 @@ const Produtos: React.FC<{
             {products.map((prod) => (
               <tr key={prod.id} className="hover:bg-slate-50">
                 <td className="p-3">
-                  <div className="font-medium text-slate-800 text-sm">{prod.name}</div>
+                  <div className="flex items-center gap-3">
+                    {Array.isArray(prod.images) && prod.images.length > 0 && prod.images[0].url ? (
+                      <img
+                        src={prod.images[0].url}
+                        alt={prod.name}
+                        className="h-12 w-12 object-cover rounded shadow"
+                        style={{ minWidth: 48 }}
+                      />
+                    ) : (
+                      <div className="h-12 w-12 bg-slate-200 rounded flex items-center justify-center text-slate-400 text-xs">Sem imagem</div>
+                    )}
+                    <span className="font-medium text-slate-800 text-sm">{prod.name}</span>
+                  </div>
                 </td>
                 <td className="p-3 text-slate-600 text-sm">{prod.category?.name || '-'}</td>
                 <td className="p-3 text-right font-medium text-slate-800 text-sm">R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}</td>
@@ -117,28 +129,38 @@ const Produtos: React.FC<{
         {products.map((prod) => (
           <div key={prod.id} className="p-3 hover:bg-slate-50 transition-colors">
             <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium text-slate-800 text-sm">{prod.name}</h3>
-                  {prod.isFeatured && (
-                    <span className="text-amber-500" title="Produto em destaque">⭐</span>
-                  )}
-                  {prod.receiveComplements && (
-                    <span className="text-purple-500" title="Aceita complementos">🍓</span>
-                  )}
+              <div className="flex-1 flex items-center gap-3">
+                {Array.isArray(prod.images) && prod.images.length > 0 && prod.images[0].url ? (
+                  <img
+                    src={prod.images[0].url}
+                    alt={prod.name}
+                    className="h-12 w-12 object-cover rounded shadow"
+                    style={{ minWidth: 48 }}
+                  />
+                ) : (
+                  <div className="h-12 w-12 bg-slate-200 rounded flex items-center justify-center text-slate-400 text-xs">Sem imagem</div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-slate-800 text-sm">{prod.name}</h3>
+                    {prod.isFeatured && (
+                      <span className="text-amber-500" title="Produto em destaque">⭐</span>
+                    )}
+                    {prod.receiveComplements && (
+                      <span className="text-purple-500" title="Aceita complementos">🍓</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>
                 </div>
-                <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>
               </div>
               <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${prod.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {prod.isActive ? 'Ativo' : 'Inativo'}
               </span>
             </div>
-            
             <div className="flex items-center justify-between">
               <div className="text-base font-bold text-slate-800">
                 R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}
               </div>
-              
               <div className="flex items-center gap-2">
                 <button
                   className="flex items-center justify-center gap-1 px-3 py-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition-colors text-xs font-medium"
