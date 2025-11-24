@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import AdminOrderNotification from './components/AdminOrderNotification';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Cadastrar from './pages/Cadastrar';
@@ -24,6 +25,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      <AdminOrderNotification />
       <main className="flex-1 pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />

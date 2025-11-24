@@ -1,5 +1,6 @@
 // User related types
 export interface User {
+  role: string;
   id: number;
   nomeUsuario: string;
   email: string;

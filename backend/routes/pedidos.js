@@ -793,129 +793,131 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
 
 // Listar todos os pedidos (apenas admin)
 router.get('/orders', authenticateToken, authorize('admin'), async (req, res) => {
-  try {
-    const orders = await prisma.pedido.findMany({
-      include: {
-        usuario: {
-          select: {
-            id: true,
-            nomeUsuario: true,
-            email: true,
-            telefone: true,
-            enderecos: {
-              where: {
-                padrao: true
-              },
-              select: {
-                id: true,
-                rua: true,
-                numero: true,
-                complemento: true,
-                bairro: true,
-                padrao: true
-              }
-            }
-          }
-        },
-        itens_pedido: {
-          include: { 
-            produto: {
-              include: {
-                imagens_produto: true
-              }
+    console.log('[API] /api/orders/orders chamada por:', req.user ? req.user.email : 'desconhecido', 'em', new Date().toISOString());
+    try {
+        const orders = await prisma.pedido.findMany({
+            include: {
+                usuario: {
+                    select: {
+                        id: true,
+                        nomeUsuario: true,
+                        email: true,
+                        telefone: true,
+                        enderecos: {
+                            where: {
+                                padrao: true
+                            },
+                            select: {
+                                id: true,
+                                rua: true,
+                                numero: true,
+                                complemento: true,
+                                bairro: true,
+                                padrao: true
+                            }
+                        }
+                    }
+                },
+                itens_pedido: {
+                    include: { 
+                        produto: {
+                            include: {
+                                imagens_produto: true
+                            }
+                        },
+                        complementos: {
+                            include: {
+                                complemento: {
+                                    select: {
+                                        id: true,
+                                        nome: true,
+                                        imagemUrl: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                pagamento: true
             },
-            complementos: {
-              include: {
-                complemento: {
-                  select: {
-                    id: true,
-                    nome: true,
-                    imagemUrl: true
-                  }
-                }
-              }
+            orderBy: {
+                criadoEm: 'desc'
             }
-          }
-        },
-        pagamento: true
-      },
-      orderBy: {
-        criadoEm: 'desc'
-      }
-    });
+        });
 
-    // Transformar os dados para o formato esperado pelo frontend
-    const transformedOrders = orders.map(order => ({
-      id: order.id,
-      userId: order.usuarioId,
-      totalPrice: order.precoTotal,
-      status: order.status,
-      deliveryType: order.tipoEntrega,
-      paymentMethod: order.metodoPagamento,
-      createdAt: order.criadoEm,
-      shippingStreet: order.ruaEntrega,
-      shippingNumber: order.numeroEntrega,
-      shippingComplement: order.complementoEntrega,
-      shippingNeighborhood: order.bairroEntrega,
-      shippingPhone: order.telefoneEntrega,
-      deliveryFee: order.taxaEntrega,
-      notes: order.observacoes,
-      user: order.usuario ? {
-        id: order.usuario.id,
-        username: order.usuario.nomeUsuario,
-        email: order.usuario.email,
-        phone: order.usuario.telefone,
-        enderecos: order.usuario.enderecos ? order.usuario.enderecos.map(addr => ({
-          id: addr.id,
-          street: addr.rua,
-          number: addr.numero,
-          complement: addr.complemento,
-          neighborhood: addr.bairro,
-          isDefault: addr.padrao
-        })) : []
-      } : null,
-      orderitem: order.itens_pedido.map(item => ({
-        id: item.id,
-        orderId: item.pedidoId,
-        productId: item.produtoId,
-        quantity: item.quantidade,
-        priceAtOrder: item.precoNoPedido,
-        selectedOptionsSnapshot: item.opcoesSelecionadas,
-        complements: item.complementos ? item.complementos.map(comp => ({
-          id: comp.complemento.id,
-          name: comp.complemento.nome,
-          imageUrl: comp.complemento.imagemUrl
-        })) : [],
-        product: item.produto ? {
-          id: item.produto.id,
-          name: item.produto.nome,
-          description: item.produto.descricao,
-          price: item.produto.preco,
-          categoryId: item.produto.categoriaId,
-          isActive: item.produto.ativo,
-          images: item.produto.imagens_produto ? item.produto.imagens_produto.map(img => ({
-            id: img.id,
-            productId: img.produtoId,
-            url: img.url,
-            isPrimary: img.principal
-          })) : []
-        } : null
-      })),
-      payment: order.pagamento ? {
-        id: order.pagamento.id,
-        orderId: order.pagamento.pedidoId,
-        method: order.pagamento.metodo,
-        status: order.pagamento.status,
-        amount: order.pagamento.valor,
-        paidAt: order.pagamento.pagoEm
-      } : null
-    }));
+        // Transformar os dados para o formato esperado pelo frontend
+        const transformedOrders = orders.map(order => ({
+            id: order.id,
+            userId: order.usuarioId,
+            totalPrice: order.precoTotal,
+            status: order.status,
+            deliveryType: order.tipoEntrega,
+            paymentMethod: order.metodoPagamento,
+            createdAt: order.criadoEm,
+            shippingStreet: order.ruaEntrega,
+            shippingNumber: order.numeroEntrega,
+            shippingComplement: order.complementoEntrega,
+            shippingNeighborhood: order.bairroEntrega,
+            shippingPhone: order.telefoneEntrega,
+            deliveryFee: order.taxaEntrega,
+            notes: order.observacoes,
+            user: order.usuario ? {
+                id: order.usuario.id,
+                username: order.usuario.nomeUsuario,
+                email: order.usuario.email,
+                phone: order.usuario.telefone,
+                enderecos: order.usuario.enderecos ? order.usuario.enderecos.map(addr => ({
+                    id: addr.id,
+                    street: addr.rua,
+                    number: addr.numero,
+                    complement: addr.complemento,
+                    neighborhood: addr.bairro,
+                    isDefault: addr.padrao
+                })) : []
+            } : null,
+            orderitem: order.itens_pedido.map(item => ({
+                id: item.id,
+                orderId: item.pedidoId,
+                productId: item.produtoId,
+                quantity: item.quantidade,
+                priceAtOrder: item.precoNoPedido,
+                selectedOptionsSnapshot: item.opcoesSelecionadas,
+                complements: item.complementos ? item.complementos.map(comp => ({
+                    id: comp.complemento.id,
+                    name: comp.complemento.nome,
+                    imageUrl: comp.complemento.imagemUrl
+                })) : [],
+                product: item.produto ? {
+                    id: item.produto.id,
+                    name: item.produto.nome,
+                    description: item.produto.descricao,
+                    price: item.produto.preco,
+                    categoryId: item.produto.categoriaId,
+                    isActive: item.produto.ativo,
+                    images: item.produto.imagens_produto ? item.produto.imagens_produto.map(img => ({
+                        id: img.id,
+                        productId: img.produtoId,
+                        url: img.url,
+                        isPrimary: img.principal
+                    })) : []
+                } : null
+            })),
+            payment: order.pagamento ? {
+                id: order.pagamento.id,
+                orderId: order.pagamento.pedidoId,
+                method: order.pagamento.metodo,
+                status: order.pagamento.status,
+                amount: order.pagamento.valor,
+                paidAt: order.pagamento.pagoEm
+            } : null
+        }));
 
-    res.json(transformedOrders);
-  } catch (err) {
-    console.error('Erro ao buscar pedidos:', err);
-    res.status(500).json({ error: 'Erro ao buscar pedidos.' });
-  }
+        console.log('[API] /api/orders/orders retornando', transformedOrders.length, 'pedidos. Mais recente:', transformedOrders[0]?.id);
+        res.json(transformedOrders);
+    } catch (err) {
+        console.error('Erro ao buscar pedidos:', err);
+        res.status(500).json({ error: 'Erro ao buscar pedidos.' });
+    }
 });
 
 router.get('/pending-count', authenticateToken, authorize('admin'), async (req, res) => {
