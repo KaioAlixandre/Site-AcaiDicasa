@@ -25,8 +25,6 @@ const AdminOrderNotification: React.FC = () => {
   useEffect(() => {
     if (!user || user.funcao !== 'admin') return;
 
-    let interval: NodeJS.Timeout;
-
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -60,9 +58,22 @@ const AdminOrderNotification: React.FC = () => {
       }
     };
 
-    fetchOrders();
-    interval = setInterval(fetchOrders, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    let timeout: NodeJS.Timeout | null = null;
+    let isFetching = false;
+
+    const poll = async () => {
+      if (isFetching) return;
+      isFetching = true;
+      await fetchOrders();
+      isFetching = false;
+      timeout = setTimeout(poll, POLL_INTERVAL);
+    };
+
+    poll(); // Inicia o polling imediatamente
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
   }, [user]);
 
   if (!user || user.funcao !== 'admin') return null;
@@ -74,18 +85,19 @@ const AdminOrderNotification: React.FC = () => {
       <audio ref={audioRef} src="\public\audio.m4a" preload="auto" loop />
       {show && (
         <div
-          className="fixed top-6 right-6 z-50 flex items-center justify-center w-16 h-16 bg-purple-600 text-white rounded-full shadow-lg animate-fade-in animate-pulse-notification cursor-pointer"
-          style={{ boxShadow: '0 4px 24px 0 rgba(80,0,120,0.18)' }}
+          className="fixed top-4 left-4 z-[9999] flex items-center justify-center w-16 h-16 bg-purple-600 text-white rounded-full shadow-lg animate-fade-in cursor-pointer notification-status-ring"
+          style={{ boxShadow: '0 4px 24px 0 rgba(80,0,120,0.18)', position: 'fixed', top: '1rem', left: '1rem', zIndex: 9999 }}
           onClick={() => {
             setShow(false);
-            if (audioRef.current) {""
+            if (audioRef.current) {
               audioRef.current.pause();
               audioRef.current.currentTime = 0;
             }
           }}
           title="Clique para silenciar a notificação"
         >
-          <Bell size={36} />
+          <span className="absolute inset-0 rounded-full notification-status-anim" />
+          <Bell size={36} className="relative z-10" />
         </div>
       )}
     </>
