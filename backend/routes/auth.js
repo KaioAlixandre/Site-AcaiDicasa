@@ -267,6 +267,7 @@ router.post('/profile/address', authenticateToken, async (req, res) => {
     }
 });
 
+
 // PUT /auth/profile/address/:addressId - Atualizar endereço
 router.put('/profile/address/:addressId', authenticateToken, async (req, res) => {
     const { addressId } = req.params;
@@ -315,6 +316,40 @@ router.put('/profile/address/:addressId', authenticateToken, async (req, res) =>
         res.json(updatedAddress);
     } catch (err) {
         console.error('❌ [PUT /auth/profile/address] Erro interno:', err);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    }
+});
+
+// PUT /auth/profile/phone - Atualizar telefone do usuário autenticado
+router.put('/profile/phone', authenticateToken, async (req, res) => {
+    const { phone } = req.body;
+    const userId = req.user.id;
+
+    console.log(`📱 [PUT /auth/profile/phone] Atualizando telefone para usuário ID: ${userId}`);
+
+    if (!phone) {
+        console.warn('⚠️ [PUT /auth/profile/phone] Telefone não fornecido.');
+        return res.status(400).json({ message: 'Telefone é obrigatório.' });
+    }
+
+    try {
+        const updatedUser = await prisma.usuario.update({
+            where: { id: userId },
+            data: { telefone: phone },
+            select: {
+                id: true,
+                nomeUsuario: true,
+                email: true,
+                telefone: true,
+                funcao: true,
+                enderecos: true
+            }
+        });
+
+        console.log(`✅ [PUT /auth/profile/phone] Telefone atualizado para usuário ID: ${userId}`);
+        res.json({ success: true, user: updatedUser });
+    } catch (err) {
+        console.error('❌ [PUT /auth/profile/phone] Erro interno:', err);
         res.status(500).json({ message: 'Erro interno do servidor.' });
     }
 });

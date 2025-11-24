@@ -20,6 +20,9 @@ import Loading from '../components/Loading';
 
 const Profile: React.FC = () => {
   const { user, loading: authLoading, refreshUserProfile } = useAuth();
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneValue, setPhoneValue] = useState('');
+  const [phoneLoading, setPhoneLoading] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,8 +73,8 @@ const Profile: React.FC = () => {
   useEffect(() => {
     console.log('🎯 useEffect - User disponível:', !!user);
     console.log('🎯 useEffect - User addresses:', user?.enderecos);
-    
     if (user) {
+      setPhoneValue(user.telefone || '');
       // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
       if (user.enderecos && Array.isArray(user.enderecos) && user.enderecos.length > 0) {
         console.log('🔄 Usando endereços do perfil do usuário');
@@ -87,6 +90,33 @@ const Profile: React.FC = () => {
       setLoading(false);
     }
   }, [user]);
+  // Função para atualizar telefone
+  const handleEditPhone = () => {
+    setEditingPhone(true);
+    setPhoneValue(user?.telefone || '');
+    setError(null);
+  };
+
+  const handleCancelEditPhone = () => {
+    setEditingPhone(false);
+    setPhoneValue(user?.telefone || '');
+    setError(null);
+  };
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneLoading(true);
+    setError(null);
+    try {
+      await apiService.updatePhone(phoneValue);
+      await refreshUserProfile();
+      setEditingPhone(false);
+    } catch (err) {
+      setError('Erro ao atualizar telefone. Tente novamente.');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
 
   const loadAddresses = async () => {
     try {
@@ -275,12 +305,52 @@ const Profile: React.FC = () => {
                 <p className="text-sm md:text-base text-slate-600 mb-1">
                   {user.email}
                 </p>
-                {user.telefone && (
-                  <p className="text-sm text-slate-600 mb-3 flex items-center justify-center sm:justify-start gap-1.5">
-                    <Phone className="w-3.5 h-3.5" />
-                    {formatPhone(user.telefone)}
-                  </p>
-                )}
+
+                <div className="mb-3 flex items-center justify-center sm:justify-start gap-1.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  {editingPhone ? (
+                    <form onSubmit={handleSavePhone} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={phoneValue}
+                        onChange={e => setPhoneValue(e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm w-36 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="(99) 99999-9999"
+                        disabled={phoneLoading}
+                        autoFocus
+                      />
+                      <button
+                        type="submit"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-2 py-1 text-xs font-semibold"
+                        disabled={phoneLoading}
+                        title="Salvar"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        type="button"
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded px-2 py-1 text-xs font-semibold"
+                        onClick={handleCancelEditPhone}
+                        disabled={phoneLoading}
+                        title="Cancelar"
+                      >
+                        Cancelar
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span>{user.telefone ? formatPhone(user.telefone) : <span className="italic text-gray-400">Não informado</span>}</span>
+                      <button
+                        className="ml-2 text-purple-600 hover:text-purple-800 p-1 rounded transition-colors"
+                        onClick={handleEditPhone}
+                        title={user.telefone ? 'Editar telefone' : 'Adicionar telefone'}
+                      >
+                        <Edit className="w-3.5 h-3.5 inline" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                // ...restante do código permanece igual
                 
                 {/* Stats Cards */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
