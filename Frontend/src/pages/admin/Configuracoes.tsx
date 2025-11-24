@@ -11,23 +11,23 @@ const diasSemana = [
   { label: 'Sáb', value: '6' },
 ];
 
+
 const Configuracoes: React.FC = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiService.getStoreConfig().then((data) => {
-      console.log('Configuração recebida:', data);
       // Mapear os nomes dos campos do backend para o frontend
       const mappedData = {
         ...data,
         openTime: data.openingTime,
         closeTime: data.closingTime,
+        diasAbertos: data.openDays ?? data.diasAbertos ?? '',
         promocaoTaxaAtiva: data.promocaoTaxaAtiva || false,
         promocaoDias: data.promocaoDias || '',
         promocaoValorMinimo: data.promocaoValorMinimo || ''
       };
-      console.log('Dados mapeados para o frontend:', mappedData);
       setConfig(mappedData);
       setLoading(false);
     }).catch(error => {
@@ -45,13 +45,13 @@ const Configuracoes: React.FC = () => {
   };
 
   const handleDayToggle = (day: string) => {
-    const days = config.openDays ? config.openDays.split(',') : [];
+    const days = config.diasAbertos ? config.diasAbertos.split(',') : [];
     const newDays = days.includes(day)
       ? days.filter((d: string) => d !== day)
       : [...days, day];
     setConfig((prev: any) => ({
       ...prev,
-      openDays: newDays.sort().join(','),
+      diasAbertos: newDays.sort().join(','),
     }));
   };
 
@@ -69,16 +69,13 @@ const Configuracoes: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     // Mapear os nomes dos campos do frontend para o backend
     const dataToSend = {
       ...config,
       openingTime: config.openTime,
-      closingTime: config.closeTime
+      closingTime: config.closeTime,
+      diasAbertos: config.diasAbertos ?? '',
     };
-    
-    console.log('Dados que serão enviados para o backend:', dataToSend);
-    
     try {
       await apiService.updateStoreConfig(dataToSend);
       setLoading(false);
@@ -152,7 +149,7 @@ const Configuracoes: React.FC = () => {
                   type="button"
                   onClick={() => handleDayToggle(dia.value)}
                   className={`p-2 text-sm font-medium rounded-lg border transition-colors ${
-                    config.openDays?.split(',').includes(dia.value)
+                    config.diasAbertos?.split(',').includes(dia.value)
                       ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
                       : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                   }`}

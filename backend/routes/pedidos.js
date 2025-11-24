@@ -3,7 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
-const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification } = require('../services/messageService');
+const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification, sendDeliveredConfirmationNotification } = require('../services/messageService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -250,7 +250,7 @@ router.post('/', authenticateToken, async (req, res) => {
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
                     ` *Seu pedido já está sendo preparado!*\n` +
-                    (tipo === 'pickup' ? `🏪 Você pode retirar em breve!` : `🚚 Em breve será enviado para entrega.`) + `\n\n` +
+                    (tipo === 'pickup' ? ` Você pode retirar em breve!` : ` Em breve será enviado para entrega.`) + `\n\n` +
                     ` *Obrigado por escolher a gente! 💜*\n`;
             } else if (paymentMethod === 'CASH_ON_DELIVERY') {
                 message =
@@ -261,8 +261,8 @@ router.post('/', authenticateToken, async (req, res) => {
                     `💵 *Forma de pagamento:* Dinheiro ${tipo === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
-                    `⏰ *Seu pedido já está sendo preparado!*\n` +
-                    (tipo === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : `💵 Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
+                    ` *Seu pedido já está sendo preparado!*\n` +
+                    (tipo === 'pickup' ? `� Tenha o dinheiro trocado em mãos na retirada.` : ` Tenha o dinheiro trocado em mãos na entrega.`) + `\n\n` +
                     ` *Obrigado por escolher a gente! 💜*\n`;
             } else {
                 message =
@@ -657,13 +657,11 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
                 await sendPaymentConfirmationNotification(order);
-                
                 // Notificar cozinheiro quando pedido entra em preparo
                 const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
                     where: { ativo: true },
                     orderBy: { criadoEm: 'asc' }
                 });
-
                 if (cozinheiroAtivo) {
                     console.log(`👨‍🍳 Notificando cozinheiro: ${cozinheiroAtivo.nome}`);
                     await sendCookNotification(order, cozinheiroAtivo);
@@ -673,6 +671,16 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             } catch (error) {
                 console.error('❌ Erro ao enviar notificação de pagamento confirmado:', error);
                 // Não falha a operação se as notificações falharem
+            }
+        }
+
+        // Enviar confirmação de entrega ao cliente se status for 'delivered'
+        if (dbStatus === 'delivered') {
+            try {
+                console.log('📦 Enviando confirmação de entrega ao cliente...');
+                await sendDeliveredConfirmationNotification(order);
+            } catch (error) {
+                console.error('❌ Erro ao enviar confirmação de entrega:', error);
             }
         }
 

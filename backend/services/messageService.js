@@ -1,3 +1,4 @@
+
 // Serviço para envio de mensagens (WhatsApp/SMS)
 const axios = require('axios');
 
@@ -33,6 +34,53 @@ async function sendWhatsAppMessageZApi(phone, message) {
   }
 }
 
+// Serviço para notificação de confirmação de entrega
+const sendDeliveredConfirmationNotification = async (order) => {
+  try {
+    console.log('📦 [MessageService] Enviando confirmação de entrega ao cliente');
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
+    const customerMessage = `
+*Seu pedido #${order.id} foi entregue com sucesso!* 💜\n\nAgradecemos por escolher o melhor açaí! Esperamos que você saboreie cada colher.`;
+
+    // Buscar telefone do usuário (preferencial) ou telefone de entrega
+    const customerPhone = order.usuario?.telefone || order.telefoneEntrega;
+    if (customerPhone) {
+      console.log('\n📦 ENVIANDO CONFIRMAÇÃO DE ENTREGA:');
+      console.log(customerMessage);
+      const result = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+      if (result.success) {
+        console.log('✅ Confirmação de entrega enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar confirmação de entrega');
+      }
+      return {
+        success: result.success,
+        customerMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível para confirmação de entrega');
+      return {
+        success: false,
+        error: 'Telefone do cliente não disponível'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Erro ao enviar confirmação de entrega:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 // Serviço para notificação de pedido pronto para retirada
 const sendPickupNotification = async (order) => {
   try {
@@ -58,14 +106,14 @@ const sendPickupNotification = async (order) => {
 
     const customerMessage = `
 
- Seu pedido #${order.id} está pronto para retirada!
+ *Seu pedido #${order.id} está pronto para retirada!*
 
- Retire em: ${storeAddress}
- Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
- Itens: ${itemsList}
+ *Retire em:* ${storeAddress}
+ *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+ *Itens:* ${itemsList}
 
  ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
     `.trim();
 
@@ -136,26 +184,30 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 
     // Mensagem para o entregador
     const delivererMessage = `
-📋 Pedido: #${order.id}
+*📋 Pedido: #${order.id}*
 
-  Cliente: ${order.user?.username || 'N/A'}
-  Telefone: ${order.user?.phone || order.shippingPhone || 'N/A'}
-  📍Endereço: ${address || 'Endereço não informado'}
-  Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-  Itens: ${itemsList}
-━━━━━━━━━━━━━━━━━━━━
+*Cliente:* ${order.user?.username || 'N/A'}
+*Telefone:* ${order.user?.phone || order.shippingPhone || 'N/A'}
+
+*📍 Endereço:* ${address || 'Endereço não informado'}
+
+*Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+*Itens:* ${itemsList}
+
     `.trim();
 
     // Mensagem para o cliente
     const customerMessage = `
-  Seu pedido #${order.id} está a caminho!
+*Seu pedido #${order.id} está a caminho!*
 
-  Entregador: ${deliverer?.nome || 'N/A'}
-  Contato: ${deliverer?.telefone || 'N/A'}
-  📍 Endereço: ${address || 'Endereço não informado'}
-  Valor: R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Obrigado pela preferência!
+*Entregador:* ${deliverer?.nome || 'N/A'}
+*Contato:* ${deliverer?.telefone || 'N/A'}
+
+*📍 Endereço:* ${address || 'Endereço não informado'}
+
+*Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+
+*Obrigado pela preferência!* 💜
     `.trim();
 
     console.log('📱 Enviando notificações via Z-API...');
@@ -238,20 +290,18 @@ const sendPaymentConfirmationNotification = async (order) => {
     }).join('\n') || 'Itens não disponíveis';
 
     const customerMessage = `
-  Seu pagamento foi confirmado com sucesso!✅
+*Seu pagamento foi confirmado com sucesso!✅*
 
-  Pedido #${order.id}
-  Valor: R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
-  Itens: ${itemsList}
+*Pedido #${order.id}*
+*Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+*Itens:* ${itemsList}
 
-  Seu pedido já está em preparo!
+*Seu pedido já está em preparo!*
+
 ${order.tipoEntrega === 'delivery' ? 
-  `Será entregue em: ${order.ruaEntrega}, ${order.numeroEntrega}${order.complementoEntrega ? ` - ${order.complementoEntrega}` : ''} - ${order.bairroEntrega}` :
-  ' Aguarde a notificação para retirada'
-}
-
-━━━━━━━━━━━━━━━━━━━━━━
-    `.trim();
+  `*Será entregue em:* ${order.ruaEntrega}, ${order.numeroEntrega}${order.complementoEntrega ? ` - ${order.complementoEntrega}` : ''} - ${order.bairroEntrega}` :
+  '*Aguarde a notificação para retirada*'
+}`.trim();
 
     console.log('📱 Enviando notificação de pagamento confirmado via Z-API...');
     // Buscar telefone do usuário (preferencial) ou telefone de entrega
@@ -311,17 +361,17 @@ const sendCookNotification = async (order, cook) => {
 
     // Mensagem para o cozinheiro
     const cookMessage = `
- NOVO PEDIDO PARA PREPARAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Pedido: #${order.id}
- Cliente: ${order.usuario?.nomeUsuario || 'N/A'}
-${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
-💰 Valor: R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+ *NOVO PEDIDO PARA PREPARAR*
 
-🍽️ ITENS DO PEDIDO:
+ *Pedido:* #${order.id}
+ *Cliente:* ${order.usuario?.nomeUsuario || 'N/A'}
+${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
+*💰 Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+
+*🍽️ ITENS DO PEDIDO:*
 ${itemsList}
 
-${order.observacoes ? ` OBSERVAÇÕES DO CLIENTE:\n${order.observacoes}\n` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${order.observacoes ? ` *OBSERVAÇÕES DO CLIENTE:*\n${order.observacoes}\n` : ''}
     `.trim();
 
     console.log('📱 Enviando notificação para cozinheiro via Z-API...');
@@ -365,5 +415,6 @@ module.exports = {
   sendPickupNotification,
   sendPaymentConfirmationNotification,
   sendCookNotification,
+  sendDeliveredConfirmationNotification,
   sendWhatsAppMessageZApi
 };
