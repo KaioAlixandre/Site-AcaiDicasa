@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 
 const diasSemana = [
@@ -16,6 +17,7 @@ const Configuracoes: React.FC = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const { notify } = useNotification();
   useEffect(() => {
     apiService.getStoreConfig().then((data) => {
       // Mapear os nomes dos campos do backend para o frontend
@@ -33,6 +35,7 @@ const Configuracoes: React.FC = () => {
     }).catch(error => {
       console.error('Erro ao carregar configurações:', error);
       setLoading(false);
+      notify('Erro ao carregar configurações', 'error');
     });
   }, []);
 
@@ -79,11 +82,11 @@ const Configuracoes: React.FC = () => {
     try {
       await apiService.updateStoreConfig(dataToSend);
       setLoading(false);
-      alert('Configurações salvas com sucesso!');
+      notify('Configurações salvas com sucesso!', 'success');
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       setLoading(false);
-      alert('Erro ao salvar configurações. Tente novamente.');
+      notify('Erro ao salvar configurações. Tente novamente.', 'error');
     }
   };
 

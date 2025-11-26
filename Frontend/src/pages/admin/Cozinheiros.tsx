@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNotification } from '../../components/NotificationProvider';
 import { Pencil, Trash2, Plus, ChefHat, Phone, User } from 'lucide-react';
 
 interface Cozinheiro {
@@ -20,6 +21,7 @@ const Cozinheiros: React.FC = () => {
     ativo: true
   });
 
+  const { notify } = useNotification();
   const loadCozinheiros = async () => {
     try {
       setLoading(true);
@@ -32,7 +34,7 @@ const Cozinheiros: React.FC = () => {
       setCozinheiros(data);
     } catch (error) {
       console.error('Erro ao carregar cozinheiros:', error);
-      alert('Erro ao carregar cozinheiros');
+      notify('Erro ao carregar cozinheiros', 'error');
     } finally {
       setLoading(false);
     }
@@ -73,15 +75,12 @@ const Cozinheiros: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const token = localStorage.getItem('token');
       const url = editingCozinheiro 
         ? `http://localhost:3001/api/cozinheiros/${editingCozinheiro.id}`
         : 'http://localhost:3001/api/cozinheiros';
-      
       const method = editingCozinheiro ? 'PUT' : 'POST';
-      
       const response = await fetch(url, {
         method,
         headers: {
@@ -90,23 +89,20 @@ const Cozinheiros: React.FC = () => {
         },
         body: JSON.stringify(formData)
       });
-
       if (!response.ok) {
         throw new Error('Erro ao salvar cozinheiro');
       }
-
-      alert(editingCozinheiro ? 'Cozinheiro atualizado com sucesso!' : 'Cozinheiro cadastrado com sucesso!');
+      notify(editingCozinheiro ? 'Cozinheiro atualizado com sucesso!' : 'Cozinheiro cadastrado com sucesso!', 'success');
       handleCloseModal();
       loadCozinheiros();
     } catch (error) {
       console.error('Erro ao salvar cozinheiro:', error);
-      alert('Erro ao salvar cozinheiro');
+      notify('Erro ao salvar cozinheiro', 'error');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este cozinheiro?')) return;
-
+    if (!window.confirm('Tem certeza que deseja excluir este cozinheiro?')) return;
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3001/api/cozinheiros/${id}`, {
@@ -115,16 +111,14 @@ const Cozinheiros: React.FC = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-
       if (!response.ok) {
         throw new Error('Erro ao excluir cozinheiro');
       }
-
-      alert('Cozinheiro excluído com sucesso!');
+      notify('Cozinheiro excluído com sucesso!', 'success');
       loadCozinheiros();
     } catch (error) {
       console.error('Erro ao excluir cozinheiro:', error);
-      alert('Erro ao excluir cozinheiro');
+      notify('Erro ao excluir cozinheiro', 'error');
     }
   };
 

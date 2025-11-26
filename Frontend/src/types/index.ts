@@ -35,6 +35,7 @@ export interface Product {
   isActive: boolean;
   isFeatured?: boolean;
   receiveComplements?: boolean;
+  quantidadeComplementos?: number;
   createdAt: string;
   images?: ProductImage[];
   options?: ProductOption[];

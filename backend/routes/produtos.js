@@ -92,6 +92,7 @@ router.get('/category/:categoriaId', async (req, res) => {
             isActive: product.ativo,
             isFeatured: product.destaque || false,
             receiveComplements: product.recebeComplementos || false,
+            quantidadeComplementos: product.quantidadeComplementos ?? 0,
             createdAt: product.criadoEm || new Date(),
             updatedAt: product.atualizadoEm || new Date(),
             category: product.categoria ? {
@@ -117,7 +118,7 @@ router.get('/category/:categoriaId', async (req, res) => {
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
 router.post('/add', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
-    const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements } = req.body;
+    const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements, quantidadeComplementos } = req.body;
     console.log('Categoria recebida:', categoriaId);
     console.log('Destaque:', isFeatured);
     console.log('Recebe complementos:', receiveComplements);
@@ -154,6 +155,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
                 categoriaId: parseInt(categoriaId),
                 destaque: isFeatured === 'true' || isFeatured === true,
                 recebeComplementos: receiveComplements === 'true' || receiveComplements === true,
+                quantidadeComplementos: receiveComplements === 'true' || receiveComplements === true ? parseInt(quantidadeComplementos) || 0 : 0,
                 imagens_produto: imagesData.length > 0 ? { create: imagesData } : undefined
             },
             include: { imagens_produto: true }
@@ -173,7 +175,7 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
 // Rota para atualizar um produto existente (apenas para administradores)
 router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
     const { id } = req.params;
-    const { nome, preco, descricao, categoriaId, ativo, isFeatured, receiveComplements } = req.body;
+    const { nome, preco, descricao, categoriaId, ativo, isFeatured, receiveComplements, quantidadeComplementos } = req.body;
     const imageFiles = req.files || [];
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
     console.log('📝 Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
@@ -202,7 +204,8 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             categoriaId: parseInt(categoriaId),
             ativo: ativo === 'true' || ativo === true,
             destaque: isFeatured === 'true' || isFeatured === true,
-            recebeComplementos: receiveComplements === 'true' || receiveComplements === true
+            recebeComplementos: receiveComplements === 'true' || receiveComplements === true,
+            quantidadeComplementos: receiveComplements === 'true' || receiveComplements === true ? parseInt(quantidadeComplementos) || 0 : 0
         };
         
         // Se houver novas imagens, deletar as antigas do banco e enviar as novas para o Cloudinary
@@ -293,6 +296,7 @@ router.get('/', async (req, res) => {
             isActive: product.ativo,
             isFeatured: product.destaque || false,
             receiveComplements: product.recebeComplementos || false,
+            quantidadeComplementos: product.quantidadeComplementos ?? 0,
             createdAt: product.criadoEm || new Date(),
             updatedAt: product.atualizadoEm || new Date(),
             category: product.categoria ? {
@@ -355,6 +359,7 @@ router.get('/:id', async (req, res) => {
             isActive: product.ativo,
             isFeatured: product.destaque || false,
             receiveComplements: product.recebeComplementos || false,
+            quantidadeComplementos: product.quantidadeComplementos ?? 0,
             createdAt: product.criadoEm || new Date(),
             updatedAt: product.atualizadoEm || new Date(),
             category: product.categoria ? {

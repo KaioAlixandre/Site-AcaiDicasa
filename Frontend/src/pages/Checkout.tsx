@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotification } from '../components/NotificationProvider';
 import { useNavigate } from 'react-router-dom';
 import { 
   CreditCard, 
@@ -28,6 +29,7 @@ const paymentMethods = [
 const Checkout: React.FC = () => {
   const { items, total, clearCart } = useCart();
   const { user, refreshUserProfile } = useAuth();
+  const { notify } = useNotification();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' ou 'pickup'
   const [loading, setLoading] = useState(false);
@@ -69,7 +71,7 @@ const Checkout: React.FC = () => {
         if (config) {
           const status = checkStoreStatus(config);
           if (!status.isOpen) {
-            alert(`A loja está fechada: ${status.reason}\n${status.nextOpenTime || ''}`);
+            notify(`A loja está fechada: ${status.reason}${status.nextOpenTime ? '\n' + status.nextOpenTime : ''}`, 'error');
             navigate('/cart');
           }
         }
@@ -115,11 +117,11 @@ const Checkout: React.FC = () => {
     try {
       await apiService.addAddress(addressForm);
       await refreshUserProfile();
-      alert('Endereço cadastrado com sucesso!');
+      notify('Endereço cadastrado com sucesso!', 'success');
       // Redirecionar para adicionar telefone
       navigate('/add-phone');
     } catch (error) {
-      alert('Erro ao cadastrar endereço!');
+      notify('Erro ao cadastrar endereço!', 'error');
     }
     setAddressLoading(false);
   };
@@ -127,14 +129,14 @@ const Checkout: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentMethod) {
-      alert('Selecione uma forma de pagamento!');
+      notify('Selecione uma forma de pagamento!', 'warning');
       return;
     }
     setLoading(true);
     try {
       // Envie os dados do pedido para o backend
       if (!user) {
-        alert('Usuário não autenticado!');
+        notify('Usuário não autenticado!', 'error');
         setLoading(false);
         return;
       }
@@ -147,10 +149,10 @@ const Checkout: React.FC = () => {
         notes: orderNotes.trim() || undefined, // Adiciona observações se houver
       });
       clearCart();
-      alert('Pedido realizado com sucesso!');
+      notify('Pedido realizado com sucesso!', 'success');
       navigate('/orders');
     } catch (err: any) {
-      alert('Erro ao finalizar pedido!\n' + (err?.response?.data?.message || err.message));
+      notify('Erro ao finalizar pedido! ' + (err?.response?.data?.message || err.message), 'error');
       
     }
     setLoading(false);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotification } from '../../../components/NotificationProvider';
 import { Product, ProductCategory } from '../../../types';
 import { X, Upload } from 'lucide-react';
 
@@ -18,7 +19,8 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
     isFeatured: product.isFeatured || false,
     receiveComplements: product.receiveComplements || false,
     description: product.description || '',
-    images: [] as File[]
+    images: [] as File[],
+    quantidadeComplementos: product.quantidadeComplementos !== undefined && product.quantidadeComplementos !== null ? String(product.quantidadeComplementos) : ''
   });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -57,6 +59,10 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
       });
     } else if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
       setForm({ ...form, [name]: e.target.checked });
+      // Se desmarcar receiveComplements, limpa quantidadeComplementos
+      if (name === 'receiveComplements' && !e.target.checked) {
+        setForm(f => ({ ...f, quantidadeComplementos: '' }));
+      }
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -84,12 +90,13 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
     formData.append('ativo', String(form.isActive));
     formData.append('isFeatured', String(form.isFeatured));
     formData.append('receiveComplements', String(form.receiveComplements));
-    
+    if (form.receiveComplements) {
+      formData.append('quantidadeComplementos', form.quantidadeComplementos || '0');
+    }
     // Adicionar todas as novas imagens
     form.images.forEach((image) => {
       formData.append('images', image);
     });
-
     onUpdate(product.id, formData);
   };
 
@@ -287,18 +294,36 @@ const EditProductModal: React.FC<Props> = ({ categories, product, onClose, onUpd
                 Produto em destaque (aparecerá primeiro)
               </label>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-              <input 
-                type="checkbox" 
-                id="receiveComplements"
-                name="receiveComplements" 
-                checked={form.receiveComplements} 
-                onChange={handleChange}
-                className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-2 focus:ring-purple-500"
-              />
-              <label htmlFor="receiveComplements" className="text-sm font-medium text-slate-700 cursor-pointer">
-               Produto aceita complementos
-              </label>
+            <div className="flex flex-col gap-2 p-3 bg-purple-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="receiveComplements"
+                  name="receiveComplements" 
+                  checked={form.receiveComplements} 
+                  onChange={handleChange}
+                  className="w-4 h-4 text-purple-600 border-purple-300 rounded focus:ring-2 focus:ring-purple-500"
+                />
+                <label htmlFor="receiveComplements" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  Produto aceita complementos
+                </label>
+              </div>
+              {form.receiveComplements && (
+                <div className="flex items-center gap-2 mt-2">
+                  <label htmlFor="quantidadeComplementos" className="text-xs font-medium text-slate-700">Quantidade de complementos permitidos:</label>
+                  <input
+                    type="number"
+                    id="quantidadeComplementos"
+                    name="quantidadeComplementos"
+                    min={1}
+                    max={10}
+                    value={form.quantidadeComplementos}
+                    onChange={handleChange}
+                    className="w-16 px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                    required
+                  />
+                </div>
+              )}
             </div>
           </div>
 

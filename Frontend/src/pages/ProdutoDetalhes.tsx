@@ -7,10 +7,13 @@ import apiService from '../services/api';
 import { Product, Complement } from '../types';
 import Loading from '../components/Loading';
 
+import { useNotification } from '../components/NotificationProvider';
+
 const ProdutoDetalhes: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { notify } = useNotification();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [complements, setComplements] = useState<Complement[]>([]);
@@ -72,11 +75,11 @@ const ProdutoDetalhes: React.FC = () => {
     try {
       setAddingToCart(true);
       await addItem(product.id, quantity, selectedComplements);
-      alert('Produto adicionado ao carrinho!');
+      notify('Produto adicionado ao carrinho!', 'success');
       navigate('/cart');
     } catch (error) {
       console.error('Erro ao adicionar ao carrinho:', error);
-      alert('Erro ao adicionar produto ao carrinho');
+      notify('Erro ao adicionar produto ao carrinho', 'error');
     } finally {
       setAddingToCart(false);
     }
@@ -224,6 +227,11 @@ const ProdutoDetalhes: React.FC = () => {
                 <h2 className="text-base md:text-xl font-bold text-slate-900 mb-3 md:mb-5">
                   Complementos Disponíveis
                 </h2>
+                {Number(product.quantidadeComplementos) > 0 && (
+                  <div className="mb-3 md:mb-4 text-xs md:text-sm text-purple-700 font-semibold flex items-center gap-2">
+                    <span>Você pode escolher até <span className="font-bold">{product.quantidadeComplementos}</span> complemento{Number(product.quantidadeComplementos) > 1 ? 's' : ''} para este produto.</span>
+                  </div>
+                )}
 
                 {/* Filtros de Busca */}
                 <div className="mb-4 md:mb-6 space-y-3">

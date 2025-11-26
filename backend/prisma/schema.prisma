@@ -242,6 +242,7 @@ model produto {
   ativo              Boolean              @default(true)
   destaque           Boolean              @default(false)
   recebeComplementos Boolean              @default(false)
+  quantidadeComplementos Int?             @default(0)
   itens_carrinho     item_carrinho[]
   itens_pedido       item_pedido[]
   categoria          categoria_produto?   @relation(fields: [categoriaId], references: [id], map: "Product_categoryId_fkey")

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 import { Deliverer } from '../../types';
 import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X } from 'lucide-react';
@@ -18,6 +19,7 @@ const Entregadores: React.FC = () => {
     loadDeliverers();
   }, []);
 
+  const { notify } = useNotification();
   const loadDeliverers = async () => {
     try {
       setLoading(true);
@@ -25,7 +27,7 @@ const Entregadores: React.FC = () => {
       setDeliverers(deliverersData);
     } catch (error) {
       console.error('Erro ao carregar entregadores:', error);
-      alert('Erro ao carregar entregadores');
+      notify('Erro ao carregar entregadores', 'error');
     } finally {
       setLoading(false);
     }
@@ -60,22 +62,21 @@ const Entregadores: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone) {
-      alert('Nome e telefone são obrigatórios');
+      notify('Nome e telefone são obrigatórios', 'warning');
       return;
     }
-
     try {
       if (editingDeliverer) {
         await apiService.updateDeliverer(editingDeliverer.id, form);
-        alert('Entregador atualizado com sucesso!');
+        notify('Entregador atualizado com sucesso!', 'success');
       } else {
         await apiService.createDeliverer(form);
-        alert('Entregador cadastrado com sucesso!');
+        notify('Entregador cadastrado com sucesso!', 'success');
       }
       closeModal();
       loadDeliverers();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Erro ao salvar entregador');
+      notify(error.response?.data?.message || 'Erro ao salvar entregador', 'error');
     }
   };
 
@@ -83,10 +84,10 @@ const Entregadores: React.FC = () => {
     if (window.confirm('Tem certeza que deseja remover este entregador?')) {
       try {
         await apiService.deleteDeliverer(id);
-        alert('Entregador removido com sucesso!');
+        notify('Entregador removido com sucesso!', 'success');
         loadDeliverers();
       } catch (error: any) {
-        alert(error.response?.data?.message || 'Erro ao remover entregador');
+        notify(error.response?.data?.message || 'Erro ao remover entregador', 'error');
       }
     }
   };
@@ -96,7 +97,7 @@ const Entregadores: React.FC = () => {
       await apiService.toggleDelivererStatus(id);
       loadDeliverers();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Erro ao alterar status do entregador');
+      notify(error.response?.data?.message || 'Erro ao alterar status do entregador', 'error');
     }
   };
 
