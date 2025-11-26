@@ -58,6 +58,7 @@ const Produtos: React.FC<{
               <th className="p-3 text-center text-xs">Status</th>
               <th className="p-3 text-center text-xs">Destaque</th>
               <th className="p-3 text-center text-xs">Complementos</th>
+              <th className="p-3 text-center text-xs">Qtd. Compl.</th>
               <th className="p-3 text-center text-xs">Ações</th>
             </tr>
           </thead>
@@ -94,11 +95,20 @@ const Produtos: React.FC<{
                   )}
                 </td>
                 <td className="p-3 text-center">
-                  {prod.receiveComplements && (
+                  {prod.receiveComplements ? (
                     <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
                        Sim
                     </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-400">
+                       Não
+                    </span>
                   )}
+                </td>
+                <td className="p-3 text-center">
+                  <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-50 text-purple-700">
+                    {prod.quantidadeComplementos ?? '-'}
+                  </span>
                 </td>
                 <td className="p-3 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -148,6 +158,11 @@ const Produtos: React.FC<{
                     )}
                     {prod.receiveComplements && (
                       <span className="text-purple-500" title="Aceita complementos">🍓</span>
+                    )}
+                    {prod.receiveComplements && (
+                      <span className="ml-1 text-xs text-purple-700 bg-purple-50 rounded px-1.5 py-0.5" title="Quantidade de complementos">
+                        {prod.quantidadeComplementos}
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-slate-500">{prod.category?.name || 'Sem categoria'}</p>

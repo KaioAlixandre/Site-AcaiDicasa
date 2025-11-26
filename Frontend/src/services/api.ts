@@ -140,6 +140,7 @@ class ApiService {
       images: Array.isArray(p.images)
         ? p.images.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText || '' }))
         : [],
+      quantidadeComplementos: p.quantidadeComplementos ?? 0,
     }));
   }
 
@@ -153,6 +154,7 @@ class ApiService {
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
+      quantidadeComplementos: p.quantidadeComplementos ?? 0,
       receiveComplements: Boolean(p.receiveComplements),
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
@@ -173,6 +175,7 @@ class ApiService {
       description: p.description ?? '',
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
+      quantidadeComplementos: p.quantidadeComplementos ?? 0,
       receiveComplements: Boolean(p.receiveComplements),
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,

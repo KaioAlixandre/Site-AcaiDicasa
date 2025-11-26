@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNotification } from '../../../components/NotificationProvider';
 import { ProductCategory } from '../../../types';
 import { X, Upload } from 'lucide-react';
 
@@ -276,11 +275,11 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
                     id="quantidadeComplementos"
                     name="quantidadeComplementos"
                     min={1}
-                    max={10}
                     value={form.quantidadeComplementos}
                     onChange={handleChange}
                     className="w-16 px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-                    required
+                    placeholder="Ex: 3"
+                    title="Informe um valor maior ou igual a 1"
                   />
                 </div>
               )}

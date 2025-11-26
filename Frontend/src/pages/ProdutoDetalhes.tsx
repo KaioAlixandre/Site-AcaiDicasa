@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, Check, Search, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
@@ -20,6 +19,7 @@ const ProdutoDetalhes: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [selectedComplements, setSelectedComplements] = useState<number[]>([]);
+  const lastNotifyRef = useRef<{ msg: string; ts: number }>({ msg: '', ts: 0 });
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,10 +54,22 @@ const ProdutoDetalhes: React.FC = () => {
   };
 
   const toggleComplement = (complementId: number) => {
+    // Limitar seleção pelo valor definido em product.quantidadeComplementos
+    if (!product) return;
+    const max = Number(product.quantidadeComplementos) || 0;
     setSelectedComplements((prev) => {
       if (prev.includes(complementId)) {
         return prev.filter((id) => id !== complementId);
       } else {
+        if (max > 0 && prev.length >= max) {
+          const message = `Você pode escolher no máximo ${max} complemento${max > 1 ? 's' : ''}.`;
+          const now = Date.now();
+          if (lastNotifyRef.current.msg !== message || now - lastNotifyRef.current.ts > 1000) {
+            lastNotifyRef.current = { msg: message, ts: now };
+            notify(message, 'warning');
+          }
+          return prev;
+        }
         return [...prev, complementId];
       }
     });
@@ -371,7 +383,7 @@ const ProdutoDetalhes: React.FC = () => {
                                   selectedComplements.includes(complement.id)
                                     ? 'border-purple-600 bg-purple-50'
                                     : 'border-slate-200 bg-white hover:border-slate-300'
-                                }`}
+                                } ${!selectedComplements.includes(complement.id) && Number(product.quantidadeComplementos) > 0 && selectedComplements.length >= Number(product.quantidadeComplementos) ? 'opacity-60' : ''}`}
                               >
                                 <div className="flex items-center gap-2.5 md:gap-4">
                                   {/* Imagem do complemento */}
@@ -437,7 +449,7 @@ const ProdutoDetalhes: React.FC = () => {
                                   selectedComplements.includes(complement.id)
                                     ? 'border-purple-600 bg-purple-50'
                                     : 'border-slate-200 bg-white hover:border-slate-300'
-                                }`}
+                                } ${!selectedComplements.includes(complement.id) && Number(product.quantidadeComplementos) > 0 && selectedComplements.length >= Number(product.quantidadeComplementos) ? 'opacity-60' : ''}`}
                               >
                                 <div className="flex items-center gap-2.5 md:gap-4">
                                   {/* Imagem do complemento */}

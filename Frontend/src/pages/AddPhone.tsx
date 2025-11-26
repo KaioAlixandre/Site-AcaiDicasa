@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useNotification } from '../components/NotificationProvider';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const AddPhone: React.FC = () => {
+function AddPhone() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -37,8 +36,7 @@ const AddPhone: React.FC = () => {
           onChange={e => setPhone(e.target.value)}
           placeholder="Telefone (ex: (99) 99999-9999)"
           required
-          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
+          className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         <button
           type="submit"
           className="w-full bg-indigo-600 text-white py-3 rounded font-semibold hover:bg-indigo-700 transition-colors"
@@ -49,7 +47,7 @@ const AddPhone: React.FC = () => {
       </form>
     </div>
   );
-};
+}
 
 export default AddPhone;
 
