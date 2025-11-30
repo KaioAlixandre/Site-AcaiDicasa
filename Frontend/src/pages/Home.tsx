@@ -132,7 +132,7 @@ const Home: React.FC = () => {
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-semibold ${isStoreOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                 {isStoreOpen ? 'ABERTO' : 'FECHADO'}
               </span>
-              <a href="#" aria-label="Instagram" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
+              <a href="https://www.instagram.com/acaiteria_acaidicasa/" target='_blank' aria-label="Instagram" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Instagram className="w-5 h-5" />
               </a>
               <a href="#" aria-label="WhatsApp" className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50">
@@ -145,7 +145,7 @@ const Home: React.FC = () => {
           {!isStoreOpen && storeStatusMessage && (
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-800 text-center">
-                <span className="font-semibold">⏰ Loja fechada no momento.</span>
+                <span className="font-semibold">Loja fechada no momento.</span>
                 <br />
                 {storeStatusMessage}
               </p>

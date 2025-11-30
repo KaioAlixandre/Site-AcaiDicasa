@@ -350,7 +350,6 @@ const Profile: React.FC = () => {
                     </>
                   )}
                 </div>
-                // ...restante do código permanece igual
                 
                 {/* Stats Cards */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">

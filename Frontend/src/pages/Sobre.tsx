@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Heart, Clock, Award } from 'lucide-react';
+import { Store, Heart, Clock, Award, Bold } from 'lucide-react';
 
 const Sobre: React.FC = () => {
   return (
@@ -30,6 +30,19 @@ const Sobre: React.FC = () => {
           </div>
         </div>
 
+        {/* História */}
+        <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-6 md:p-8 mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4 md:mb-6">Desenvolvedores</h2>
+          <div className="prose prose-sm md:prose-lg max-w-none text-slate-600">
+            <p className="text-sm md:text-base leading-relaxed mb-4">
+              Site desenvolvido por <a href="https://www.instagram.com/kaioalixandre/" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline underline-offset-2 transition">Kaio Alixandre</a> e <a href="https://www.instagram.com/zzaleog/" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline underline-offset-2 transition">Isaleo Guimaraes</a> como parte do projeto final do curso de Desenvolvimento Web da <strong>EBAC - Escola Britânica de Artes Criativas e Tecnologia</strong>.
+            </p>
+            <p className="text-sm md:text-base leading-relaxed">
+              Nosso objetivo foi criar uma plataforma funcional, intuitiva e visualmente atraente para 
+              o Açaí Di Casa, aplicando as melhores práticas de desenvolvimento web aprendidas ao longo do curso.
+            </p>
+          </div>
+        </div>
         {/* Valores */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-5 md:p-6 text-center">
