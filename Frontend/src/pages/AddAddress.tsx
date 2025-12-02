@@ -13,7 +13,7 @@ const AddAddress: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
   const { notify } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

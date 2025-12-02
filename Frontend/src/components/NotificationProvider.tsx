@@ -19,7 +19,7 @@ let notificationId = 0;
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const timeoutRefs = useRef<{ [key: number]: number }>({});
+  const timeoutRefs = useRef<{ [key: number]: ReturnType<typeof setTimeout> }>({});
 
   const removeNotification = (id: number) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));

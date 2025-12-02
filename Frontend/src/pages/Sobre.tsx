@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Heart, Clock, Award, Bold } from 'lucide-react';
+import { Store, Heart, Clock, Award } from 'lucide-react';
 
 const Sobre: React.FC = () => {
   return (

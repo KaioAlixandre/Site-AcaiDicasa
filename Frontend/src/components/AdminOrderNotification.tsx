@@ -81,7 +81,7 @@ const AdminOrderNotification: React.FC = () => {
   }
   return (
     <>
-      <audio ref={audioRef} src="\public\audio.m4a" preload="auto" loop />
+      <audio ref={audioRef} src="\public\audio.mp3" preload="auto" loop />
       {show && (
         <div
           className="fixed top-4 left-4 z-[9999] flex items-center justify-center w-16 h-16 bg-purple-600 text-white rounded-full shadow-lg animate-fade-in cursor-pointer notification-status-ring"

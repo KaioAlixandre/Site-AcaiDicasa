@@ -38,7 +38,7 @@ const Configuracoes: React.FC = () => {
       setDeliveryStart(mappedData.deliveryStart);
       setDeliveryEnd(mappedData.deliveryEnd);
       setLoading(false);
-    }).catch(error => {
+    }).catch(() => {
       setLoading(false);
       notify('Erro ao carregar configurações', 'error');
     });
