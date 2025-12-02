@@ -49,7 +49,8 @@ const Cart: React.FC = () => {
 
   const handleCheckout = () => {
     if (!user) {
-      navigate('/login');
+      // Redirecionar para checkout para permitir cadastro direto no fluxo de finalização
+      navigate('/checkout');
       return;
     }
 

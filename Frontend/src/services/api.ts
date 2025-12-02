@@ -46,7 +46,13 @@ class ApiService {
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          // Redirecionar para checkout para permitir fluxo de cadastro/checkout quando não autenticado
+          try {
+            window.location.href = '/checkout';
+          } catch (e) {
+            // fallback: se não for possível, navegar para /login (evita quebrar em ambientes sem window)
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }

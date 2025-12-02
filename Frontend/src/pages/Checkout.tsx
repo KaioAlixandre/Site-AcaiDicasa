@@ -28,7 +28,7 @@ const paymentMethods = [
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart } = useCart();
-  const { user, refreshUserProfile } = useAuth();
+  const { user, refreshUserProfile, register, login } = useAuth();
   const { notify } = useNotification();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' ou 'pickup'
@@ -47,6 +47,21 @@ const Checkout: React.FC = () => {
   const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
   const [promoFreteValorMinimo, setPromoFreteValorMinimo] = useState(0);
   const navigate = useNavigate();
+
+  // States para o fluxo de cadastro em checkout (quando não há usuário logado)
+  const [regStep, setRegStep] = useState<number>(1); // 1 = nome, 2 = email+senha
+  const [regName, setRegName] = useState<string>('');
+  const [regEmail, setRegEmail] = useState<string>('');
+  const [regPassword, setRegPassword] = useState<string>('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
+  const [regLoading, setRegLoading] = useState<boolean>(false);
+  const [regError, setRegError] = useState<string>('');
+  // Estado para login rápido dentro do checkout
+  const [loginMode, setLoginMode] = useState<boolean>(false);
+  const [loginEmailLocal, setLoginEmailLocal] = useState<string>('');
+  const [loginPasswordLocal, setLoginPasswordLocal] = useState<string>('');
+  const [loginLoadingLocal, setLoginLoadingLocal] = useState<boolean>(false);
+  const [loginErrorLocal, setLoginErrorLocal] = useState<string>('');
 
   const deliveryFee = 3.00; // Taxa de entrega base
   
@@ -295,6 +310,260 @@ const Checkout: React.FC = () => {
               </form>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não há usuário logado, mostrar fluxo de cadastro em duas etapas
+  if (!user) {
+    const handleNextFromName = (e: React.FormEvent) => {
+      e.preventDefault();
+      setRegError('');
+      if (!regName || regName.trim().length < 2) {
+        setRegError('Por favor, informe seu nome.');
+        return;
+      }
+      setRegStep(2);
+    };
+
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setRegError('');
+      if (!regEmail || !regPassword) {
+        setRegError('Preencha email e senha');
+        return;
+      }
+      if (regPassword.length < 6) {
+        setRegError('A senha deve ter pelo menos 6 caracteres');
+        return;
+      }
+      if (regPassword !== regConfirmPassword) {
+        setRegError('As senhas não coincidem');
+        return;
+      }
+
+      try {
+        setRegLoading(true);
+        // Criar conta
+        await register(regName.trim(), regEmail.trim(), regPassword);
+        // Fazer login automático
+        await login(regEmail.trim(), regPassword);
+        // Após login, verificar perfil e decidir próximo passo
+        try {
+          const profile = await apiService.getProfile();
+          if (profile.enderecos && profile.enderecos.length > 0 && profile.telefone && profile.telefone.trim() !== '') {
+            setRegError('');
+            setLoginMode(false);
+            return;
+          }
+          if (!profile.enderecos || profile.enderecos.length === 0) {
+            navigate('/add-address');
+            return;
+          }
+          if (!profile.telefone || profile.telefone.trim() === '') {
+            navigate('/add-phone');
+            return;
+          }
+        } catch (errProfile) {
+          navigate('/add-address');
+          return;
+        }
+      } catch (err: any) {
+        setRegError(err.message || 'Erro ao criar conta');
+      } finally {
+        setRegLoading(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div className="max-w-md sm:max-w-lg lg:max-w-xl w-full bg-white rounded-xl shadow p-6 sm:p-8 border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 text-center">Criar Conta para Finalizar Pedido</h2>
+
+          {/* Link para alternar para login rápido */}
+          <div className="text-center mb-3">
+            {!loginMode ? (
+              <button
+                type="button"
+                onClick={() => { setLoginMode(true); setRegError(''); setLoginErrorLocal(''); }}
+                className="text-sm text-purple-600 hover:underline"
+              >Já tenho uma conta — Fazer login</button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setLoginMode(false); setLoginErrorLocal(''); }}
+                className="text-sm text-slate-600 hover:underline"
+              >Voltar ao cadastro</button>
+            )}
+          </div>
+
+          {loginMode ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setLoginErrorLocal('');
+                if (!loginEmailLocal || !loginPasswordLocal) {
+                  setLoginErrorLocal('Preencha email e senha');
+                  return;
+                }
+                try {
+                  setLoginLoadingLocal(true);
+                  await login(loginEmailLocal.trim(), loginPasswordLocal);
+                  // Buscar perfil atualizado e decidir próximo passo
+                  try {
+                    const profile = await apiService.getProfile();
+                    if (profile.enderecos && profile.enderecos.length > 0 && profile.telefone && profile.telefone.trim() !== '') {
+                      // Já tem endereço e telefone — fechar o card e permitir finalizar pedido
+                      setLoginMode(false);
+                      setRegError('');
+                      setLoginErrorLocal('');
+                      return;
+                    }
+                    if (!profile.enderecos || profile.enderecos.length === 0) {
+                      navigate('/add-address');
+                      return;
+                    }
+                    if (!profile.telefone || profile.telefone.trim() === '') {
+                      navigate('/add-phone');
+                      return;
+                    }
+                  } catch (errProfile) {
+                    // fallback: enviar para adicionar endereço
+                    navigate('/add-address');
+                    return;
+                  }
+                } catch (err: any) {
+                  setLoginErrorLocal(err.message || 'Erro ao efetuar login');
+                } finally {
+                  setLoginLoadingLocal(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <input
+                  value={loginEmailLocal}
+                  onChange={(e) => setLoginEmailLocal(e.target.value)}
+                  type="email"
+                  placeholder="seu@exemplo.com"
+                  required
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Senha</label>
+                <input
+                  value={loginPasswordLocal}
+                  onChange={(e) => setLoginPasswordLocal(e.target.value)}
+                  type="password"
+                  placeholder="Sua senha"
+                  required
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+              {loginErrorLocal && <div className="text-sm text-red-600">{loginErrorLocal}</div>}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLoginMode(false)}
+                  className="w-full sm:w-auto text-sm text-slate-600 underline text-center"
+                >Voltar</button>
+                <button
+                  type="submit"
+                  disabled={loginLoadingLocal}
+                  className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 text-center"
+                >
+                  {loginLoadingLocal ? 'Entrando...' : 'Entrar'}
+                </button>
+              </div>
+            </form>
+          ) : regStep === 1 ? (
+            <form onSubmit={handleNextFromName} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Nome</label>
+                <input
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  placeholder="Seu nome completo"
+                  required
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+              {regError && <div className="text-sm text-red-600">{regError}</div>}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-center"
+                >
+                  Próximo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/cart')}
+                  className="w-full sm:w-auto text-sm text-slate-600 underline text-center"
+                >Voltar ao Carrinho</button>
+              </div>
+            </form>
+
+          ) : (
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <input
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  type="email"
+                  placeholder="seu@exemplo.com"
+                  required
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Senha</label>
+                  <input
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    type="password"
+                    placeholder="Senha (min 6 caracteres)"
+                    required
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">Confirmar Senha</label>
+                  <input
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    type="password"
+                    placeholder="Repita a senha"
+                    required
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  />
+                </div>
+              </div>
+
+              {regError && <div className="text-sm text-red-600">{regError}</div>}
+
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRegStep(1)}
+                  className="w-full sm:w-auto text-sm text-slate-600 underline text-center"
+                >Voltar</button>
+                <button
+                  type="submit"
+                  disabled={regLoading}
+                  className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 text-center"
+                >
+                  {regLoading ? 'Criando...' : 'Criar Conta e Continuar'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     );
