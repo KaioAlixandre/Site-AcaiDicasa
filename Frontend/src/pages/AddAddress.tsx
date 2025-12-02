@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../components/NotificationProvider';
 
 const AddAddress: React.FC = () => {
   const [form, setForm] = useState({
@@ -13,6 +14,7 @@ const AddAddress: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
+  const { notify } = useNotification();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -24,9 +26,10 @@ const AddAddress: React.FC = () => {
     try {
       const response = await apiService.addAddress(form);
       setUser(response.user); // Atualiza o contexto com o usuário atualizado
+      notify('Endereço cadastrado com sucesso!', 'success');
       navigate('/add-phone'); // Redireciona para a página de adicionar telefone após adicionar endereço
     } catch (err) {
-      alert('Erro ao cadastrar endereço!');
+      notify('Erro ao cadastrar endereço!', 'error');
     }
     setLoading(false);
   };

@@ -55,6 +55,13 @@ const Admin: React.FC = () => {
   // Estados do modal de seleção de entregador
   const [showDelivererModal, setShowDelivererModal] = useState(false);
   const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<Order | null>(null);
+  // Modal de confirmação para avançar status
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOrder, setConfirmOrder] = useState<AdvanceStatusOrder | null>(null);
+  const [confirmNextStatus, setConfirmNextStatus] = useState<string>('');
+  // Modal específico para confirmação de entrega
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
+  const [confirmDeliveryOrder, setConfirmDeliveryOrder] = useState<AdvanceStatusOrder | null>(null);
 
   // Verificar se o usuário tem permissão de admin
   useEffect(() => {
@@ -169,13 +176,30 @@ interface AdvanceStatusOrder {
   deliveryType?: string;
 }
 
-const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => {
+// Abre modal de confirmação antes de avançar o status
+const handleAdvanceStatus = (order: AdvanceStatusOrder): void => {
   const nextStatus = getNextStatus(order.status, order.deliveryType);
+  setConfirmOrder(order);
+  setConfirmNextStatus(nextStatus);
+  setConfirmOpen(true);
+};
 
-  // Confirmação antes de avançar o status
-  const statusLabel = getStatusInPortuguese(nextStatus);
-  const confirmMsg = `Deseja realmente avançar o status do pedido para "${statusLabel}"?`;
-  if (!window.confirm(confirmMsg)) {
+// Função que executa o avanço de status após confirmação
+const performAdvanceStatus = async (): Promise<void> => {
+  if (!confirmOrder) return;
+  const order = confirmOrder;
+  const nextStatus = confirmNextStatus || getNextStatus(order.status, order.deliveryType);
+
+  // Fechar modal de confirmação
+  setConfirmOpen(false);
+
+  // Se o próximo status for 'delivered', abrir modal específico para confirmar entrega
+  if (nextStatus === 'delivered') {
+    setConfirmDeliveryOrder(order);
+    setConfirmDeliveryOpen(true);
+    // limpar confirmOrder para evitar duplicidade
+    setConfirmOrder(null);
+    setConfirmNextStatus('');
     return;
   }
 
@@ -183,12 +207,22 @@ const handleAdvanceStatus = async (order: AdvanceStatusOrder): Promise<void> => 
   if (order.status === 'being_prepared' && nextStatus === 'on_the_way' && order.deliveryType === 'delivery') {
     setSelectedOrderForDelivery(order as Order);
     setShowDelivererModal(true);
+    // limpar confirmOrder quando o modal de entregador for exibido
+    setConfirmOrder(null);
+    setConfirmNextStatus('');
     return;
   }
 
   // Para outros casos (incluindo retirada), avançar status normalmente sem entregador
-  await apiService.advanceOrderStatus(order.id, nextStatus);
-  setOrders(await apiService.getOrdersAdmin());
+  try {
+    await apiService.advanceOrderStatus(order.id, nextStatus);
+    setOrders(await apiService.getOrdersAdmin());
+  } catch (err) {
+    console.error('Erro ao avançar status do pedido:', err);
+  } finally {
+    setConfirmOrder(null);
+    setConfirmNextStatus('');
+  }
 };
 
 const handleDelivererSelected = async (delivererId: number) => {
@@ -201,6 +235,21 @@ const handleDelivererSelected = async (delivererId: number) => {
     setSelectedOrderForDelivery(null);
   } catch (error) {
     console.error('Erro ao atribuir entregador:', error);
+  }
+};
+
+// Executa confirmação de entrega (quando o próximo status for 'delivered')
+const performConfirmDelivery = async (): Promise<void> => {
+  if (!confirmDeliveryOrder) return;
+  const order = confirmDeliveryOrder;
+  setConfirmDeliveryOpen(false);
+  try {
+    await apiService.advanceOrderStatus(order.id, 'delivered');
+    setOrders(await apiService.getOrdersAdmin());
+  } catch (err) {
+    console.error('Erro ao confirmar entrega:', err);
+  } finally {
+    setConfirmDeliveryOrder(null);
   }
 };
 
@@ -320,6 +369,58 @@ const handleDelivererSelected = async (delivererId: number) => {
         orderId={selectedOrderForDelivery?.id || 0}
         customerName={selectedOrderForDelivery?.user?.username || 'Cliente'}
       />
+
+      {/* Modal de Confirmação para Avançar Status */}
+      {confirmOpen && confirmOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirmar ação</h3>
+            <p className="text-sm text-slate-700 mb-4">
+              Deseja realmente avançar o status do pedido #{confirmOrder.id} para "{getStatusInPortuguese(confirmNextStatus)}"?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setConfirmOpen(false); setConfirmOrder(null); setConfirmNextStatus(''); }}
+                className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => { await performAdvanceStatus(); }}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal específico para Confirmar Entrega */}
+      {confirmDeliveryOpen && confirmDeliveryOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirmar Entrega</h3>
+            <p className="text-sm text-slate-700 mb-4">
+              Confirma que o pedido #{confirmDeliveryOrder.id} foi entregue ao cliente?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setConfirmDeliveryOpen(false); setConfirmDeliveryOrder(null); }}
+                className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => { await performConfirmDelivery(); }}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+              >
+                Confirmar Entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .sidebar-item.active {

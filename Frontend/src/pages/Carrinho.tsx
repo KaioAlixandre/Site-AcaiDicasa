@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/api';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
@@ -19,6 +20,7 @@ import Loading from '../components/Loading';
 const Cart: React.FC = () => {
   const { items, total, updateItem, removeItem, clearCart, loading } = useCart();
   const { user } = useAuth();
+  const { notify } = useNotification();
   const navigate = useNavigate();
   const [storeStatus, setStoreStatus] = useState<any>(null);
 
@@ -56,7 +58,7 @@ const Cart: React.FC = () => {
 
     // Verificar se a loja está aberta
     if (storeStatus && !storeStatus.isOpen) {
-      alert(`Não é possível finalizar o pedido: ${storeStatus.reason}\n${storeStatus.nextOpenTime || ''}`);
+      notify(`Não é possível finalizar o pedido: ${storeStatus.reason}${storeStatus.nextOpenTime ? '\n' + storeStatus.nextOpenTime : ''}`, 'error');
       return;
     }
 

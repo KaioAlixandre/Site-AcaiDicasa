@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../components/NotificationProvider';
 
 function AddPhone() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { refreshUserProfile } = useAuth();
+  const { notify } = useNotification();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,10 +17,10 @@ function AddPhone() {
     try {
       await apiService.updatePhone(phone);
       await refreshUserProfile(); // Atualizar perfil do usuário
-      alert('Telefone cadastrado com sucesso!');
+      notify('Telefone cadastrado com sucesso!', 'success');
       navigate('/checkout'); // Voltar para o checkout
     } catch (err) {
-      alert('Erro ao cadastrar telefone!');
+      notify('Erro ao cadastrar telefone!', 'error');
     }
     setLoading(false);
   };
