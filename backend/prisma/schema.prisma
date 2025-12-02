@@ -315,15 +315,17 @@ model avaliacao {
 }
 
 model configuracao_loja {
-  id          Int      @id @default(autoincrement())
-  aberto      Boolean  @default(true)
-  horaAbertura String   @db.VarChar(5)
-  horaFechamento String @db.VarChar(5)
-  diasAbertos String   @db.VarChar(20)
-  promocaoTaxaAtiva Boolean @default(false)
-  promocaoDias String?  @db.VarChar(20)
+  id                  Int      @id @default(autoincrement())
+  aberto              Boolean  @default(true)
+  horaAbertura        String   @db.VarChar(5)
+  horaFechamento      String   @db.VarChar(5)
+  diasAbertos         String   @db.VarChar(20)
+  promocaoTaxaAtiva   Boolean  @default(false)
+  promocaoDias        String?  @db.VarChar(20)
   promocaoValorMinimo Decimal? @db.Decimal(10, 2)
-  atualizadoEm DateTime @updatedAt
+  atualizadoEm        DateTime @updatedAt
+  horaEntregaInicio   String?  @db.VarChar(5)
+  horaEntregaFim      String?  @db.VarChar(5)
   
   @@map("configuracoes_loja")
 }

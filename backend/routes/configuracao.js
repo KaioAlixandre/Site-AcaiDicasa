@@ -18,7 +18,6 @@ router.get('/', async (req, res) => {
   try {
     console.log('📋 [GET /api/store-config] Procurando configuração existente no banco...');
     let config = await prisma.configuracao_loja.findFirst();
-    
     if (!config) {
       console.log('⚠️ [GET /api/store-config] Nenhuma configuração encontrada, criando configuração padrão...');
       config = await prisma.configuracao_loja.create({
@@ -26,14 +25,18 @@ router.get('/', async (req, res) => {
           aberto: true,
           horaAbertura: '08:00',
           horaFechamento: '18:00',
-          diasAbertos: '2,3,4,5,6,0'
+          diasAbertos: '2,3,4,5,6,0',
+          horaEntregaInicio: '08:00',
+          horaEntregaFim: '18:00'
         }
       });
       console.log('✨ [GET /api/store-config] Configuração padrão criada:', config);
     } else {
       console.log('✅ [GET /api/store-config] Configuração encontrada:', config);
     }
-    
+    // Garantir que os campos de entrega estejam presentes na resposta
+    if (!config.horaEntregaInicio) config.horaEntregaInicio = '08:00';
+    if (!config.horaEntregaFim) config.horaEntregaFim = '18:00';
     console.log('📤 [GET /api/store-config] Enviando resposta com configuração');
     res.json(config);
   } catch (error) {
@@ -57,13 +60,17 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
     diasAbertos,
     promocaoTaxaAtiva,
     promocaoDias,
-    promocaoValorMinimo
+    promocaoValorMinimo,
+    deliveryStart,
+    deliveryEnd,
+    horaEntregaInicio: backendDeliveryStart,
+    horaEntregaFim: backendDeliveryEnd
   } = req.body;
-  
   // Usar os valores do frontend se disponíveis, senão usar os do backend
   const openingTime = frontendOpenTime || backendOpeningTime;
   const closingTime = frontendCloseTime || backendClosingTime;
-  
+  const horaEntregaInicio = deliveryStart || backendDeliveryStart || '08:00';
+  const horaEntregaFim = deliveryEnd || backendDeliveryEnd || '18:00';
   console.log('📝 [PUT /api/store-config] Dados extraídos e mapeados:', {
     aberto,
     openingTime,
@@ -72,8 +79,12 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
     promocaoTaxaAtiva,
     promocaoDias,
     promocaoValorMinimo,
+    horaEntregaInicio,
+    horaEntregaFim,
     'fonte-openingTime': frontendOpenTime ? 'frontend (openTime)' : 'backend (horaAbertura)',
-    'fonte-closingTime': frontendCloseTime ? 'frontend (closeTime)' : 'backend (horaFechamento)'
+    'fonte-closingTime': frontendCloseTime ? 'frontend (closeTime)' : 'backend (horaFechamento)',
+    'fonte-horaEntregaInicio': deliveryStart ? 'frontend (deliveryStart)' : 'backend (horaEntregaInicio)',
+    'fonte-horaEntregaFim': deliveryEnd ? 'frontend (deliveryEnd)' : 'backend (horaEntregaFim)'
   });
   
   try {
@@ -87,7 +98,9 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
         diasAbertos,
         promocaoTaxaAtiva: promocaoTaxaAtiva || false,
         promocaoDias: promocaoDias || null,
-        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null
+        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null,
+        horaEntregaInicio,
+        horaEntregaFim
       },
       create: { 
         aberto, 
@@ -96,7 +109,9 @@ router.put('/', authenticateToken, authorize('admin'), async (req, res) => {
         diasAbertos,
         promocaoTaxaAtiva: promocaoTaxaAtiva || false,
         promocaoDias: promocaoDias || null,
-        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null
+        promocaoValorMinimo: promocaoValorMinimo ? parseFloat(promocaoValorMinimo) : null,
+        horaEntregaInicio,
+        horaEntregaFim
       }
     });
     

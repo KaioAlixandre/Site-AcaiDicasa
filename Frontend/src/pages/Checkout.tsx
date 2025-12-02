@@ -46,6 +46,8 @@ const Checkout: React.FC = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
   const [promoFreteValorMinimo, setPromoFreteValorMinimo] = useState(0);
+  const [entregaDisponivel, setEntregaDisponivel] = useState(true);
+  const [horaEntregaFim, setHoraEntregaFim] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // States para o fluxo de cadastro em checkout (quando não há usuário logado)
@@ -77,21 +79,37 @@ const Checkout: React.FC = () => {
           apiService.getStoreConfig(),
           fetch('http://localhost:3001/api/store-config/promo-frete-check').then(r => r.json())
         ]);
-        
+
         if (promoCheck.ativa) {
           setPromoFreteAtiva(true);
           setPromoFreteValorMinimo(promoCheck.valorMinimo);
         }
-        
+
         if (config) {
           const status = checkStoreStatus(config);
           if (!status.isOpen) {
             notify(`A loja está fechada: ${status.reason}${status.nextOpenTime ? '\n' + status.nextOpenTime : ''}`, 'error');
             navigate('/cart');
           }
+          // Lógica para horaEntregaFim
+          const horaFim = config.horaEntregaFim || config.horaEntregaFim;
+          setHoraEntregaFim(horaFim || null);
+          if (horaFim) {
+            const now = new Date();
+            const [h, m] = horaFim.split(':').map(Number);
+            const fim = new Date();
+            fim.setHours(h, m, 0, 0);
+            if (now > fim) {
+              setEntregaDisponivel(false);
+            } else {
+              setEntregaDisponivel(true);
+            }
+          } else {
+            setEntregaDisponivel(true);
+          }
         }
       } catch (error) {
-       
+        setEntregaDisponivel(true);
       }
     };
 
@@ -610,14 +628,15 @@ const Checkout: React.FC = () => {
                     Tipo de Entrega
                   </h3>
                   <div className="space-y-2">
-                    <label className="flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-white transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
+                    <label className={`flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg cursor-pointer transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50 ${!entregaDisponivel ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
                       <input
                         type="radio"
                         name="deliveryType"
                         value="delivery"
                         checked={deliveryType === 'delivery'}
-                        onChange={() => setDeliveryType('delivery')}
+                        onChange={() => entregaDisponivel && setDeliveryType('delivery')}
                         className="w-4 h-4 text-purple-600 mr-2 md:mr-3"
+                        disabled={!entregaDisponivel}
                       />
                       <div className="flex items-center flex-1">
                         <div className="bg-purple-100 p-1.5 md:p-2 rounded-lg mr-2 md:mr-3">
@@ -626,6 +645,9 @@ const Checkout: React.FC = () => {
                         <div className="flex-1">
                           <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
                           <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
+                          {!entregaDisponivel && (
+                            <div className="text-xs text-red-600 font-semibold mt-1">Horário de entrega encerrado{horaEntregaFim ? ` (${horaEntregaFim})` : ''}</div>
+                          )}
                         </div>
                       </div>
                     </label>

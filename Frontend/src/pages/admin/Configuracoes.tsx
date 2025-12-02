@@ -16,6 +16,8 @@ const diasSemana = [
 const Configuracoes: React.FC = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deliveryStart, setDeliveryStart] = useState('');
+  const [deliveryEnd, setDeliveryEnd] = useState('');
 
   const { notify } = useNotification();
   useEffect(() => {
@@ -25,15 +27,18 @@ const Configuracoes: React.FC = () => {
         ...data,
         openTime: data.openingTime,
         closeTime: data.closingTime,
+        deliveryStart: data.deliveryStart || data.horaEntregaInicio || '',
+        deliveryEnd: data.deliveryEnd || data.horaEntregaFim || '',
         diasAbertos: data.openDays ?? data.diasAbertos ?? '',
         promocaoTaxaAtiva: data.promocaoTaxaAtiva || false,
         promocaoDias: data.promocaoDias || '',
         promocaoValorMinimo: data.promocaoValorMinimo || ''
       };
       setConfig(mappedData);
+      setDeliveryStart(mappedData.deliveryStart);
+      setDeliveryEnd(mappedData.deliveryEnd);
       setLoading(false);
     }).catch(error => {
-     
       setLoading(false);
       notify('Erro ao carregar configurações', 'error');
     });
@@ -45,6 +50,8 @@ const Configuracoes: React.FC = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    if (name === 'deliveryStart') setDeliveryStart(value);
+    if (name === 'deliveryEnd') setDeliveryEnd(value);
   };
 
   const handleDayToggle = (day: string) => {
@@ -77,6 +84,8 @@ const Configuracoes: React.FC = () => {
       ...config,
       openingTime: config.openTime,
       closingTime: config.closeTime,
+      deliveryStart: deliveryStart,
+      deliveryEnd: deliveryEnd,
       diasAbertos: config.diasAbertos ?? '',
     };
     try {
@@ -135,6 +144,32 @@ const Configuracoes: React.FC = () => {
                 type="time"
                 name="closeTime"
                 value={config.closeTime || ''}
+                onChange={handleChange}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Início do serviço de entrega
+              </label>
+              <input
+                type="time"
+                name="deliveryStart"
+                value={deliveryStart}
+                onChange={handleChange}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fim do serviço de entrega
+              </label>
+              <input
+                type="time"
+                name="deliveryEnd"
+                value={deliveryEnd}
                 onChange={handleChange}
                 className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
