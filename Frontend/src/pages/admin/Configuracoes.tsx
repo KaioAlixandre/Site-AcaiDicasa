@@ -33,7 +33,7 @@ const Configuracoes: React.FC = () => {
       setConfig(mappedData);
       setLoading(false);
     }).catch(error => {
-      console.error('Erro ao carregar configurações:', error);
+     
       setLoading(false);
       notify('Erro ao carregar configurações', 'error');
     });
@@ -84,7 +84,7 @@ const Configuracoes: React.FC = () => {
       setLoading(false);
       notify('Configurações salvas com sucesso!', 'success');
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+     
       setLoading(false);
       notify('Erro ao salvar configurações. Tente novamente.', 'error');
     }

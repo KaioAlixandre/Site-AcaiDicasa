@@ -66,18 +66,18 @@ const Admin: React.FC = () => {
   // Verificar se o usuário tem permissão de admin
   useEffect(() => {
     if (!user) {
-      console.log('❌ [Admin] Usuário não autenticado, redirecionando para login...');
+     
       navigate('/login');
       return;
     }
     
     if (user.funcao !== 'admin' && user.funcao !== 'master') {
-      console.log(`❌ [Admin] Usuário não tem permissão de admin. Função atual: ${user.funcao}, redirecionando...`);
+     
       navigate('/');
       return;
     }
     
-    console.log(`✅ [Admin] Usuário autenticado com permissão de admin: ${user.nomeUsuario} (${user.funcao})`);
+   
   }, [user, navigate]);
 
   // Se não há usuário ou não tem permissão, não renderizar nada
@@ -138,7 +138,7 @@ useEffect(() => {
       const updatedProducts = await apiService.getProducts();
       setProducts(updatedProducts);
     } catch (error) {
-      console.error('Erro ao atualizar produto:', error);
+     
       alert('Erro ao atualizar produto. Tente novamente.');
     }
   };
@@ -218,7 +218,7 @@ const performAdvanceStatus = async (): Promise<void> => {
     await apiService.advanceOrderStatus(order.id, nextStatus);
     setOrders(await apiService.getOrdersAdmin());
   } catch (err) {
-    console.error('Erro ao avançar status do pedido:', err);
+   
   } finally {
     setConfirmOrder(null);
     setConfirmNextStatus('');
@@ -234,7 +234,7 @@ const handleDelivererSelected = async (delivererId: number) => {
     setShowDelivererModal(false);
     setSelectedOrderForDelivery(null);
   } catch (error) {
-    console.error('Erro ao atribuir entregador:', error);
+   
   }
 };
 
@@ -247,7 +247,7 @@ const performConfirmDelivery = async (): Promise<void> => {
     await apiService.advanceOrderStatus(order.id, 'delivered');
     setOrders(await apiService.getOrdersAdmin());
   } catch (err) {
-    console.error('Erro ao confirmar entrega:', err);
+   
   } finally {
     setConfirmDeliveryOrder(null);
   }

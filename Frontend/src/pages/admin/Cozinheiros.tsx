@@ -33,7 +33,7 @@ const Cozinheiros: React.FC = () => {
       const data = await response.json();
       setCozinheiros(data);
     } catch (error) {
-      console.error('Erro ao carregar cozinheiros:', error);
+     
       notify('Erro ao carregar cozinheiros', 'error');
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ const Cozinheiros: React.FC = () => {
       handleCloseModal();
       loadCozinheiros();
     } catch (error) {
-      console.error('Erro ao salvar cozinheiro:', error);
+     
       notify('Erro ao salvar cozinheiro', 'error');
     }
   };
@@ -117,7 +117,7 @@ const Cozinheiros: React.FC = () => {
       notify('Cozinheiro excluído com sucesso!', 'success');
       loadCozinheiros();
     } catch (error) {
-      console.error('Erro ao excluir cozinheiro:', error);
+     
       notify('Erro ao excluir cozinheiro', 'error');
     }
   };

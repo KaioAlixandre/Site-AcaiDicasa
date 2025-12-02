@@ -70,7 +70,7 @@ const Complementos: React.FC = () => {
       const data = await apiService.getComplementCategories();
       setCategories(data);
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+     
     }
   };
 
@@ -81,7 +81,7 @@ const Complementos: React.FC = () => {
       const data = await apiService.getComplements(showInactive);
       setComplements(data);
     } catch (error) {
-      console.error('Erro ao carregar complementos:', error);
+     
     } finally {
       setLoading(false);
     }
@@ -192,7 +192,7 @@ const Complementos: React.FC = () => {
       resetForm();
       alert(`Complemento ${editingComplement ? 'atualizado' : 'criado'} com sucesso!`);
     } catch (error: any) {
-      console.error('Erro ao salvar complemento:', error);
+     
       const message = error?.response?.data?.message || 'Erro ao salvar complemento';
       alert(message);
     } finally {
@@ -206,7 +206,7 @@ const Complementos: React.FC = () => {
       await apiService.toggleComplementStatus(complement.id);
       await loadComplements();
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+     
       alert('Erro ao alterar status do complemento');
     }
   };
@@ -222,7 +222,7 @@ const Complementos: React.FC = () => {
       await loadComplements();
       alert('Complemento deletado com sucesso!');
     } catch (error) {
-      console.error('Erro ao deletar complemento:', error);
+     
       alert('Erro ao deletar complemento');
     }
   };
@@ -244,7 +244,7 @@ const Complementos: React.FC = () => {
       setShowModal(true);
       alert('Categoria criada com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao criar categoria:', error);
+     
       const message = error.response?.data?.message || 'Erro ao criar categoria';
       alert(message);
     }

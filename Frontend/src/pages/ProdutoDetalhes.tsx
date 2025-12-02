@@ -40,7 +40,7 @@ const ProdutoDetalhes: React.FC = () => {
           setSelectedImage(productData.images[0].url);
         }
       } catch (error) {
-        console.error('Erro ao carregar detalhes do produto:', error);
+       
       } finally {
         setLoading(false);
       }
@@ -90,7 +90,7 @@ const ProdutoDetalhes: React.FC = () => {
       notify('Produto adicionado ao carrinho!', 'success');
       navigate('/cart');
     } catch (error) {
-      console.error('Erro ao adicionar ao carrinho:', error);
+     
       notify('Erro ao adicionar produto ao carrinho', 'error');
     } finally {
       setAddingToCart(false);

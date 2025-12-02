@@ -91,7 +91,7 @@ const Checkout: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar configurações da loja:', error);
+       
       }
     };
 
@@ -103,14 +103,14 @@ const Checkout: React.FC = () => {
     if (user && deliveryType === 'delivery') {
       // Verificar se o usuário não tem endereço
       if (!user.enderecos || user.enderecos.length === 0) {
-        console.log('Usuário não tem endereço, redirecionando para AddAddress');
+       
         navigate('/add-address');
         return;
       }
       
       // Verificar se o usuário não tem telefone
       if (!user.telefone || user.telefone.trim() === '') {
-        console.log('Usuário não tem telefone, redirecionando para AddPhone');
+       
         navigate('/add-phone');
         return;
       }

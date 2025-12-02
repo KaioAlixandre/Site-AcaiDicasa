@@ -71,13 +71,12 @@ const Profile: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('🎯 useEffect - User disponível:', !!user);
-    console.log('🎯 useEffect - User addresses:', user?.enderecos);
+   
     if (user) {
       setPhoneValue(user.telefone || '');
       // Se o usuário já tem endereços carregados no perfil, usar esses dados primeiro
       if (user.enderecos && Array.isArray(user.enderecos) && user.enderecos.length > 0) {
-        console.log('🔄 Usando endereços do perfil do usuário');
+       
         // Mapear os endereços do backend para o formato esperado pelo frontend
         const mappedAddresses = user.enderecos.map(mapAddressFromBackend);
         setAddresses(mappedAddresses);
@@ -120,26 +119,26 @@ const Profile: React.FC = () => {
 
   const loadAddresses = async () => {
     try {
-      console.log('🔍 Carregando endereços do usuário...');
+     
       setError(null);
       const addressesData = await apiService.getAddresses();
-      console.log('📋 Endereços carregados:', addressesData);
+     
       
       if (Array.isArray(addressesData)) {
         // Backend já retorna os dados no formato correto (transformados)
         setAddresses(addressesData);
-        console.log(`✅ ${addressesData.length} endereços carregados com sucesso`);
+       
       } else {
-        console.warn('⚠️ Dados de endereços não são um array:', addressesData);
+       
         setAddresses([]);
       }
     } catch (error) {
-      console.error('❌ Erro ao carregar endereços:', error);
+     
       setError('Erro ao carregar endereços. Tentando usar dados do perfil...');
       
       // Tentar carregar endereços do perfil do usuário como fallback
       if (user?.enderecos && Array.isArray(user.enderecos)) {
-        console.log('🔄 Usando endereços do perfil do usuário como fallback');
+       
         const mappedAddresses = user.enderecos.map(mapAddressFromBackend);
         setAddresses(mappedAddresses);
         setError(null);
@@ -155,7 +154,7 @@ const Profile: React.FC = () => {
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log('➕ Adicionando novo endereço:', newAddress);
+     
       await apiService.addAddress(newAddress);
       setShowAddressForm(false);
       setNewAddress({
@@ -168,20 +167,20 @@ const Profile: React.FC = () => {
       });
       
       // Recarregar endereços após adicionar
-      console.log('🔄 Recarregando endereços após adição...');
+     
       await loadAddresses();
       
       // Atualizar o perfil do usuário
       await refreshUserProfile();
-      console.log('✅ Endereço adicionado com sucesso');
+     
     } catch (error) {
-      console.error('❌ Erro ao adicionar endereço:', error);
+     
       setError('Erro ao adicionar endereço. Tente novamente.');
     }
   };
 
   const handleEditAddress = (address: Address) => {
-    console.log('✏️ Editando endereço:', address);
+   
     setEditingAddress(address);
     setNewAddress({
       street: address.street,
@@ -199,7 +198,7 @@ const Profile: React.FC = () => {
     if (!editingAddress) return;
 
     try {
-      console.log('🔄 Atualizando endereço:', editingAddress.id, newAddress);
+     
       await apiService.updateAddress(editingAddress.id, newAddress);
       setShowAddressForm(false);
       setEditingAddress(null);
@@ -213,41 +212,41 @@ const Profile: React.FC = () => {
       });
       
       // Recarregar endereços após atualizar
-      console.log('🔄 Recarregando endereços após atualização...');
+     
       await loadAddresses();
       
       // Atualizar o perfil do usuário
       await refreshUserProfile();
       setError(null);
-      console.log('✅ Endereço atualizado com sucesso');
+     
     } catch (error) {
-      console.error('❌ Erro ao atualizar endereço:', error);
+     
       setError('Erro ao atualizar endereço. Tente novamente.');
     }
   };
 
   const handleDeleteAddress = async (addressId: number) => {
     try {
-      console.log('🗑️ Removendo endereço:', addressId);
+     
       await apiService.deleteAddress(addressId);
       
       // Recarregar endereços após remover
-      console.log('🔄 Recarregando endereços após remoção...');
+     
       await loadAddresses();
       
       // Atualizar o perfil do usuário
       await refreshUserProfile();
       setDeletingAddress(null);
-      console.log('✅ Endereço removido com sucesso');
+     
     } catch (error) {
-      console.error('❌ Erro ao remover endereço:', error);
+     
       setError('Erro ao remover endereço. Tente novamente.');
       setDeletingAddress(null);
     }
   };
 
   const cancelEdit = () => {
-    console.log('❌ Cancelando edição de endereço');
+   
     setEditingAddress(null);
     setShowAddressForm(false);
     setNewAddress({

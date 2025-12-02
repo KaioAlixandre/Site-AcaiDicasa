@@ -1,7 +1,7 @@
 
 // Log global para depuração: saber se o componente está montando
 (window as any).AdminOrderNotificationLoaded = true;
-console.log("AdminOrderNotification: componente montado");
+
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
@@ -13,9 +13,9 @@ const POLL_INTERVAL = 10000; // 10 segundos
 
 const AdminOrderNotification: React.FC = () => {
   const { user } = useAuth();
-  console.log("AdminOrderNotification: user:", user);
+ 
   if (user) {
-    console.log("AdminOrderNotification: user.funcao:", user.funcao);
+   
   }
   const [show, setShow] = useState(false);
   const lastOrderIdRef = useRef<number | null>(null);
@@ -32,29 +32,28 @@ const AdminOrderNotification: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         const orders = res.data;
-        console.log('[AdminOrderNotification] Resposta da API de pedidos:', orders);
+       
         if (Array.isArray(orders) && orders.length > 0) {
           const newestOrder = orders[0];
-          console.log('[AdminOrderNotification] ID do último pedido salvo:', lastOrderIdRef.current);
-          console.log('[AdminOrderNotification] ID do pedido mais recente:', newestOrder.id);
+         
           if (isFirstLoadRef.current) {
             lastOrderIdRef.current = newestOrder.id;
             isFirstLoadRef.current = false;
-            console.log('[AdminOrderNotification] Primeira carga, setando lastOrderId:', newestOrder.id);
+           
           } else if (newestOrder.id !== lastOrderIdRef.current) {
             lastOrderIdRef.current = newestOrder.id;
             setShow(true);
-            console.log('[AdminOrderNotification] Novo pedido detectado! Exibindo notificação.');
+           
             if (audioRef.current) {
               audioRef.current.currentTime = 0;
               audioRef.current.play();
             }
           }
         } else {
-          console.log('[AdminOrderNotification] Nenhum pedido retornado pela API.');
+         
         }
       } catch (err) {
-        console.error('[AdminOrderNotification] Erro ao buscar pedidos:', err);
+       
       }
     };
 
@@ -78,7 +77,7 @@ const AdminOrderNotification: React.FC = () => {
 
   if (!user || user.funcao !== 'admin') return null;
   if (show) {
-    console.log('[AdminOrderNotification] JSX: bloco de notificação renderizado');
+   
   }
   return (
     <>

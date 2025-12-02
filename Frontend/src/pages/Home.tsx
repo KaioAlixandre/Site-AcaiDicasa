@@ -55,7 +55,7 @@ const Home: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+       
       } finally {
         setLoading(false);
       }

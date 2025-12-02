@@ -36,7 +36,7 @@ const Products: React.FC = () => {
         // Usar categorias reais do backend
         setCategories(categoriesApi || []);
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+       
       } finally {
         setLoading(false);
       }

@@ -22,7 +22,7 @@ const Contato: React.FC = () => {
       const config = await apiService.getStoreConfig();
       setStoreInfo(config);
     } catch (error) {
-      console.error('Erro ao carregar informações da loja:', error);
+     
     }
   };
 
@@ -38,7 +38,7 @@ const Contato: React.FC = () => {
       
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+    
       alert('Erro ao enviar mensagem. Tente novamente.');
     } finally {
       setLoading(false);

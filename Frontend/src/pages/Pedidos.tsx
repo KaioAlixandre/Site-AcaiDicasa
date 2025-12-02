@@ -101,10 +101,10 @@ const Orders: React.FC = () => {
   const loadOrders = async () => {
     try {
       const ordersData = await apiService.getOrderHistory();
-      console.log('Pedidos carregados:', ordersData);
+     
       setOrders(ordersData);
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
+    
       showToast('Erro ao carregar pedidos. Tente novamente.', 'error');
     } finally {
       setLoading(false);
@@ -132,7 +132,7 @@ const Orders: React.FC = () => {
       // Mostrar mensagem de sucesso
       showToast('Pedido cancelado com sucesso!', 'success');
     } catch (error) {
-      console.error('Erro ao cancelar pedido:', error);
+     
       showToast('Erro ao cancelar pedido. Tente novamente.', 'error');
     } finally {
       // Remover pedido da lista de cancelamentos em progresso

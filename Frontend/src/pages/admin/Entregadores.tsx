@@ -26,7 +26,7 @@ const Entregadores: React.FC = () => {
       const deliverersData = await apiService.getDeliverers();
       setDeliverers(deliverersData);
     } catch (error) {
-      console.error('Erro ao carregar entregadores:', error);
+     
       notify('Erro ao carregar entregadores', 'error');
     } finally {
       setLoading(false);

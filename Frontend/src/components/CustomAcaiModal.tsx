@@ -35,7 +35,7 @@ const CustomAcaiModal: React.FC<CustomAcaiModalProps> = ({ isOpen, onClose }) =>
       const data = await apiService.getComplements();
       setComplements(data.filter((comp: Complement) => comp.isActive));
     } catch (error) {
-      console.error('Erro ao carregar complementos:', error);
+     
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ const CustomAcaiModal: React.FC<CustomAcaiModalProps> = ({ isOpen, onClose }) =>
       onClose();
       
     } catch (error) {
-      console.error('Erro ao adicionar açaí personalizado ao carrinho:', error);
+     
       alert('Erro ao adicionar ao carrinho. Tente novamente.');
     } finally {
       setAddingToCart(false);

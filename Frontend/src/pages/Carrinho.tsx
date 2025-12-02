@@ -34,7 +34,7 @@ const Cart: React.FC = () => {
           setStoreStatus(status);
         }
       } catch (error) {
-        console.error('Erro ao carregar configurações da loja:', error);
+       
       }
     };
 
@@ -147,13 +147,12 @@ const Cart: React.FC = () => {
               {items.map((item, index) => {
                 // Verificar se o produto existe
                 if (!item.product) {
-                  console.warn('Item sem produto:', item);
+                 
                   return null;
                 }
 
                 // Log para debug
-                console.log('Item do carrinho:', item);
-                console.log('Produto:', item.product);
+               
                 
                 // Obter dados do produto
                 const product = item.product;
@@ -175,7 +174,7 @@ const Cart: React.FC = () => {
                           alt={product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            console.error('Erro ao carregar imagem:', productImage);
+                           
                             e.currentTarget.style.display = 'none';
                           }}
                         />

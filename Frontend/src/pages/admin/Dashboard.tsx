@@ -29,7 +29,7 @@ const Dashboard: React.FC = () => {
       setLastUpdate(new Date());
     } catch (err) {
       setError('Erro ao carregar métricas do dashboard');
-      console.error('Erro ao buscar métricas:', err);
+     
     } finally {
       setLoading(false);
     }

@@ -33,7 +33,7 @@ const DelivererSelectionModal: React.FC<DelivererSelectionModalProps> = ({
       // Filtrar apenas entregadores ativos
       setDeliverers(response.filter((deliverer: Deliverer) => deliverer.isActive));
     } catch (error) {
-      console.error('Erro ao carregar entregadores:', error);
+     
     }
   };
 

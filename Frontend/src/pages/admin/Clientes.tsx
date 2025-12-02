@@ -17,7 +17,7 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
 
   const averageLTV = calculateAverageLTV();
 
-  console.log('🔍 Debug - Dados dos usuários:', user);
+  
 
   return (
   <div id="clientes" className="page">

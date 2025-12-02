@@ -31,7 +31,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       localStorage.setItem(GUEST_CART_KEY, JSON.stringify(guestItems));
     } catch (e) {
-      console.error('Erro ao salvar guest cart:', e);
+    
     }
   };
 
@@ -74,7 +74,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             localStorage.removeItem(GUEST_CART_KEY);
             await loadCart();
           } catch (error) {
-            console.error('Erro ao sincronizar guest cart:', error);
+           
             // mesmo que falhe, tentar carregar o carrinho do servidor
             await loadCart();
           } finally {
@@ -103,7 +103,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setItems(response.items);
       setTotal(response.cartTotal);
     } catch (error) {
-      console.error('Erro ao carregar carrinho:', error);
+     
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         try {
           product = await apiService.getProductById(productId);
         } catch (e) {
-          console.warn('Não foi possível buscar produto para guest cart', e);
+         
         }
 
         // tentar encontrar item igual (mesmo produto e complementos)
