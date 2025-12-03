@@ -25,7 +25,7 @@ const Cozinheiros: React.FC = () => {
   const loadCozinheiros = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/cozinheiros', {
+      const response = await fetch('http://localhost:3001/api/cozinheiros', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -78,8 +78,8 @@ const Cozinheiros: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const url = editingCozinheiro 
-        ? `/api/cozinheiros/${editingCozinheiro.id}`
-        : '/api/cozinheiros';
+        ? `http://localhost:3001/api/cozinheiros/${editingCozinheiro.id}`
+        : 'http://localhost:3001/api/cozinheiros';
       const method = editingCozinheiro ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method,
@@ -105,7 +105,7 @@ const Cozinheiros: React.FC = () => {
     if (!window.confirm('Tem certeza que deseja excluir este cozinheiro?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/cozinheiros/${id}`, {
+      const response = await fetch(`http://localhost:3001/api/cozinheiros/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

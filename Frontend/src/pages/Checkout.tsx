@@ -79,7 +79,7 @@ const Checkout: React.FC = () => {
       try {
         const [config, promoCheck] = await Promise.all([
           apiService.getStoreConfig(),
-          fetch('/api/store-config/promo-frete-check').then(r => r.json())
+          fetch('http://localhost:3001/api/store-config/promo-frete-check').then(r => r.json())
         ]);
 
         if (promoCheck.ativa) {

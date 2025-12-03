@@ -159,8 +159,8 @@ const Cart: React.FC = () => {
                 let productImage = null;
                 if (product.images && product.images.length > 0 && product.images[0]?.url) {
                   const url = product.images[0].url;
-                  // Se já for uma URL absoluta, usa direto, senão usa caminho relativo (servido/proxy pelo Nginx)
-                  productImage = url.startsWith('http') ? url : (url.startsWith('/') ? url : `/${url}`);
+                  // Se já for uma URL absoluta, usa direto, senão concatena com o domínio
+                  productImage = url.startsWith('http') ? url : `http://localhost:3001${url}`;
                 }
                 
                 return (
