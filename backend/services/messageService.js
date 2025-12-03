@@ -108,7 +108,6 @@ const sendPickupNotification = async (order) => {
 
  *Seu pedido #${order.id} está pronto para retirada!*
 
- *Retire em:* ${storeAddress}
  *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
  *Itens:* ${itemsList}
 

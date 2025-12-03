@@ -74,6 +74,7 @@ const Checkout: React.FC = () => {
 
   // Verificar se a loja está aberta e se há promoção ativa
   useEffect(() => {
+    let intervalId: string | number | NodeJS.Timeout | undefined;
     const loadStoreConfig = async () => {
       try {
         const [config, promoCheck] = await Promise.all([
@@ -98,25 +99,30 @@ const Checkout: React.FC = () => {
           setHoraEntregaFim(horaFim || null);
           setHoraEntregaInicio(horaStart || null);
 
-          let disponivel = true;
-          const now = new Date();
-          if (horaStart) {
-            const [h, m] = horaStart.split(':').map(Number);
-            const inicio = new Date();
-            inicio.setHours(h, m, 0, 0);
-            if (now < inicio) {
-              disponivel = false;
+          const updateDisponibilidade = () => {
+            let disponivel = true;
+            const now = new Date();
+            if (horaStart) {
+              const [h, m] = horaStart.split(':').map(Number);
+              const inicio = new Date();
+              inicio.setHours(h, m, 0, 0);
+              if (now < inicio) {
+                disponivel = false;
+              }
             }
-          }
-          if (horaFim) {
-            const [h, m] = horaFim.split(':').map(Number);
-            const fim = new Date();
-            fim.setHours(h, m, 0, 0);
-            if (now > fim) {
-              disponivel = false;
+            if (horaFim) {
+              const [h, m] = horaFim.split(':').map(Number);
+              const fim = new Date();
+              fim.setHours(h, m, 0, 0);
+              if (now > fim) {
+                disponivel = false;
+              }
             }
-          }
-          setEntregaDisponivel(disponivel);
+            setEntregaDisponivel(disponivel);
+          };
+
+          updateDisponibilidade();
+          intervalId = setInterval(updateDisponibilidade, 30000); // Atualiza a cada 30 segundos
         }
       } catch (error) {
         setEntregaDisponivel(true);
@@ -124,6 +130,9 @@ const Checkout: React.FC = () => {
     };
 
     loadStoreConfig();
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [navigate]);
 
   // Verificar se o usuário tem endereços cadastrados (apenas para entrega)

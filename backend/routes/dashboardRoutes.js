@@ -120,7 +120,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
       take: 5
     });
 
-    // Buscar detalhes dos produtos mais vendidos
+    // Buscar detalhes dos produtos mais vendidos e garantir campo 'name'
     const topProductsWithDetails = await Promise.all(
       topProducts.map(async (item) => {
         const product = await prisma.produto.findUnique({
@@ -128,7 +128,9 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
           select: { id: true, nome: true, preco: true }
         });
         return {
-          ...product,
+          id: product.id,
+          name: product.nome, // garantir campo 'name' para o frontend
+          preco: product.preco,
           quantitySold: item._sum.quantidade,
           orderCount: item._count.produtoId
         };

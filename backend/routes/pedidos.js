@@ -231,7 +231,7 @@ router.post('/', authenticateToken, async (req, res) => {
             
             // Informações de entrega/retirada
             const deliveryInfo = tipo === 'pickup' 
-                ? `📍 *Retirada no local*\n🏪 Endereço da loja: Açaidicasa, praça Geraldo Sá.`+
+                ? `📍 *Retirada no local*\n🏪 Endereço da loja: Açaidicasa, praça Geraldo Sá.\n` +
                 `Localizaçao maps: https://maps.app.goo.gl/LGe84k24KogZWXMt6?g_st=ipc`
                 : `*Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\nBairro: ${shippingAddress.bairro}`;
             
