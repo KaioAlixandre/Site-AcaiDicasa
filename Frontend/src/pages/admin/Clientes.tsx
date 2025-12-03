@@ -41,7 +41,7 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
         </div>
         <div>
           <p className="text-slate-500 text-xs">LTV Médio</p>
-          <p className="text-lg sm:text-xl font-bold text-slate-800">R$ {averageLTV.toFixed(2)}</p>
+          <p className="text-lg sm:text-xl font-bold text-slate-800">R$ {isNaN(averageLTV) ? '0.00' : averageLTV.toFixed(2)}</p>
         </div>
       </div>
     </div>
@@ -59,8 +59,11 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
           </thead>
           <tbody className="divide-y divide-slate-200">
             {user.map(cliente => {
-              const totalGasto = cliente.order?.reduce((acc, order) => acc + Number(order.totalPrice), 0) || 0;
-              const totalPedidos = cliente.order?.length || 0;
+              const totalGasto = cliente.order?.reduce((acc, order) => {
+                const valor = Number(order.totalPrice);
+                return acc + (isNaN(valor) ? 0 : valor);
+              }, 0) || 0;
+              const totalPedidos = Array.isArray(cliente.order) ? cliente.order.length : 0;
               
               return (
                 <tr key={cliente.id} className="hover:bg-slate-50">
@@ -69,9 +72,9 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
                     <div className="text-xs text-slate-500 md:hidden">{cliente.telefone || '-'}</div>
                   </td>
                   <td className="p-2 sm:p-3 text-slate-600 text-xs hidden md:table-cell">{cliente.telefone || '-'}</td>
-                  <td className="p-2 sm:p-3 text-center text-slate-600 text-xs sm:text-sm">{totalPedidos}</td>
+                  <td className="p-2 sm:p-3 text-center text-slate-600 text-xs sm:text-sm">{isNaN(totalPedidos) ? 0 : totalPedidos}</td>
                   <td className="p-2 sm:p-3 text-right font-medium text-slate-800 text-xs sm:text-sm">
-                    R$ {totalGasto.toFixed(2)}
+                    R$ {isNaN(totalGasto) ? '0.00' : totalGasto.toFixed(2)}
                   </td>
                   <td className="p-2 sm:p-3 text-center">
                     <button className="text-indigo-600 hover:text-indigo-800 text-xs">Detalhes</button>

@@ -233,7 +233,7 @@ const Dashboard: React.FC = () => {
               {metrics.topProducts.length > 0 && (
                 <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-blue-800 text-xs sm:text-sm">
-                    🏆 Seu produto mais vendido é "{metrics.topProducts[0].name}" com {metrics.topProducts[0].quantitySold} unidades vendidas!
+                    🏆 Seu produto mais vendido é "{metrics.topProducts[0].name || 'Produto desconhecido'}" com {metrics.topProducts[0].quantitySold ?? 0} unidades vendidas!
                   </p>
                 </div>
               )}

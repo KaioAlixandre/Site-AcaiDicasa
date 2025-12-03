@@ -48,6 +48,7 @@ const Checkout: React.FC = () => {
   const [promoFreteValorMinimo, setPromoFreteValorMinimo] = useState(0);
   const [entregaDisponivel, setEntregaDisponivel] = useState(true);
   const [horaEntregaFim, setHoraEntregaFim] = useState<string | null>(null);
+  const [horaEntregaInicio, setHoraEntregaInicio] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // States para o fluxo de cadastro em checkout (quando não há usuário logado)
@@ -91,22 +92,31 @@ const Checkout: React.FC = () => {
             notify(`A loja está fechada: ${status.reason}${status.nextOpenTime ? '\n' + status.nextOpenTime : ''}`, 'error');
             navigate('/cart');
           }
-          // Lógica para horaEntregaFim
-          const horaFim = config.horaEntregaFim || config.horaEntregaFim;
+          // Lógica unificada para disponibilidade de entrega
+          const horaFim = config.horaEntregaFim;
+          const horaStart = config.horaEntregaInicio;
           setHoraEntregaFim(horaFim || null);
+          setHoraEntregaInicio(horaStart || null);
+
+          let disponivel = true;
+          const now = new Date();
+          if (horaStart) {
+            const [h, m] = horaStart.split(':').map(Number);
+            const inicio = new Date();
+            inicio.setHours(h, m, 0, 0);
+            if (now < inicio) {
+              disponivel = false;
+            }
+          }
           if (horaFim) {
-            const now = new Date();
             const [h, m] = horaFim.split(':').map(Number);
             const fim = new Date();
             fim.setHours(h, m, 0, 0);
             if (now > fim) {
-              setEntregaDisponivel(false);
-            } else {
-              setEntregaDisponivel(true);
+              disponivel = false;
             }
-          } else {
-            setEntregaDisponivel(true);
           }
+          setEntregaDisponivel(disponivel);
         }
       } catch (error) {
         setEntregaDisponivel(true);
@@ -646,7 +656,11 @@ const Checkout: React.FC = () => {
                           <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
                           <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
                           {!entregaDisponivel && (
-                            <div className="text-xs text-red-600 font-semibold mt-1">Horário de entrega encerrado{horaEntregaFim ? ` (${horaEntregaFim})` : ''}</div>
+                            <div className="text-xs text-red-600 font-semibold mt-1">
+                              {horaEntregaInicio && new Date() < (() => { const [h, m] = horaEntregaInicio.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()
+                                ? `O serviço de entrega em casa só inicia às ${horaEntregaInicio}`
+                                : `Horário de entrega encerrado${horaEntregaFim ? ` (${horaEntregaFim})` : ''}`}
+                            </div>
                           )}
                         </div>
                       </div>
