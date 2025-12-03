@@ -26,7 +26,7 @@ const Home: React.FC = () => {
           apiService.getProducts(),
           apiService.getCategories(),
           apiService.getStoreConfig(),
-          fetch('http://localhost:3001/api/store-config/promo-frete-check').then(r => r.json()).catch(() => ({ ativa: false }))
+              fetch('/api/store-config/promo-frete-check').then(r => r.json()).catch(() => ({ ativa: false }))
         ]);
         
         // Filtrar apenas produtos ativos E em destaque
