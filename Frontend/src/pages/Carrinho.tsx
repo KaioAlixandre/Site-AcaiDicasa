@@ -160,7 +160,7 @@ const Cart: React.FC = () => {
                 if (product.images && product.images.length > 0 && product.images[0]?.url) {
                   const url = product.images[0].url;
                   // Se já for uma URL absoluta, usa direto, senão concatena com o domínio
-                  productImage = url.startsWith('http') ? url : `http://localhost:3001${url}`;
+                  productImage = url.startsWith('http') ? url : url;
                 }
                 
                 return (

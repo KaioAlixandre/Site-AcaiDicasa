@@ -637,7 +637,7 @@ const Orders: React.FC = () => {
                                             >
                                               {complement.imageUrl && (
                                                 <img
-                                                  src={complement.imageUrl.startsWith('http') ? complement.imageUrl : `http://localhost:3001${complement.imageUrl}`}
+                                                  src={complement.imageUrl.startsWith('http') ? complement.imageUrl : complement.imageUrl}
                                                   alt={complement.name}
                                                   className="w-3 h-3 rounded-full object-cover"
                                                   onError={(e) => {
