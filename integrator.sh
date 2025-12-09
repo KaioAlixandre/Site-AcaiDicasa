@@ -27,8 +27,8 @@ show_header() {
     echo -e "  ${MAGENTA}║${NC}                                                                  ${MAGENTA}║${NC}"
     echo -e "  ${MAGENTA}║${CYAN}           🍇 AÇAÍ DICASA - PAINEL INTEGRATOR 🍇              ${MAGENTA}║${NC}"
     echo -e "  ${MAGENTA}║${NC}                                                                  ${MAGENTA}║${NC}"
-    echo -e "  ${MAGENTA}║${YELLOW}              Sistema de Gerenciamento do Servidor              ${MAGENTA}║${NC}"
-    echo -e "  ${MAGENTA}║${NC}                                                                  ${MAGENTA}║${NC}"
+    echo -e "  ${MAGENTA}║${YELLOW}              Sistema de Gerenciamento do Servidor dev             ${MAGENTA}║${NC}"
+    echo -e "  ${MAGENTA}║${NC}                               dev zaleoz1                        ${MAGENTA}║${NC}"
     echo -e "  ${MAGENTA}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
@@ -64,6 +64,13 @@ show_menu() {
     echo -e "    ${GRAY}[${CYAN}8${GRAY}] ${WHITE}🔄 Reiniciar Sistema${NC}"
     echo ""
     echo -e "    ${GRAY}[${CYAN}9${GRAY}] ${WHITE}🗃️  Executar Migrations do Banco${NC}"
+    echo ""
+    echo -e "  ${GRAY}├──────────────────────────────────────────────────────────────────┤${NC}"
+    echo -e "  ${GRAY}│                         GIT                                      │${NC}"
+    echo -e "  ${GRAY}├──────────────────────────────────────────────────────────────────┤${NC}"
+    echo ""
+    echo -e "    ${GRAY}[${GREEN}10${GRAY}] ${WHITE}📥 Git Pull - Atualizar Código${NC}"
+    echo -e "        ${GRAY}Baixa as últimas alterações do repositório${NC}"
     echo ""
     echo -e "    ${GRAY}[${YELLOW}0${GRAY}] ${WHITE}❌ Sair${NC}"
     echo ""
@@ -199,6 +206,24 @@ run_migrations() {
     wait_for_key
 }
 
+git_pull() {
+    show_loading "Atualizando código do repositório (git pull)..."
+    echo -e "  ${GRAY}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "  ${CYAN}📍 Branch atual:${NC}"
+    git branch --show-current
+    echo ""
+    git pull
+    if [ $? -eq 0 ]; then
+        show_success "Código atualizado com sucesso!"
+        echo ""
+        echo -e "  ${YELLOW}💡 Dica: Execute o Deploy (opção 1) para aplicar as mudanças${NC}"
+    else
+        show_error "Erro ao atualizar o código!"
+    fi
+    wait_for_key
+}
+
 # Loop Principal
 while true; do
     show_header
@@ -217,6 +242,7 @@ while true; do
         7) show_logs ;;
         8) restart_system ;;
         9) run_migrations ;;
+        10) git_pull ;;
         0)
             echo ""
             echo -e "  ${CYAN}👋 Até logo!${NC}"

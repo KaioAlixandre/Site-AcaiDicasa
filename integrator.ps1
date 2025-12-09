@@ -89,6 +89,17 @@ function Show-Menu {
     Write-Host "] " -NoNewline -ForegroundColor DarkGray
     Write-Host "🗃️  Executar Migrations do Banco" -ForegroundColor White
     Write-Host ""
+    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  │                         GIT                                      │" -ForegroundColor DarkGray
+    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "    [" -NoNewline -ForegroundColor DarkGray
+    Write-Host "10" -NoNewline -ForegroundColor Green
+    Write-Host "] " -NoNewline -ForegroundColor DarkGray
+    Write-Host "📥 Git Pull - Atualizar Código" -ForegroundColor White
+    Write-Host "        " -NoNewline
+    Write-Host "Baixa as últimas alterações do repositório" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
     Write-Host "0" -NoNewline -ForegroundColor Yellow
     Write-Host "] " -NoNewline -ForegroundColor DarkGray
@@ -235,6 +246,24 @@ function Run-Migrations {
     Wait-ForKey
 }
 
+function Git-Pull {
+    Show-Loading "Atualizando código do repositório (git pull)..."
+    Write-Host "  ═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  📍 Branch atual: " -NoNewline -ForegroundColor Cyan
+    git branch --show-current
+    Write-Host ""
+    git pull
+    if ($LASTEXITCODE -eq 0) {
+        Show-Success "Código atualizado com sucesso!"
+        Write-Host ""
+        Write-Host "  💡 Dica: Execute o Deploy (opção 1) para aplicar as mudanças" -ForegroundColor Yellow
+    } else {
+        Show-Error "Erro ao atualizar o código!"
+    }
+    Wait-ForKey
+}
+
 # Loop Principal
 do {
     Show-Header
@@ -253,6 +282,7 @@ do {
         "7" { Show-Logs }
         "8" { Restart-System }
         "9" { Run-Migrations }
+        "10" { Git-Pull }
         "0" { 
             Write-Host ""
             Write-Host "  👋 Até logo!" -ForegroundColor Cyan
