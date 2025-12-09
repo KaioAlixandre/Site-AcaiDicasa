@@ -37,10 +37,7 @@ const Sobre: React.FC = () => {
             <p className="text-sm md:text-base leading-relaxed mb-4">
               Site desenvolvido por <a href="https://www.instagram.com/kaioalixandre/" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline underline-offset-2 transition">Kaio Alixandre</a> e <a href="https://www.instagram.com/zzaleog/" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline underline-offset-2 transition">Isaleo Guimaraes</a> como parte do projeto final do curso de Desenvolvimento Web da <strong>EBAC - Escola Britânica de Artes Criativas e Tecnologia</strong>.
             </p>
-            <p className="text-sm md:text-base leading-relaxed">
-              Nosso objetivo foi criar uma plataforma funcional, intuitiva e visualmente atraente para 
-              o Açaí Di Casa, aplicando as melhores práticas de desenvolvimento web aprendidas ao longo do curso.
-            </p>
+           
           </div>
         </div>
         {/* Valores */}

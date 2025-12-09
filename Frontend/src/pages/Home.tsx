@@ -179,7 +179,7 @@ const Home: React.FC = () => {
                 <h3 className="font-semibold text-slate-900 truncate text-sm md:text-base">{product.name}</h3>
                 <p className="mt-1 text-xs md:text-sm text-slate-600 line-clamp-2">{product.description || 'Açaí delicioso e refrescante'}</p>
                 <div className="mt-2 md:mt-3 flex items-center justify-between">
-                  <span className="text-base md:text-lg font-bold text-emerald-700">R$ {Number(product.price).toFixed(2)}</span>
+                  <span className="text-base md:text-lg font-bold text-purple-600">R$ {Number(product.price).toFixed(2).replace('.', ',')}</span>
                   <div
                     className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md cursor-pointer"
                     aria-label="Ver detalhes"
@@ -251,8 +251,8 @@ const Home: React.FC = () => {
                     {product.description || 'Produto delicioso e preparado na hora'}
                   </p>
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="font-bold text-base sm:text-lg text-slate-900">
-                      R$ {Number(product.price ?? 0).toFixed(2)}
+                    <span className="font-bold text-base sm:text-lg text-purple-600">
+                      R$ {Number(product.price ?? 0).toFixed(2).replace('.', ',')}
                     </span>
                     <div
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto cursor-pointer"

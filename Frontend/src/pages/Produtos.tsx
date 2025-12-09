@@ -240,8 +240,8 @@ const CategorySection: React.FC<{
                 {product.description || 'Produto delicioso e preparado na hora'}
               </p>
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="font-bold text-base sm:text-lg text-slate-900">
-                  R$ {Number(product.price ?? 0).toFixed(2)}
+                <span className="font-bold text-base sm:text-lg text-purple-600">
+                  R$ {Number(product.price ?? 0).toFixed(2).replace('.', ',')}
                 </span>
                 <div
                   className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto ${

@@ -3,14 +3,14 @@
 Frontend do sistema de açaíteria desenvolvido em React com Vite e Tailwind CSS.
 
 ## 🚀 Tecnologias Utilizadas
-
+  
 - **React 18** - Biblioteca para interfaces de usuário
-- **TypeScript** - Superset do JavaScript com tipagem estática
+- **TypeScript** - Superset do JavaScript com tipagem estática  
 - **Vite** - Build tool e servidor de desenvolvimento
-- **Tailwind CSS** - Framework CSS utilitário
+- **Tailwind CSS** - Framework CSS utilitário  
 - **React Router DOM** - Roteamento para aplicações React
-- **Axios** - Cliente HTTP para requisições à API
-- **Lucide React** - Biblioteca de ícones
+- **Axios** - Cliente HTTP para requisições à API  
+- **Lucide React** - Biblioteca de ícones  
 
 ## 📁 Estrutura do Projeto
 
