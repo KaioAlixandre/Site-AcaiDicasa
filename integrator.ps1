@@ -11,101 +11,114 @@ $Host.UI.RawUI.ForegroundColor = "White"
 function Show-Header {
     Clear-Host
     Write-Host ""
-    Write-Host "  ╔══════════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
-    Write-Host "  ║                                                                  ║" -ForegroundColor Magenta
+    Write-Host "  ╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
+    Write-Host "  ║                                                                ║" -ForegroundColor Magenta
     Write-Host "  ║" -ForegroundColor Magenta -NoNewline
-    Write-Host "           🍇 AÇAÍ DICASA - PAINEL INTEGRATOR 🍇              " -ForegroundColor Cyan -NoNewline
+    Write-Host "          🍇 AÇAÍ DICASA - PAINEL INTEGRATOR 🍇             " -ForegroundColor Cyan -NoNewline
     Write-Host "║" -ForegroundColor Magenta
-    Write-Host "  ║                                                                  ║" -ForegroundColor Magenta
+    Write-Host "  ║                                                                ║" -ForegroundColor Magenta
     Write-Host "  ║" -ForegroundColor Magenta -NoNewline
-    Write-Host "              Sistema de Gerenciamento do Servidor              " -ForegroundColor Yellow -NoNewline
+    Write-Host "           Sistema de Gerenciamento do Servidor              " -ForegroundColor Yellow -NoNewline
     Write-Host "║" -ForegroundColor Magenta
-    Write-Host "  ║                                                                  ║" -ForegroundColor Magenta
-    Write-Host "  ╚══════════════════════════════════════════════════════════════════╝" -ForegroundColor Magenta
+    Write-Host "  ║" -ForegroundColor Magenta -NoNewline
+    Write-Host "                      dev zaleoz1                            " -ForegroundColor DarkGray -NoNewline
+    Write-Host "║" -ForegroundColor Magenta
+    Write-Host "  ║                                                                ║" -ForegroundColor Magenta
+    Write-Host "  ╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Magenta
     Write-Host ""
 }
 
 function Show-Menu {
-    Write-Host "  ┌──────────────────────────────────────────────────────────────────┐" -ForegroundColor DarkGray
-    Write-Host "  │                      OPÇÕES DISPONÍVEIS                          │" -ForegroundColor DarkGray
-    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  ┌────────────────────────────────────────────────────────────────┐" -ForegroundColor DarkGray
+    Write-Host "  │                    OPÇÕES PRINCIPAIS                           │" -ForegroundColor DarkGray
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "1" -NoNewline -ForegroundColor Green
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "🚀 Deploy Completo" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host " 1" -NoNewline -ForegroundColor Green
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  🚀  " -NoNewline
+    Write-Host "Deploy Completo" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Build e inicia todos os containers" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "2" -NoNewline -ForegroundColor Green
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "📦 Build do Projeto Completo" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host " 2" -NoNewline -ForegroundColor Green
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  📦  " -NoNewline
+    Write-Host "Build do Projeto Completo" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Build do Frontend + Backend (sem iniciar)" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "3" -NoNewline -ForegroundColor Green
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "🎨 Build do Frontend" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host " 3" -NoNewline -ForegroundColor Green
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  🎨  " -NoNewline
+    Write-Host "Build do Frontend" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Apenas build do React/Vite" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "4" -NoNewline -ForegroundColor Green
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "⚙️  Build do Backend" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host " 4" -NoNewline -ForegroundColor Green
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  ⚙️   " -NoNewline
+    Write-Host "Build do Backend" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Apenas build do Node.js/Express" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "5" -NoNewline -ForegroundColor Red
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "⏸️  Pausar Sistema" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host " 5" -NoNewline -ForegroundColor Red
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  ⏸️   " -NoNewline
+    Write-Host "Pausar Sistema" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Para todos os containers (docker-compose down)" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
-    Write-Host "  │                      OPÇÕES EXTRAS                               │" -ForegroundColor DarkGray
-    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  │                    OPÇÕES EXTRAS                               │" -ForegroundColor DarkGray
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "6" -NoNewline -ForegroundColor Cyan
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "📊 Status dos Containers" -ForegroundColor White
-    Write-Host ""
+    Write-Host " 6" -NoNewline -ForegroundColor Cyan
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  📊  " -NoNewline
+    Write-Host "Status dos Containers" -ForegroundColor White
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "7" -NoNewline -ForegroundColor Cyan
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "📜 Ver Logs (tempo real)" -ForegroundColor White
-    Write-Host ""
+    Write-Host " 7" -NoNewline -ForegroundColor Cyan
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  📜  " -NoNewline
+    Write-Host "Ver Logs (tempo real)" -ForegroundColor White
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "8" -NoNewline -ForegroundColor Cyan
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "🔄 Reiniciar Sistema" -ForegroundColor White
-    Write-Host ""
+    Write-Host " 8" -NoNewline -ForegroundColor Cyan
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  🔄  " -NoNewline
+    Write-Host "Reiniciar Sistema" -ForegroundColor White
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "9" -NoNewline -ForegroundColor Cyan
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "🗃️  Executar Migrations do Banco" -ForegroundColor White
+    Write-Host " 9" -NoNewline -ForegroundColor Cyan
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  🗃️   " -NoNewline
+    Write-Host "Executar Migrations do Banco" -ForegroundColor White
     Write-Host ""
-    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
-    Write-Host "  │                         GIT                                      │" -ForegroundColor DarkGray
-    Write-Host "  ├──────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
+    Write-Host "  │                         GIT                                    │" -ForegroundColor DarkGray
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "    [" -NoNewline -ForegroundColor DarkGray
     Write-Host "10" -NoNewline -ForegroundColor Green
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "📥 Git Pull - Atualizar Código" -ForegroundColor White
-    Write-Host "        " -NoNewline
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  📥  " -NoNewline
+    Write-Host "Git Pull - Atualizar Código" -ForegroundColor White
+    Write-Host "              " -NoNewline
     Write-Host "Baixa as últimas alterações do repositório" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "0" -NoNewline -ForegroundColor Yellow
-    Write-Host "] " -NoNewline -ForegroundColor DarkGray
-    Write-Host "❌ Sair" -ForegroundColor White
+    Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  └──────────────────────────────────────────────────────────────────┘" -ForegroundColor DarkGray
+    Write-Host "    [" -NoNewline -ForegroundColor DarkGray
+    Write-Host " 0" -NoNewline -ForegroundColor Yellow
+    Write-Host "]" -NoNewline -ForegroundColor DarkGray
+    Write-Host "  ❌  " -NoNewline
+    Write-Host "Sair" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  └────────────────────────────────────────────────────────────────┘" -ForegroundColor DarkGray
     Write-Host ""
 }
 
