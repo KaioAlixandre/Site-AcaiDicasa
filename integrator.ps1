@@ -97,13 +97,6 @@ function Show-Menu {
     Write-Host "]" -NoNewline -ForegroundColor DarkGray
     Write-Host "  🗃️   " -NoNewline
     Write-Host "Executar Migrations do Banco" -ForegroundColor White
-    Write-Host "    [" -NoNewline -ForegroundColor DarkGray
-    Write-Host "11" -NoNewline -ForegroundColor Cyan
-    Write-Host "]" -NoNewline -ForegroundColor DarkGray
-    Write-Host "  🔄  " -NoNewline
-    Write-Host "Atualizar Schema do Banco" -ForegroundColor White
-    Write-Host "              " -NoNewline
-    Write-Host "Gera e aplica migrations de novas colunas/tabelas" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "  ├────────────────────────────────────────────────────────────────┤" -ForegroundColor DarkGray
     Write-Host "  │                         GIT                                    │" -ForegroundColor DarkGray
@@ -266,72 +259,6 @@ function Run-Migrations {
     Wait-ForKey
 }
 
-function Update-DatabaseSchema {
-    Show-Loading "Atualizando Schema do Banco de Dados..."
-    Write-Host "  ═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  📋 Verificando mudanças no schema..." -ForegroundColor Cyan
-    Write-Host ""
-    
-    # Verifica se o container do backend está rodando
-    $backendStatus = docker-compose ps backend 2>$null
-    if ($backendStatus -notmatch "Up") {
-        Show-Error "Container do backend não está rodando!"
-        Write-Host ""
-        Write-Host "  💡 Execute o Deploy (opção 1) primeiro" -ForegroundColor Yellow
-        Wait-ForKey
-        return
-    }
-    
-    # Gera o Prisma Client primeiro
-    Write-Host "  🔧 Gerando Prisma Client..." -ForegroundColor Cyan
-    docker-compose exec backend npx prisma generate
-    if ($LASTEXITCODE -ne 0) {
-        Show-Error "Erro ao gerar Prisma Client!"
-        Wait-ForKey
-        return
-    }
-    
-    Write-Host ""
-    Write-Host "  📝 Verificando e criando migrations..." -ForegroundColor Cyan
-    Write-Host ""
-    
-    # Cria migration com nome automático baseado na data/hora
-    $migrationName = "update_schema_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-    docker-compose exec backend npx prisma migrate dev --name $migrationName --create-only
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host ""
-        Write-Host "  ✅ Migration criada com sucesso!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "  🚀 Aplicando migrations no banco..." -ForegroundColor Cyan
-        docker-compose exec backend npx prisma migrate deploy
-        
-        if ($LASTEXITCODE -eq 0) {
-            Show-Success "Schema do banco atualizado com sucesso!"
-            Write-Host ""
-            Write-Host "  ✨ Novas colunas e tabelas foram criadas!" -ForegroundColor Green
-        } else {
-            Show-Error "Erro ao aplicar migrations!"
-        }
-    } else {
-        # Se não há mudanças, apenas aplica migrations pendentes
-        Write-Host ""
-        Write-Host "  ℹ️  Nenhuma mudança detectada no schema" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "  🚀 Aplicando migrations pendentes..." -ForegroundColor Cyan
-        docker-compose exec backend npx prisma migrate deploy
-        
-        if ($LASTEXITCODE -eq 0) {
-            Show-Success "Migrations pendentes aplicadas com sucesso!"
-        } else {
-            Show-Error "Erro ao aplicar migrations!"
-        }
-    }
-    
-    Wait-ForKey
-}
-
 function Git-Pull {
     Show-Loading "Atualizando código do repositório (git pull)..."
     Write-Host "  ═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
@@ -369,7 +296,6 @@ do {
         "8" { Restart-System }
         "9" { Run-Migrations }
         "10" { Git-Pull }
-        "11" { Update-DatabaseSchema }
         "0" { 
             Write-Host ""
             Write-Host "  👋 Até logo!" -ForegroundColor Cyan

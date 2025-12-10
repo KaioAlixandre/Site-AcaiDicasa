@@ -62,8 +62,6 @@ show_menu() {
     echo -e "    ${GRAY}[${CYAN} 7${GRAY}]${NC}  📜  ${WHITE}Ver Logs (tempo real)${NC}"
     echo -e "    ${GRAY}[${CYAN} 8${GRAY}]${NC}  🔄  ${WHITE}Reiniciar Sistema${NC}"
     echo -e "    ${GRAY}[${CYAN} 9${GRAY}]${NC}  🗃️   ${WHITE}Executar Migrations do Banco${NC}"
-    echo -e "    ${GRAY}[${CYAN}11${GRAY}]${NC}  🔄  ${WHITE}Atualizar Schema do Banco${NC}"
-    echo -e "              ${GRAY}Gera e aplica migrations de novas colunas/tabelas${NC}"
     echo ""
     echo -e "  ${GRAY}├────────────────────────────────────────────────────────────────┤${NC}"
     echo -e "  ${GRAY}│                         GIT                                    │${NC}"
@@ -208,70 +206,6 @@ run_migrations() {
     wait_for_key
 }
 
-update_database_schema() {
-    show_loading "Atualizando Schema do Banco de Dados..."
-    echo -e "  ${GRAY}═══════════════════════════════════════════════════════════════${NC}"
-    echo ""
-    echo -e "  ${CYAN}📋 Verificando mudanças no schema...${NC}"
-    echo ""
-    
-    # Verifica se o container do backend está rodando
-    if ! docker-compose ps backend | grep -q "Up"; then
-        show_error "Container do backend não está rodando!"
-        echo -e "  ${YELLOW}💡 Execute o Deploy (opção 1) primeiro${NC}"
-        wait_for_key
-        return
-    fi
-    
-    # Gera o Prisma Client primeiro
-    echo -e "  ${CYAN}🔧 Gerando Prisma Client...${NC}"
-    docker-compose exec backend npx prisma generate
-    if [ $? -ne 0 ]; then
-        show_error "Erro ao gerar Prisma Client!"
-        wait_for_key
-        return
-    fi
-    
-    echo ""
-    echo -e "  ${CYAN}📝 Verificando e criando migrations...${NC}"
-    echo ""
-    
-    # Cria migration com nome automático baseado na data/hora
-    MIGRATION_NAME="update_schema_$(date +%Y%m%d_%H%M%S)"
-    docker-compose exec backend npx prisma migrate dev --name "$MIGRATION_NAME" --create-only
-    
-    if [ $? -eq 0 ]; then
-        echo ""
-        echo -e "  ${CYAN}✅ Migration criada com sucesso!${NC}"
-        echo ""
-        echo -e "  ${CYAN}🚀 Aplicando migrations no banco...${NC}"
-        docker-compose exec backend npx prisma migrate deploy
-        
-        if [ $? -eq 0 ]; then
-            show_success "Schema do banco atualizado com sucesso!"
-            echo ""
-            echo -e "  ${GREEN}✨ Novas colunas e tabelas foram criadas!${NC}"
-        else
-            show_error "Erro ao aplicar migrations!"
-        fi
-    else
-        # Se não há mudanças, apenas aplica migrations pendentes
-        echo ""
-        echo -e "  ${YELLOW}ℹ️  Nenhuma mudança detectada no schema${NC}"
-        echo ""
-        echo -e "  ${CYAN}🚀 Aplicando migrations pendentes...${NC}"
-        docker-compose exec backend npx prisma migrate deploy
-        
-        if [ $? -eq 0 ]; then
-            show_success "Migrations pendentes aplicadas com sucesso!"
-        else
-            show_error "Erro ao aplicar migrations!"
-        fi
-    fi
-    
-    wait_for_key
-}
-
 git_pull() {
     show_loading "Atualizando código do repositório (git pull)..."
     echo -e "  ${GRAY}═══════════════════════════════════════════════════════════════${NC}"
@@ -309,7 +243,6 @@ while true; do
         8) restart_system ;;
         9) run_migrations ;;
         10) git_pull ;;
-        11) update_database_schema ;;
         0)
             echo ""
             echo -e "  ${CYAN}👋 Até logo!${NC}"
