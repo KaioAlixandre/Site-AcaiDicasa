@@ -348,7 +348,7 @@ model usuario {
   senha     String    @db.VarChar(255)
   funcao    funcao_usuario @default(user)
   criadoEm  DateTime  @default(now())
-  telefone  String    @unique(map: "User_telefone_key") @db.VarChar(20)
+  telefone  String?   @db.VarChar(20)
   enderecos endereco[]
   carrinho  carrinho?
   pedidos   pedido[]
@@ -359,7 +359,7 @@ model usuario {
 
 model redefinicao_senha {
   id            Int      @id @default(autoincrement())
-  email         String   @db.VarChar(191)
+  email         String
   codigo        String   @db.VarChar(6)
   criadoEm      DateTime @default(now())
   expiraEm      DateTime
