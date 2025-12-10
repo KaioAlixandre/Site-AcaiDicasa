@@ -42,12 +42,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (telefone: string, password: string) => {
     try {
       setLoading(true);
      
       
-      const response = await apiService.login({ email, password });
+      const response = await apiService.login({ telefone, password });
      
       
       // Salvar token no localStorage ANTES de fazer outras requisições
@@ -70,10 +70,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (username: string, email: string, password: string) => {
+  const register = async (username: string, telefone: string, password: string) => {
     try {
       setLoading(true);
-      await apiService.register({ username, email, password });
+      await apiService.register({ username, telefone, password });
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao criar conta');
     } finally {

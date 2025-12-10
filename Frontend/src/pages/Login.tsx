@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Phone, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: '',
+    telefone: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +37,7 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
+      await login(formData.telefone, formData.password);
       
       // Aguardar um pouco para o contexto ser atualizado
       setTimeout(() => {
@@ -107,23 +107,23 @@ const Login: React.FC = () => {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+              <label htmlFor="telefone" className="block text-sm font-medium text-gray-700">
+                Número de Celular
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Phone className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="telefone"
+                  name="telefone"
+                  type="tel"
+                  autoComplete="tel"
                   required
-                  value={formData.email}
+                  value={formData.telefone}
                   onChange={handleChange}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="seu@email.com"
+                  placeholder="(00) 00000-0000"
                 />
               </div>
             </div>

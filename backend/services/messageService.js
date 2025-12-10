@@ -174,12 +174,19 @@ const sendDeliveryNotifications = async (order, deliverer) => {
     }).join('\n') || 'Itens não disponíveis';
 
     // Construir endereço
-    const address = [
+    const addressParts = [
       order.shippingStreet,
       order.shippingNumber,
       order.shippingComplement,
       order.shippingNeighborhood
-    ].filter(Boolean).join(', ');
+    ].filter(Boolean);
+    
+    // Adicionar referência se existir
+    if (order.shippingReference) {
+      addressParts.push(`Ref: ${order.shippingReference}`);
+    }
+    
+    const address = addressParts.join(', ');
 
     // Mensagem para o entregador
     const delivererMessage = `
@@ -298,7 +305,7 @@ const sendPaymentConfirmationNotification = async (order) => {
 *Seu pedido já está em preparo!*
 
 ${order.tipoEntrega === 'delivery' ? 
-  `*Será entregue em:* ${order.ruaEntrega}, ${order.numeroEntrega}${order.complementoEntrega ? ` - ${order.complementoEntrega}` : ''} - ${order.bairroEntrega}` :
+  `*Será entregue em:* ${order.ruaEntrega}, ${order.numeroEntrega}${order.complementoEntrega ? ` - ${order.complementoEntrega}` : ''} - ${order.bairroEntrega}${order.referenciaEntrega ? `\n*Referência:* ${order.referenciaEntrega}` : ''}` :
   '*Aguarde a notificação para retirada*'
 }`.trim();
 

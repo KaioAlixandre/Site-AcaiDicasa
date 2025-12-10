@@ -344,11 +344,11 @@ model cozinheiro {
 model usuario {
   id        Int       @id @default(autoincrement())
   nomeUsuario String    @unique(map: "User_username_key") @db.VarChar(50)
-  email     String    @unique(map: "User_email_key") @db.VarChar(100)
+  email     String?   @unique(map: "User_email_key") @db.VarChar(100)
   senha     String    @db.VarChar(255)
   funcao    funcao_usuario @default(user)
   criadoEm  DateTime  @default(now())
-  telefone  String?   @db.VarChar(20)
+  telefone  String    @unique(map: "User_telefone_key") @db.VarChar(20)
   enderecos endereco[]
   carrinho  carrinho?
   pedidos   pedido[]

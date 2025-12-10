@@ -233,7 +233,7 @@ router.post('/', authenticateToken, async (req, res) => {
             const deliveryInfo = tipo === 'pickup' 
                 ? `📍 *Retirada no local*\n🏪 Endereço da loja: Açaidicasa, praça Geraldo Sá.\n` +
                 `Localizaçao maps: https://maps.app.goo.gl/LGe84k24KogZWXMt6?g_st=ipc`
-                : `*Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\nBairro: ${shippingAddress.bairro}`;
+                : `*Entrega em casa*\n📍 Endereço: ${shippingAddress.rua}, ${shippingAddress.numero}${shippingAddress.complemento ? ` - ${shippingAddress.complemento}` : ''}\nBairro: ${shippingAddress.bairro}${shippingAddress.pontoReferencia ? `\n*Referência:* ${shippingAddress.pontoReferencia}` : ''}`;
             
             // Adicionar observações se houver
             const notesSection = notes && notes.trim() ? `\n\n📝 *Observações:*\n${notes.trim()}` : '';
@@ -508,7 +508,22 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         if (currentOrder.status === 'pending_payment' && status === 'being_prepared') {
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
-                await sendPaymentConfirmationNotification(updatedOrder);
+                // Buscar referência do endereço padrão do usuário
+                const userWithAddress = await prisma.usuario.findUnique({
+                    where: { id: updatedOrder.usuarioId },
+                    include: {
+                        enderecos: {
+                            where: { padrao: true },
+                            take: 1
+                        }
+                    }
+                });
+                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                const orderWithReference = {
+                    ...updatedOrder,
+                    referenciaEntrega: referenciaEntrega
+                };
+                await sendPaymentConfirmationNotification(orderWithReference);
                 
                 // Notificar cozinheiro quando pedido entra em preparo
                 const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
@@ -532,6 +547,18 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         if (status === 'on_the_way' && updatedOrder.entregador) {
             try {
                 console.log('📱 Enviando notificações de entrega...');
+                // Buscar referência do endereço padrão do usuário
+                const userWithAddress = await prisma.usuario.findUnique({
+                    where: { id: updatedOrder.usuarioId },
+                    include: {
+                        enderecos: {
+                            where: { padrao: true },
+                            take: 1
+                        }
+                    }
+                });
+                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                
                 // Mapear campos para compatibilidade com messageService
                 const orderForNotification = {
                     ...updatedOrder,
@@ -548,6 +575,7 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                     shippingNumber: updatedOrder.numeroEntrega,
                     shippingComplement: updatedOrder.complementoEntrega,
                     shippingNeighborhood: updatedOrder.bairroEntrega,
+                    shippingReference: referenciaEntrega,
                     shippingPhone: updatedOrder.usuario?.telefone
                 };
                 await sendDeliveryNotifications(orderForNotification, updatedOrder.entregador);
@@ -656,7 +684,22 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
         if (existingOrder.status === 'pending_payment' && dbStatus === 'being_prepared') {
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
-                await sendPaymentConfirmationNotification(order);
+                // Buscar referência do endereço padrão do usuário
+                const userWithAddress = await prisma.usuario.findUnique({
+                    where: { id: order.usuarioId },
+                    include: {
+                        enderecos: {
+                            where: { padrao: true },
+                            take: 1
+                        }
+                    }
+                });
+                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                const orderWithReference = {
+                    ...order,
+                    referenciaEntrega: referenciaEntrega
+                };
+                await sendPaymentConfirmationNotification(orderWithReference);
                 // Notificar cozinheiro quando pedido entra em preparo
                 const cozinheiroAtivo = await prisma.cozinheiro.findFirst({
                     where: { ativo: true },
@@ -689,6 +732,18 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             // Notificação para entrega com entregador
             try {
                 console.log('📱 Enviando notificações de entrega...');
+                // Buscar referência do endereço padrão do usuário
+                const userWithAddress = await prisma.usuario.findUnique({
+                    where: { id: order.usuarioId },
+                    include: {
+                        enderecos: {
+                            where: { padrao: true },
+                            take: 1
+                        }
+                    }
+                });
+                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                
                 // Mapear campos para compatibilidade com messageService
                 const orderForNotification = {
                     ...order,
@@ -705,6 +760,7 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                     shippingNumber: order.numeroEntrega,
                     shippingComplement: order.complementoEntrega,
                     shippingNeighborhood: order.bairroEntrega,
+                    shippingReference: referenciaEntrega,
                     shippingPhone: order.usuario?.telefone
                 };
                 await sendDeliveryNotifications(orderForNotification, order.entregador);

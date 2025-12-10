@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, 
   MapPin, 
-  Mail, 
   Edit, 
   X, 
   Plus,
@@ -37,6 +36,7 @@ const Profile: React.FC = () => {
     reference: '',
     isDefault: false
   });
+  const [hasNumber, setHasNumber] = useState(true);
 
   // Função para mapear dados do backend (português) para o frontend (inglês)
   const mapAddressFromBackend = (addressData: any): Address => {
@@ -154,8 +154,13 @@ const Profile: React.FC = () => {
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-     
-      await apiService.addAddress(newAddress);
+      // Se for o primeiro endereço, definir como padrão automaticamente
+      const isFirstAddress = !addresses || addresses.length === 0;
+      const addressData = {
+        ...newAddress,
+        isDefault: isFirstAddress
+      };
+      await apiService.addAddress(addressData);
       setShowAddressForm(false);
       setNewAddress({
         street: '',
@@ -182,6 +187,8 @@ const Profile: React.FC = () => {
   const handleEditAddress = (address: Address) => {
    
     setEditingAddress(address);
+    const isSemNumero = address.number === 'S/N' || address.number === '';
+    setHasNumber(!isSemNumero);
     setNewAddress({
       street: address.street,
       number: address.number,
@@ -191,6 +198,16 @@ const Profile: React.FC = () => {
       isDefault: address.isDefault
     });
     setShowAddressForm(true);
+  };
+
+  const handleHasNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setHasNumber(checked);
+    if (!checked) {
+      setNewAddress({ ...newAddress, number: 'S/N' });
+    } else {
+      setNewAddress({ ...newAddress, number: '' });
+    }
   };
 
   const handleUpdateAddress = async (e: React.FormEvent) => {
@@ -249,6 +266,7 @@ const Profile: React.FC = () => {
    
     setEditingAddress(null);
     setShowAddressForm(false);
+    setHasNumber(true);
     setNewAddress({
       street: '',
       number: '',
@@ -302,7 +320,7 @@ const Profile: React.FC = () => {
                   Olá, {user.nomeUsuario}!
                 </h1>
                 <p className="text-sm md:text-base text-slate-600 mb-1">
-                  {user.email}
+                  {user.telefone}
                 </p>
 
                 <div className="mb-3 flex items-center justify-center sm:justify-start gap-1.5">
@@ -354,8 +372,8 @@ const Profile: React.FC = () => {
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                   <div className="bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-200">
                     <div className="flex items-center space-x-1.5">
-                      <Mail className="w-3.5 h-3.5 text-purple-600" />
-                      <span className="text-xs font-medium text-slate-700">Email verificado</span>
+                      <Phone className="w-3.5 h-3.5 text-purple-600" />
+                      <span className="text-xs font-medium text-slate-700">Telefone cadastrado</span>
                     </div>
                   </div>
                   
@@ -387,6 +405,7 @@ const Profile: React.FC = () => {
               <button
                 onClick={() => {
                   setEditingAddress(null);
+                  setHasNumber(true);
                   setNewAddress({
                     street: '',
                     number: '',
@@ -467,13 +486,26 @@ const Profile: React.FC = () => {
                           <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 flex items-center">
                             Número
                           </label>
+                          <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+                            <input
+                              type="checkbox"
+                              id="hasNumber"
+                              checked={hasNumber}
+                              onChange={handleHasNumberChange}
+                              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            />
+                            <label htmlFor="hasNumber" className="text-xs sm:text-sm text-gray-700 cursor-pointer">
+                              Endereço possui número?
+                            </label>
+                          </div>
                           <input
                             type="text"
                             value={newAddress.number}
                             onChange={(e) => setNewAddress({...newAddress, number: e.target.value})}
-                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                            className={`w-full px-3 py-2 sm:px-3.5 sm:py-2.5 md:px-4 md:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${!hasNumber ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                             placeholder="123"
-                            required
+                            required={hasNumber}
+                            disabled={!hasNumber}
                           />
                         </div>
                         

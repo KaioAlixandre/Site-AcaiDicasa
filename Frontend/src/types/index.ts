@@ -3,8 +3,8 @@ export interface User {
   role: string;
   id: number;
   nomeUsuario: string;
-  email: string;
-  telefone?: string;
+  email?: string;
+  telefone: string;
   funcao: 'user' | 'admin' | 'master';
   enderecos?: Address[];
   order?: {
@@ -190,13 +190,13 @@ export interface CartResponse {
 
 // Form types
 export interface LoginForm {
-  email: string;
+  telefone: string;
   password: string;
 }
 
 export interface RegisterForm {
   username: string;
-  email: string;
+  telefone: string;
   password: string;
 }
 
@@ -205,6 +205,7 @@ export interface AddressForm {
   number: string;
   complement?: string;
   neighborhood: string;
+  reference?: string;
   isDefault?: boolean;
 }
 
@@ -220,8 +221,8 @@ export interface AuthContextType {
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  login: (telefone: string, password: string) => Promise<void>;
+  register: (username: string, telefone: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
   refreshUserProfile: () => Promise<void>;

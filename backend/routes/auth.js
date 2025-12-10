@@ -58,13 +58,13 @@ const authorize = (role) => {
 };
 
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    console.log(`🔐 [POST /auth/login] Tentativa de login para email: ${email}`);
+    const { telefone, password } = req.body;
+    console.log(`🔐 [POST /auth/login] Tentativa de login para telefone: ${telefone}`);
     
     try {
-        const user = await prisma.usuario.findUnique({ where: { email } });
+        const user = await prisma.usuario.findUnique({ where: { telefone } });
         if (!user || !(await bcrypt.compare(password, user.senha))) {
-            console.warn(`⚠️ [POST /auth/login] Credenciais inválidas para email: ${email}`);
+            console.warn(`⚠️ [POST /auth/login] Credenciais inválidas para telefone: ${telefone}`);
             return res.status(400).json({ message: 'Credenciais inválidas.' });
         }
         const token = jwt.sign({ id: user.id, role: user.funcao }, JWT_SECRET, { expiresIn: '1h' });
@@ -77,18 +77,18 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { username, email, password } = req.body;
-    console.log(`👤 [POST /auth/register] Tentativa de registro para usuário: ${username}, email: ${email}`);
+    const { username, telefone, password } = req.body;
+    console.log(`👤 [POST /auth/register] Tentativa de registro para usuário: ${username}, telefone: ${telefone}`);
     
     try {
-        const existingUser = await prisma.usuario.findUnique({ where: { email } });
+        const existingUser = await prisma.usuario.findUnique({ where: { telefone } });
         if (existingUser) {
-            console.warn(`⚠️ [POST /auth/register] Email já existe: ${email}`);
-            return res.status(400).json({ message: 'E-mail já cadastrado.' });
+            console.warn(`⚠️ [POST /auth/register] Telefone já existe: ${telefone}`);
+            return res.status(400).json({ message: 'Telefone já cadastrado.' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await prisma.usuario.create({
-            data: { nomeUsuario: username, email, senha: hashedPassword }
+            data: { nomeUsuario: username, telefone, senha: hashedPassword }
         });
         console.log(`✅ [POST /auth/register] Usuário cadastrado com sucesso: ${username} (ID: ${newUser.id})`);
         res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });

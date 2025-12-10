@@ -40,8 +40,10 @@ const Checkout: React.FC = () => {
     number: '',
     complement: '',
     neighborhood: '',
+    reference: '',
     isDefault: true
   });
+  const [hasNumber, setHasNumber] = useState(true);
   const [addressLoading, setAddressLoading] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
   const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
@@ -52,16 +54,16 @@ const Checkout: React.FC = () => {
   const navigate = useNavigate();
 
   // States para o fluxo de cadastro em checkout (quando não há usuário logado)
-  const [regStep, setRegStep] = useState<number>(1); // 1 = nome, 2 = email+senha
+  const [regStep, setRegStep] = useState<number>(1); // 1 = nome, 2 = telefone+senha
   const [regName, setRegName] = useState<string>('');
-  const [regEmail, setRegEmail] = useState<string>('');
+  const [regTelefone, setRegTelefone] = useState<string>('');
   const [regPassword, setRegPassword] = useState<string>('');
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regLoading, setRegLoading] = useState<boolean>(false);
   const [regError, setRegError] = useState<string>('');
   // Estado para login rápido dentro do checkout
   const [loginMode, setLoginMode] = useState<boolean>(false);
-  const [loginEmailLocal, setLoginEmailLocal] = useState<string>('');
+  const [loginTelefoneLocal, setLoginTelefoneLocal] = useState<string>('');
   const [loginPasswordLocal, setLoginPasswordLocal] = useState<string>('');
   const [loginLoadingLocal, setLoginLoadingLocal] = useState<boolean>(false);
   const [loginErrorLocal, setLoginErrorLocal] = useState<string>('');
@@ -145,14 +147,8 @@ const Checkout: React.FC = () => {
         return;
       }
       
-      // Verificar se o usuário não tem telefone
-      if (!user.telefone || user.telefone.trim() === '') {
-       
-        navigate('/add-phone');
-        return;
-      }
-      
-      // Se chegou aqui, o usuário tem endereço e telefone
+      // Telefone não precisa ser verificado aqui pois é obrigatório no cadastro
+      // Se chegou aqui, o usuário tem endereço e telefone (telefone sempre existe após cadastro)
       setShowAddressForm(false);
     } else if (deliveryType === 'pickup') {
       setShowAddressForm(false);
@@ -163,15 +159,31 @@ const Checkout: React.FC = () => {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
   };
 
+  const handleHasNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setHasNumber(checked);
+    if (!checked) {
+      setAddressForm({ ...addressForm, number: 'S/N' });
+    } else {
+      setAddressForm({ ...addressForm, number: '' });
+    }
+  };
+
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddressLoading(true);
     try {
-      await apiService.addAddress(addressForm);
+      // Se for o primeiro endereço, definir como padrão automaticamente
+      const isFirstAddress = !user?.enderecos || user.enderecos.length === 0;
+      const addressData = {
+        ...addressForm,
+        isDefault: isFirstAddress
+      };
+      await apiService.addAddress(addressData);
       await refreshUserProfile();
       notify('Endereço cadastrado com sucesso!', 'success');
-      // Redirecionar para adicionar telefone
-      navigate('/add-phone');
+      // Não precisa redirecionar para adicionar telefone, pois telefone já foi cadastrado no registro
+      setShowAddressForm(false);
     } catch (error) {
       notify('Erro ao cadastrar endereço!', 'error');
     }
@@ -289,13 +301,26 @@ const Checkout: React.FC = () => {
                     <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
                       Número
                     </label>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <input
+                        type="checkbox"
+                        id="hasNumber"
+                        checked={hasNumber}
+                        onChange={handleHasNumberChange}
+                        className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                      />
+                      <label htmlFor="hasNumber" className="text-xs md:text-sm text-slate-700 cursor-pointer">
+                        Endereço possui número?
+                      </label>
+                    </div>
                     <input
                       name="number"
                       value={addressForm.number}
                       onChange={handleAddressChange}
                       placeholder="123"
-                      required
-                      className="w-full px-3 py-2 md:px-4 md:py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                      required={hasNumber}
+                      disabled={!hasNumber}
+                      className={`w-full px-3 py-2 md:px-4 md:py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200 ${!hasNumber ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                     />
                   </div>
                 </div>
@@ -323,6 +348,19 @@ const Checkout: React.FC = () => {
                     onChange={handleAddressChange}
                     placeholder="Nome do bairro"
                     required
+                    className="w-full px-3 py-2 md:px-4 md:py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                    Ponto de Referência (opcional)
+                  </label>
+                  <input
+                    name="reference"
+                    value={addressForm.reference}
+                    onChange={handleAddressChange}
+                    placeholder="Ex: Próximo ao mercado, em frente à escola, etc."
                     className="w-full px-3 py-2 md:px-4 md:py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
                   />
                 </div>
@@ -367,8 +405,8 @@ const Checkout: React.FC = () => {
     const handleRegisterSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setRegError('');
-      if (!regEmail || !regPassword) {
-        setRegError('Preencha email e senha');
+      if (!regTelefone || !regPassword) {
+        setRegError('Preencha telefone e senha');
         return;
       }
       if (regPassword.length < 6) {
@@ -383,23 +421,19 @@ const Checkout: React.FC = () => {
       try {
         setRegLoading(true);
         // Criar conta
-        await register(regName.trim(), regEmail.trim(), regPassword);
+        await register(regName.trim(), regTelefone.trim(), regPassword);
         // Fazer login automático
-        await login(regEmail.trim(), regPassword);
+        await login(regTelefone.trim(), regPassword);
         // Após login, verificar perfil e decidir próximo passo
         try {
           const profile = await apiService.getProfile();
-          if (profile.enderecos && profile.enderecos.length > 0 && profile.telefone && profile.telefone.trim() !== '') {
+          if (profile.enderecos && profile.enderecos.length > 0) {
             setRegError('');
             setLoginMode(false);
             return;
           }
           if (!profile.enderecos || profile.enderecos.length === 0) {
             navigate('/add-address');
-            return;
-          }
-          if (!profile.telefone || profile.telefone.trim() === '') {
-            navigate('/add-phone');
             return;
           }
         } catch (errProfile) {
@@ -440,18 +474,18 @@ const Checkout: React.FC = () => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 setLoginErrorLocal('');
-                if (!loginEmailLocal || !loginPasswordLocal) {
-                  setLoginErrorLocal('Preencha email e senha');
+                if (!loginTelefoneLocal || !loginPasswordLocal) {
+                  setLoginErrorLocal('Preencha telefone e senha');
                   return;
                 }
                 try {
                   setLoginLoadingLocal(true);
-                  await login(loginEmailLocal.trim(), loginPasswordLocal);
+                  await login(loginTelefoneLocal.trim(), loginPasswordLocal);
                   // Buscar perfil atualizado e decidir próximo passo
                   try {
                     const profile = await apiService.getProfile();
-                    if (profile.enderecos && profile.enderecos.length > 0 && profile.telefone && profile.telefone.trim() !== '') {
-                      // Já tem endereço e telefone — fechar o card e permitir finalizar pedido
+                    if (profile.enderecos && profile.enderecos.length > 0) {
+                      // Já tem endereço — fechar o card e permitir finalizar pedido
                       setLoginMode(false);
                       setRegError('');
                       setLoginErrorLocal('');
@@ -459,10 +493,6 @@ const Checkout: React.FC = () => {
                     }
                     if (!profile.enderecos || profile.enderecos.length === 0) {
                       navigate('/add-address');
-                      return;
-                    }
-                    if (!profile.telefone || profile.telefone.trim() === '') {
-                      navigate('/add-phone');
                       return;
                     }
                   } catch (errProfile) {
@@ -479,12 +509,12 @@ const Checkout: React.FC = () => {
               className="space-y-4"
             >
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Número de Celular</label>
                 <input
-                  value={loginEmailLocal}
-                  onChange={(e) => setLoginEmailLocal(e.target.value)}
-                  type="email"
-                  placeholder="seu@exemplo.com"
+                  value={loginTelefoneLocal}
+                  onChange={(e) => setLoginTelefoneLocal(e.target.value)}
+                  type="tel"
+                  placeholder="(00) 00000-0000"
                   required
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
@@ -547,12 +577,12 @@ const Checkout: React.FC = () => {
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Número de Celular</label>
                 <input
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  type="email"
-                  placeholder="seu@exemplo.com"
+                  value={regTelefone}
+                  onChange={(e) => setRegTelefone(e.target.value)}
+                  type="tel"
+                  placeholder="(00) 00000-0000"
                   required
                   className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
                 />
