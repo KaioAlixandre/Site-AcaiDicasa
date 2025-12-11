@@ -67,7 +67,8 @@ router.post('/login', async (req, res) => {
             console.warn(`⚠️ [POST /auth/login] Credenciais inválidas para telefone: ${telefone}`);
             return res.status(400).json({ message: 'Credenciais inválidas.' });
         }
-        const token = jwt.sign({ id: user.id, role: user.funcao }, JWT_SECRET, { expiresIn: '1h' });
+        // Token válido por 7 dias para manter sessão persistente
+        const token = jwt.sign({ id: user.id, role: user.funcao }, JWT_SECRET, { expiresIn: '7d' });
         console.log(`✅ [POST /auth/login] Login realizado com sucesso para usuário: ${user.nomeUsuario} (ID: ${user.id})`);
         res.json({ token, user: { id: user.id, username: user.nomeUsuario, role: user.funcao } });
     } catch (err) {

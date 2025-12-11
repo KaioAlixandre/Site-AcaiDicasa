@@ -13,57 +13,124 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Função para sincronizar token com localStorage
+  const syncToken = (newToken: string | null) => {
+    if (newToken) {
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+    } else {
+      localStorage.removeItem('token');
+      setToken(null);
+    }
+  };
+
+  // Função para sincronizar usuário com localStorage
+  const syncUser = (newUser: User | null) => {
+    if (newUser) {
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setUser(newUser);
+    } else {
+      localStorage.removeItem('user');
+      setUser(null);
+    }
+  };
+
+  // Inicializar autenticação ao carregar a aplicação
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      try {
+        const storedToken = localStorage.getItem('token');
+        const storedUserStr = localStorage.getItem('user');
 
-      if (storedToken && storedUser) {
-        try {
+        if (storedToken) {
+          // Sempre definir o token primeiro para que as requisições funcionem
           setToken(storedToken);
           
-          // Verificar se o token ainda é válido e carregar perfil completo
-          const userProfile = await apiService.getProfile();
-          setUser(userProfile);
-          
-          // Atualizar o usuário no localStorage com dados completos
-          localStorage.setItem('user', JSON.stringify(userProfile));
-        } catch (error) {
-          // Token inválido, limpar storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
+          // Tentar restaurar usuário do localStorage temporariamente
+          if (storedUserStr) {
+            try {
+              const storedUser = JSON.parse(storedUserStr);
+              setUser(storedUser);
+            } catch (e) {
+              console.warn('Erro ao parsear usuário do localStorage:', e);
+            }
+          }
+
+          // Validar token e carregar perfil completo do servidor
+          try {
+            const userProfile = await apiService.getProfile();
+            syncUser(userProfile);
+            syncToken(storedToken); // Garantir que o token está salvo
+          } catch (error: any) {
+            // Token inválido ou expirado
+            console.warn('Token inválido ou expirado:', error);
+            // Limpar tudo
+            syncToken(null);
+            syncUser(null);
+          }
+        } else {
+          // Não há token, garantir que está limpo
+          syncToken(null);
+          syncUser(null);
         }
+      } catch (error) {
+        console.error('Erro ao inicializar autenticação:', error);
+        syncToken(null);
+        syncUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
   }, []);
 
+  // Sincronizar token quando mudar
+  useEffect(() => {
+    const currentToken = localStorage.getItem('token');
+    if (token !== currentToken) {
+      if (token) {
+        localStorage.setItem('token', token);
+      } else if (currentToken) {
+        // Se o token foi removido do estado mas ainda existe no localStorage, remover
+        localStorage.removeItem('token');
+      }
+    }
+  }, [token]);
+
+  // Listener para eventos de logout (quando token é invalidado pelo interceptor)
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      syncUser(null);
+      syncToken(null);
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+    };
+  }, []);
+
   const login = async (telefone: string, password: string) => {
     try {
       setLoading(true);
-     
       
       const response = await apiService.login({ telefone, password });
-     
       
       // Salvar token no localStorage ANTES de fazer outras requisições
-      localStorage.setItem('token', response.token);
-      setToken(response.token);
-     
+      syncToken(response.token);
       
       // Carregar perfil completo com endereços
       const userProfile = await apiService.getProfile();
-     
       
-      setUser(userProfile);
-      localStorage.setItem('user', JSON.stringify(userProfile));
+      // Salvar usuário no localStorage
+      syncUser(userProfile);
     
     } catch (error: any) {
-     
+      // Em caso de erro, limpar tudo
+      syncToken(null);
+      syncUser(null);
       throw new Error(error.response?.data?.message || 'Erro ao fazer login');
     } finally {
       setLoading(false);
@@ -82,8 +149,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
+    syncUser(null);
+    syncToken(null);
+    // Garantir que está tudo limpo
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
@@ -91,22 +159,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUserProfile = async () => {
     try {
       const userProfile = await apiService.getProfile();
-      setUser(userProfile);
-      localStorage.setItem('user', JSON.stringify(userProfile));
+      syncUser(userProfile);
     } catch (error) {
-    
+      console.error('Erro ao atualizar perfil:', error);
+      // Se houver erro 401, fazer logout
+      if ((error as any)?.response?.status === 401) {
+        logout();
+      }
+    }
+  };
+
+  // Wrapper para setUser que mantém sincronização com localStorage
+  const setUserWrapper = (newUser: User | null | ((prev: User | null) => User | null)) => {
+    if (typeof newUser === 'function') {
+      setUser((prev) => {
+        const updated = newUser(prev);
+        syncUser(updated);
+        return updated;
+      });
+    } else {
+      syncUser(newUser);
     }
   };
 
   const value: AuthContextType = {
     user,
-    token,
+    token: token || localStorage.getItem('token'), // Sempre retornar do localStorage se o estado estiver vazio
     login,
     register,
     logout,
     loading,
-    setUser, // Add setUser to match AuthContextType
-    refreshUserProfile, // Add refresh function
+    setUser: setUserWrapper, // Usar wrapper para manter sincronizado
+    refreshUserProfile,
   };
 
   return (

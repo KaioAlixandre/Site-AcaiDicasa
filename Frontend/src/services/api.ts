@@ -28,6 +28,7 @@ class ApiService {
     // Interceptor para adicionar token de autenticação
     this.api.interceptors.request.use(
       (config) => {
+        // Sempre ler o token do localStorage para garantir que está atualizado
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -43,15 +44,32 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
+        // Apenas limpar token se for erro 401 e não for uma rota pública
         if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          // Redirecionar para checkout para permitir fluxo de cadastro/checkout quando não autenticado
-          try {
-            window.location.href = '/checkout';
-          } catch (e) {
-            // fallback: se não for possível, navegar para /login (evita quebrar em ambientes sem window)
-            window.location.href = '/login';
+          const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/verify-reset-code'];
+          const isPublicRoute = publicRoutes.some(route => error.config?.url?.includes(route));
+          
+          // Se não for rota pública, o token está inválido
+          if (!isPublicRoute) {
+            // Limpar apenas se realmente houver um token
+            if (localStorage.getItem('token')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              
+              // Só redirecionar se não estiver já em uma página de login/registro
+              const currentPath = window.location.pathname;
+              if (!currentPath.includes('/login') && !currentPath.includes('/register') && !currentPath.includes('/forgot-password') && !currentPath.includes('/reset-password')) {
+                // Disparar evento customizado para o AuthContext reagir
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                
+                // Redirecionar apenas se não estiver em checkout (permite fluxo de cadastro)
+                if (!currentPath.includes('/checkout')) {
+                  setTimeout(() => {
+                    window.location.href = '/login';
+                  }, 100);
+                }
+              }
+            }
           }
         }
         return Promise.reject(error);
