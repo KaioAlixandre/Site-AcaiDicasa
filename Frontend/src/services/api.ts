@@ -28,7 +28,6 @@ class ApiService {
     // Interceptor para adicionar token de autenticação
     this.api.interceptors.request.use(
       (config) => {
-        // Sempre ler o token do localStorage para garantir que está atualizado
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -44,48 +43,17 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Apenas limpar token se for erro 401/403 e não for uma rota pública
-        const status = error.response?.status;
-        if (status === 401 || status === 403) {
-          const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/verify-reset-code'];
-          const requestUrl = error.config?.url || '';
-          const isPublicRoute = publicRoutes.some(route => requestUrl.includes(route));
-          
-          // Se não for rota pública, o token está inválido
-          if (!isPublicRoute) {
-            const token = localStorage.getItem('token');
-            if (token) {
-              // Verificar se não estamos na inicialização (evitar limpar durante init)
-              const isInitializing = sessionStorage.getItem('auth:initializing') === 'true';
-              
-              if (!isInitializing) {
-                console.warn('🚫 [API] Token inválido detectado (status:', status, '), limpando sessão...');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                
-                // Só redirecionar se não estiver já em uma página de login/registro
-                const currentPath = window.location.pathname;
-                if (!currentPath.includes('/login') && 
-                    !currentPath.includes('/register') && 
-                    !currentPath.includes('/forgot-password') && 
-                    !currentPath.includes('/reset-password')) {
-                  // Disparar evento customizado para o AuthContext reagir
-                  window.dispatchEvent(new CustomEvent('auth:logout'));
-                  
-                  // Redirecionar apenas se não estiver em checkout (permite fluxo de cadastro)
-                  if (!currentPath.includes('/checkout')) {
-                    setTimeout(() => {
-                      window.location.href = '/login';
-                    }, 100);
-                  }
-                }
-              } else {
-                console.log('⏳ [API] Ignorando erro 401 durante inicialização');
-              }
-            }
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          // Redirecionar para checkout para permitir fluxo de cadastro/checkout quando não autenticado
+          try {
+            window.location.href = '/checkout';
+          } catch (e) {
+            // fallback: se não for possível, navegar para /login (evita quebrar em ambientes sem window)
+            window.location.href = '/login';
           }
         }
-        // Para outros erros (rede, 500, etc), não limpar o token
         return Promise.reject(error);
       }
     );
