@@ -35,13 +35,23 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
     const { nome } = req.body;
     console.log(`✨ POST /api/products/categories/add: Requisição para adicionar nova categoria: ${nome}.`);
     // Validação básica
-    if (!nome) {
+    if (!nome || !nome.trim()) {
         console.warn('⚠️ POST /api/products/categories/add: Nome da categoria ausente.');
         return res.status(400).json({ message: 'Nome da categoria é obrigatório.' });
     }
     try {
+        // Verificar se já existe uma categoria com o mesmo nome
+        const existingCategory = await prisma.categoria_produto.findFirst({
+            where: { nome: nome.trim() }
+        });
+        
+        if (existingCategory) {
+            console.warn('⚠️ POST /api/products/categories/add: Categoria já existe.');
+            return res.status(409).json({ message: 'Já existe uma categoria com este nome.' });
+        }
+
         const newCategory = await prisma.categoria_produto.create({
-            data: { nome },
+            data: { nome: nome.trim() },
         });
         console.log(`✅ POST /api/products/categories/add: Nova categoria adicionada com sucesso: ${newCategory.nome}.`);
         // Transformar o campo 'nome' para 'name' para compatibilidade com o frontend
@@ -53,6 +63,105 @@ router.post('/categories/add', authenticateToken, authorize('admin'), async (req
     } catch (err) {
         console.error('❌ POST /api/products/categories/add: Erro ao adicionar categoria:', err.message);
         res.status(500).json({ message: 'Erro ao adicionar categoria.', error: err.message });
+    }
+});
+
+// Rota para atualizar uma categoria (apenas para administradores)
+router.put('/categories/:id', authenticateToken, authorize('admin'), async (req, res) => {
+    const { id } = req.params;
+    const { nome } = req.body;
+    console.log(`🔄 PUT /api/products/categories/${id}: Requisição para atualizar categoria.`);
+    
+    if (!nome || !nome.trim()) {
+        console.warn('⚠️ PUT /api/products/categories: Nome da categoria ausente.');
+        return res.status(400).json({ message: 'Nome da categoria é obrigatório.' });
+    }
+
+    try {
+        // Verificar se a categoria existe
+        const existingCategory = await prisma.categoria_produto.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!existingCategory) {
+            console.warn(`⚠️ PUT /api/products/categories/${id}: Categoria não encontrada.`);
+            return res.status(404).json({ message: 'Categoria não encontrada.' });
+        }
+
+        // Verificar se já existe outra categoria com o mesmo nome
+        const duplicateCategory = await prisma.categoria_produto.findFirst({
+            where: {
+                nome: nome.trim(),
+                id: { not: parseInt(id) }
+            }
+        });
+
+        if (duplicateCategory) {
+            console.warn('⚠️ PUT /api/products/categories: Nome já existe em outra categoria.');
+            return res.status(409).json({ message: 'Já existe outra categoria com este nome.' });
+        }
+
+        const updatedCategory = await prisma.categoria_produto.update({
+            where: { id: parseInt(id) },
+            data: { nome: nome.trim() }
+        });
+
+        console.log(`✅ PUT /api/products/categories/${id}: Categoria atualizada com sucesso.`);
+        const transformedCategory = {
+            id: updatedCategory.id,
+            name: updatedCategory.nome
+        };
+        res.status(200).json(transformedCategory);
+    } catch (err) {
+        console.error(`❌ PUT /api/products/categories/${id}: Erro ao atualizar categoria:`, err.message);
+        if (err.code === 'P2025') {
+            return res.status(404).json({ message: 'Categoria não encontrada.' });
+        }
+        res.status(500).json({ message: 'Erro ao atualizar categoria.', error: err.message });
+    }
+});
+
+// Rota para deletar uma categoria (apenas para administradores)
+router.delete('/categories/:id', authenticateToken, authorize('admin'), async (req, res) => {
+    const { id } = req.params;
+    console.log(`🗑️ DELETE /api/products/categories/${id}: Requisição para deletar categoria.`);
+
+    try {
+        // Verificar se a categoria existe
+        const existingCategory = await prisma.categoria_produto.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                produtos: {
+                    select: { id: true }
+                }
+            }
+        });
+
+        if (!existingCategory) {
+            console.warn(`⚠️ DELETE /api/products/categories/${id}: Categoria não encontrada.`);
+            return res.status(404).json({ message: 'Categoria não encontrada.' });
+        }
+
+        // Verificar se há produtos associados
+        if (existingCategory.produtos && existingCategory.produtos.length > 0) {
+            console.warn(`⚠️ DELETE /api/products/categories/${id}: Categoria possui ${existingCategory.produtos.length} produto(s) associado(s).`);
+            return res.status(400).json({ 
+                message: `Não é possível deletar. Esta categoria possui ${existingCategory.produtos.length} produto(s) associado(s).` 
+            });
+        }
+
+        await prisma.categoria_produto.delete({
+            where: { id: parseInt(id) }
+        });
+
+        console.log(`✅ DELETE /api/products/categories/${id}: Categoria deletada com sucesso.`);
+        res.status(200).json({ message: 'Categoria deletada com sucesso.' });
+    } catch (err) {
+        console.error(`❌ DELETE /api/products/categories/${id}: Erro ao deletar categoria:`, err.message);
+        if (err.code === 'P2025') {
+            return res.status(404).json({ message: 'Categoria não encontrada.' });
+        }
+        res.status(500).json({ message: 'Erro ao deletar categoria.', error: err.message });
     }
 });
 

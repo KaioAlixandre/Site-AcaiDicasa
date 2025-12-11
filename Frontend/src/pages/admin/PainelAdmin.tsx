@@ -114,6 +114,11 @@ useEffect(() => {
   }
 }, [activePage]);
 
+const handleRefreshOrders = async () => {
+  const refreshedOrders = await apiService.getOrdersAdmin();
+  setOrders(refreshedOrders);
+};
+
   const handleAddProduct = async (data: any) => {
     await apiService.createProduct(data);
     setShowAddModal(false);
@@ -126,6 +131,15 @@ useEffect(() => {
     await apiService.addCategory(name);
     setShowAddCategoryModal(false);
     setCategories(await apiService.getCategories());
+  };
+
+  const handleCategoriesChange = async () => {
+    // Recarregar categorias quando houver mudanças
+    setCategories(await apiService.getCategories());
+    // Também recarregar produtos para atualizar as categorias nos produtos
+    if (activePage === 'produtos') {
+      setProducts(await apiService.getProducts());
+    }
   };
 
   const handleEdit = (product: Product) => setEditProduct(product);
@@ -324,7 +338,13 @@ const performConfirmDelivery = async (): Promise<void> => {
         {activePage === 'dashboard' && <Dashboard />}
 
         {/* Pedidos */}
-        {activePage === 'pedidos' && <Pedidos orders={orders} handleAdvanceStatus={handleAdvanceStatus} />}
+        {activePage === 'pedidos' && (
+          <Pedidos 
+            orders={orders} 
+            handleAdvanceStatus={handleAdvanceStatus}
+            onRefresh={handleRefreshOrders}
+          />
+        )}
 
         {/* Produtos */}
         {activePage === 'produtos' && (
@@ -338,10 +358,10 @@ const performConfirmDelivery = async (): Promise<void> => {
             editProduct={editProduct}
             setEditProduct={setEditProduct}
             handleAddProduct={handleAddProduct}
-            handleAddCategory={handleAddCategory}
             handleEdit={handleEdit}
             handleUpdateProduct={handleUpdateProduct}
             handleDelete={handleDelete}
+            onCategoriesChange={handleCategoriesChange}
           />
         )}
 

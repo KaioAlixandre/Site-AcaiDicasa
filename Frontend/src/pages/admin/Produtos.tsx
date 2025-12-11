@@ -3,7 +3,7 @@ import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Product, ProductCategory } from '../../types';
 import ModalAdicionarProduto from './components/ModalAdicionarProduto';
 import ModalEditarProduto from './components/ModalEditarProduto';
-import ModalAdicionarCategoria from './components/ModalAdicionarCategoria';
+import ModalGerenciarCategorias from './components/ModalGerenciarCategorias';
 
 const Produtos: React.FC<{
   products: Product[],
@@ -15,13 +15,13 @@ const Produtos: React.FC<{
   editProduct: Product | null,
   setEditProduct: (product: Product | null) => void,
   handleAddProduct: (data: any) => void,
-  handleAddCategory: (name: string) => void,
   handleEdit: (product: Product) => void,
   handleUpdateProduct: (id: number, data: any) => void,
-  handleDelete: (id: number) => void
+  handleDelete: (id: number) => void,
+  onCategoriesChange: () => void
 }> = ({
   products, categories, showAddModal, setShowAddModal, showAddCategoryModal, setShowAddCategoryModal,
-  editProduct, setEditProduct, handleAddProduct, handleAddCategory, handleEdit, handleUpdateProduct, handleDelete
+  editProduct, setEditProduct, handleAddProduct, handleEdit, handleUpdateProduct, handleDelete, onCategoriesChange
 }) => (
   <div id="produtos" className="page">
     <header className="mb-4 sm:mb-6">
@@ -213,9 +213,10 @@ const Produtos: React.FC<{
       />
     )}
     {showAddCategoryModal && (
-      <ModalAdicionarCategoria
+      <ModalGerenciarCategorias
+        categories={categories}
         onClose={() => setShowAddCategoryModal(false)}
-        onAdd={handleAddCategory}
+        onCategoriesChange={onCategoriesChange}
       />
     )}
   </div>

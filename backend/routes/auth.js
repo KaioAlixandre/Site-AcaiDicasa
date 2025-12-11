@@ -181,8 +181,25 @@ router.get('/users', authenticateToken, authorize('admin'), async (req, res) => 
                 }
             }
         });
+        
+        // Transformar dados do português para inglês para compatibilidade com o frontend
+        const transformedUsers = users.map(user => ({
+            id: user.id,
+            nomeUsuario: user.nomeUsuario,
+            email: user.email,
+            funcao: user.funcao,
+            telefone: user.telefone,
+            criadoEm: user.criadoEm,
+            order: (user.pedidos || []).map(pedido => ({
+                id: pedido.id,
+                totalPrice: Number(pedido.precoTotal) || 0,
+                status: pedido.status,
+                createdAt: pedido.criadoEm ? pedido.criadoEm.toISOString() : new Date().toISOString()
+            }))
+        }));
+        
         console.log(`✅ [GET /auth/users] ${users.length} usuários encontrados`);
-        res.json(users);
+        res.json(transformedUsers);
     } catch (err) {
         console.error('❌ [GET /auth/users] Erro interno ao buscar usuários:', err);
         res.status(500).json({ error: 'Erro ao buscar usuários.' });

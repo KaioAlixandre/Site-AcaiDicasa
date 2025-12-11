@@ -58,30 +58,69 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {user.map(cliente => {
-              const totalGasto = cliente.order?.reduce((acc, order) => {
-                const valor = Number(order.totalPrice);
-                return acc + (isNaN(valor) ? 0 : valor);
-              }, 0) || 0;
-              const totalPedidos = Array.isArray(cliente.order) ? cliente.order.length : 0;
-              
-              return (
-                <tr key={cliente.id} className="hover:bg-slate-50">
-                  <td className="p-2 sm:p-3">
-                    <div className="font-medium text-slate-800 text-xs sm:text-sm">{cliente.nomeUsuario}</div>
-                    <div className="text-xs text-slate-500 md:hidden">{cliente.telefone || '-'}</div>
-                  </td>
-                  <td className="p-2 sm:p-3 text-slate-600 text-xs hidden md:table-cell">{cliente.telefone || '-'}</td>
-                  <td className="p-2 sm:p-3 text-center text-slate-600 text-xs sm:text-sm">{isNaN(totalPedidos) ? 0 : totalPedidos}</td>
-                  <td className="p-2 sm:p-3 text-right font-medium text-slate-800 text-xs sm:text-sm">
-                    R$ {isNaN(totalGasto) ? '0.00' : totalGasto.toFixed(2)}
-                  </td>
-                  <td className="p-2 sm:p-3 text-center">
-                    <button className="text-indigo-600 hover:text-indigo-800 text-xs">Detalhes</button>
-                  </td>
-                </tr>
-              );
-            })}
+            {user.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-8 text-center text-slate-500">
+                  Nenhum cliente cadastrado
+                </td>
+              </tr>
+            ) : (
+              user.map(cliente => {
+                // Calcular total gasto e quantidade de pedidos
+                const pedidos = cliente.order || [];
+                const totalGasto = pedidos.reduce((acc, order) => {
+                  const valor = Number(order.totalPrice) || 0;
+                  return acc + (isNaN(valor) ? 0 : valor);
+                }, 0);
+                const totalPedidos = pedidos.length;
+                
+                // Calcular ticket médio
+                const ticketMedio = totalPedidos > 0 ? totalGasto / totalPedidos : 0;
+                
+                return (
+                  <tr key={cliente.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-2 sm:p-3">
+                      <div className="font-medium text-slate-800 text-xs sm:text-sm">{cliente.nomeUsuario}</div>
+                      <div className="text-xs text-slate-500 md:hidden">{cliente.telefone || '-'}</div>
+                      {cliente.email && (
+                        <div className="text-xs text-slate-400 mt-0.5">{cliente.email}</div>
+                      )}
+                    </td>
+                    <td className="p-2 sm:p-3 text-slate-600 text-xs hidden md:table-cell">
+                      <div>{cliente.telefone || '-'}</div>
+                      {cliente.email && (
+                        <div className="text-xs text-slate-400 mt-0.5">{cliente.email}</div>
+                      )}
+                    </td>
+                    <td className="p-2 sm:p-3 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-slate-800 font-semibold text-sm sm:text-base">{totalPedidos}</span>
+                        {totalPedidos > 0 && (
+                          <span className="text-xs text-slate-500 mt-0.5">
+                            Ticket médio: R$ {ticketMedio.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-2 sm:p-3 text-right">
+                      <div className="font-medium text-slate-800 text-sm sm:text-base">
+                        R$ {totalGasto.toFixed(2)}
+                      </div>
+                      {totalPedidos > 0 && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {totalPedidos} pedido{totalPedidos !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-2 sm:p-3 text-center">
+                      <button className="text-indigo-600 hover:text-indigo-800 text-xs font-medium hover:underline">
+                        Detalhes
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

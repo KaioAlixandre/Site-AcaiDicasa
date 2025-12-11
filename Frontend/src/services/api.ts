@@ -228,6 +228,16 @@ class ApiService {
     return response.data;
   }
 
+  async updateCategory(id: number, name: string): Promise<ProductCategory> {
+    const response: AxiosResponse<ProductCategory> = await this.api.put(`/products/categories/${id}`, { nome: name });
+    return response.data;
+  }
+
+  async deleteCategory(id: number): Promise<ApiResponse<any>> {
+    const response: AxiosResponse<ApiResponse<any>> = await this.api.delete(`/products/categories/${id}`);
+    return response.data;
+  }
+
   async getCategories(): Promise<ProductCategory[]> {
     const response: AxiosResponse<ProductCategory[]> = await this.api.get('/products/categories');
     return response.data;

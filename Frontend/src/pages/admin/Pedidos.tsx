@@ -28,7 +28,24 @@ const getStatusStyle = (status: string) => {
   return statusStyles[status] || 'bg-gray-100 text-gray-800 border border-gray-200';
 };
 
-const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) => void }> = ({ orders, handleAdvanceStatus }) => {
+const Pedidos: React.FC<{ 
+  orders: Order[], 
+  handleAdvanceStatus: (order: Order) => void,
+  onRefresh?: () => void
+}> = ({ orders, handleAdvanceStatus, onRefresh }) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (onRefresh) {
+      setIsRefreshing(true);
+      try {
+        await onRefresh();
+      } finally {
+        // Pequeno delay para mostrar o feedback visual
+        setTimeout(() => setIsRefreshing(false), 500);
+      }
+    }
+  };
   // Estados para os filtros
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
@@ -107,9 +124,15 @@ const Pedidos: React.FC<{ orders: Order[], handleAdvanceStatus: (order: Order) =
               </span>
             )}
           </button>
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors">
-            <RotateCw className="w-4 h-4" />
-            Atualizar
+          <button 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors ${
+              isRefreshing ? 'opacity-75 cursor-not-allowed' : ''
+            }`}
+          >
+            <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
           </button>
         </div>
       </header>

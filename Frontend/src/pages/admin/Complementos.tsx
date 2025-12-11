@@ -13,9 +13,11 @@ import {
   X,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  FolderTree
 } from 'lucide-react';
 import apiService from '../../services/api';
+import ModalGerenciarCategoriasComplementos from './components/ModalGerenciarCategoriasComplementos';
 
 interface Complement {
   id: number;
@@ -62,6 +64,7 @@ const Complementos: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
   // Carregar categorias
@@ -270,13 +273,22 @@ const Complementos: React.FC = () => {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Complementos</h1>
             <p className="text-xs sm:text-sm text-gray-600">Gerencie os complementos disponíveis</p>
           </div>
-          <button
-            onClick={handleCreate}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <Plus size={18} className="sm:w-5 sm:h-5" />
-            <span>Novo Complemento</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => setShowManageCategoriesModal(true)}
+              className="bg-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <FolderTree size={18} className="sm:w-5 sm:h-5" />
+              <span>Categorias</span>
+            </button>
+            <button
+              onClick={handleCreate}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <Plus size={18} className="sm:w-5 sm:h-5" />
+              <span>Novo Complemento</span>
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -593,6 +605,16 @@ const Complementos: React.FC = () => {
       )}
 
       {/* Modal de Nova Categoria */}
+      {/* Modal de Gerenciamento de Categorias */}
+      {showManageCategoriesModal && (
+        <ModalGerenciarCategoriasComplementos
+          categories={categories}
+          onClose={() => setShowManageCategoriesModal(false)}
+          onCategoriesChange={loadCategories}
+        />
+      )}
+
+      {/* Modal antigo de categoria (mantido para compatibilidade, mas pode ser removido) */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md">
@@ -703,12 +725,12 @@ const Complementos: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setShowModal(false);
-                        setShowCategoryModal(true);
+                        setShowManageCategoriesModal(true);
                       }}
                       className="text-purple-600 hover:text-purple-700 text-xs font-medium flex items-center gap-1"
                     >
-                      <Plus size={14} />
-                      Nova Categoria
+                      <FolderTree size={14} />
+                      Gerenciar Categorias
                     </button>
                   </div>
                   <select
