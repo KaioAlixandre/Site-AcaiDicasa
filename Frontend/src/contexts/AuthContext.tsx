@@ -22,16 +22,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           setToken(storedToken);
           
-          // Verificar se o token ainda é válido e carregar perfil completo
-          const userProfile = await apiService.getProfile();
-          setUser(userProfile);
-          
-          // Atualizar o usuário no localStorage com dados completos
-          localStorage.setItem('user', JSON.stringify(userProfile));
+          // Tentar verificar se o token ainda é válido e carregar perfil completo
+          // Se falhar, usar os dados do localStorage como fallback
+          try {
+            const userProfile = await apiService.getProfile();
+            setUser(userProfile);
+            // Atualizar o usuário no localStorage com dados completos
+            localStorage.setItem('user', JSON.stringify(userProfile));
+          } catch (profileError: any) {
+            // Se o erro for 401 (não autorizado), o token realmente expirou
+            if (profileError.response?.status === 401) {
+              // Token inválido, limpar storage
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setToken(null);
+              setUser(null);
+            } else {
+              // Se for outro erro (rede, servidor, etc), usar dados do localStorage
+              // Isso mantém o usuário logado mesmo com problemas temporários
+              const parsedUser = JSON.parse(storedUser);
+              setUser(parsedUser);
+              console.warn('Erro ao carregar perfil, usando dados do localStorage:', profileError.message);
+            }
+          }
         } catch (error) {
-          // Token inválido, limpar storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          // Erro ao parsear ou acessar localStorage, manter como não autenticado
+          console.error('Erro ao inicializar autenticação:', error);
           setToken(null);
           setUser(null);
         }

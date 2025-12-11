@@ -43,15 +43,27 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
+        // Só remove o token se for realmente um erro de autenticação (401)
+        // E não é uma rota pública (login, register, etc)
         if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          // Redirecionar para checkout para permitir fluxo de cadastro/checkout quando não autenticado
-          try {
-            window.location.href = '/checkout';
-          } catch (e) {
-            // fallback: se não for possível, navegar para /login (evita quebrar em ambientes sem window)
-            window.location.href = '/login';
+          const url = error.config?.url || '';
+          const isPublicRoute = url.includes('/auth/login') || 
+                               url.includes('/auth/register') || 
+                               url.includes('/auth/forgot-password') ||
+                               url.includes('/auth/reset-password');
+          
+          // Se não for rota pública, o token pode estar inválido
+          if (!isPublicRoute) {
+            // Verificar se estamos na página de login/register para evitar loop
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/login') && !currentPath.includes('/cadastrar')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              // Só redirecionar se não estiver já na página de login
+              if (currentPath !== '/login' && currentPath !== '/cadastrar') {
+                window.location.href = '/login';
+              }
+            }
           }
         }
         return Promise.reject(error);
