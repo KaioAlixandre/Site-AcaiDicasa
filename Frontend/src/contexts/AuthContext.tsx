@@ -39,46 +39,64 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Marcar que estamos inicializando (para evitar limpeza prematura do token)
+        sessionStorage.setItem('auth:initializing', 'true');
+        
         const storedToken = localStorage.getItem('token');
         const storedUserStr = localStorage.getItem('user');
 
         if (storedToken) {
+          console.log('🔑 [AuthContext] Token encontrado no localStorage, restaurando sessão...');
+          
           // Sempre definir o token primeiro para que as requisições funcionem
           setToken(storedToken);
           
-          // Tentar restaurar usuário do localStorage temporariamente
+          // Tentar restaurar usuário do localStorage temporariamente (para UI imediata)
           if (storedUserStr) {
             try {
               const storedUser = JSON.parse(storedUserStr);
               setUser(storedUser);
+              console.log('👤 [AuthContext] Usuário restaurado do localStorage:', storedUser.nomeUsuario);
             } catch (e) {
-              console.warn('Erro ao parsear usuário do localStorage:', e);
+              console.warn('⚠️ [AuthContext] Erro ao parsear usuário do localStorage:', e);
             }
           }
 
-          // Validar token e carregar perfil completo do servidor
+          // Validar token e carregar perfil completo do servidor (em background)
+          // Não limpar o token se houver erro de rede, apenas se for 401/403
           try {
             const userProfile = await apiService.getProfile();
             syncUser(userProfile);
             syncToken(storedToken); // Garantir que o token está salvo
+            console.log('✅ [AuthContext] Sessão restaurada com sucesso:', userProfile.nomeUsuario);
           } catch (error: any) {
-            // Token inválido ou expirado
-            console.warn('Token inválido ou expirado:', error);
-            // Limpar tudo
-            syncToken(null);
-            syncUser(null);
+            // Só limpar se for erro de autenticação (401/403), não erro de rede
+            const status = error?.response?.status;
+            if (status === 401 || status === 403) {
+              console.warn('🚫 [AuthContext] Token inválido ou expirado (status:', status, ')');
+              // Limpar tudo apenas se realmente for erro de autenticação
+              syncToken(null);
+              syncUser(null);
+            } else {
+              // Erro de rede ou outro erro - manter token e usuário do localStorage
+              console.warn('⚠️ [AuthContext] Erro ao validar token (não é 401/403), mantendo sessão:', error?.message);
+              // Manter o token e usuário do localStorage
+            }
           }
         } else {
           // Não há token, garantir que está limpo
+          console.log('ℹ️ [AuthContext] Nenhum token encontrado no localStorage');
           syncToken(null);
           syncUser(null);
         }
       } catch (error) {
-        console.error('Erro ao inicializar autenticação:', error);
-        syncToken(null);
-        syncUser(null);
+        console.error('❌ [AuthContext] Erro ao inicializar autenticação:', error);
+        // Não limpar tudo em caso de erro inesperado, apenas logar
       } finally {
+        // Remover flag de inicialização
+        sessionStorage.removeItem('auth:initializing');
         setLoading(false);
+        console.log('✅ [AuthContext] Inicialização concluída');
       }
     };
 
@@ -105,10 +123,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       syncToken(null);
     };
 
+    // Listener para mudanças no localStorage (útil para múltiplas abas)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        if (e.newValue) {
+          setToken(e.newValue);
+        } else {
+          setToken(null);
+          setUser(null);
+        }
+      }
+      if (e.key === 'user') {
+        if (e.newValue) {
+          try {
+            setUser(JSON.parse(e.newValue));
+          } catch (e) {
+            console.warn('Erro ao parsear usuário do storage event:', e);
+          }
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
     window.addEventListener('auth:logout', handleAuthLogout);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       window.removeEventListener('auth:logout', handleAuthLogout);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -182,9 +225,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Função para obter token sempre atualizado (prioriza localStorage)
+  const getToken = () => {
+    return localStorage.getItem('token') || token;
+  };
+
   const value: AuthContextType = {
     user,
-    token: token || localStorage.getItem('token'), // Sempre retornar do localStorage se o estado estiver vazio
+    token: getToken(), // Sempre retornar do localStorage primeiro
     login,
     register,
     logout,
