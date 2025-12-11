@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Plus, Pencil, Trash2, Save } from 'lucide-react';
 import { ProductCategory } from '../../../types';
 import { apiService } from '../../../services/api';

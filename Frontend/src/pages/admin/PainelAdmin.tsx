@@ -127,12 +127,6 @@ const handleRefreshOrders = async () => {
     setCategories(await apiService.getCategories());
   };
 
-  const handleAddCategory = async (name: string) => {
-    await apiService.addCategory(name);
-    setShowAddCategoryModal(false);
-    setCategories(await apiService.getCategories());
-  };
-
   const handleCategoriesChange = async () => {
     // Recarregar categorias quando houver mudanças
     setCategories(await apiService.getCategories());
