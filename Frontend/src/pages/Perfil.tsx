@@ -319,9 +319,6 @@ const Profile: React.FC = () => {
                 <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
                   Olá, {user.nomeUsuario}!
                 </h1>
-                <p className="text-sm md:text-base text-slate-600 mb-1">
-                  {user.telefone}
-                </p>
 
                 <div className="mb-3 flex items-center justify-center sm:justify-start gap-1.5">
                   <Phone className="w-3.5 h-3.5" />
@@ -673,17 +670,6 @@ const Profile: React.FC = () => {
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum endereço cadastrado</h3>
                         <p className="text-gray-600 mb-6">Adicione um endereço para facilitar suas compras</p>
-                        
-                        {/* Debug info */}
-                        <div className="bg-slate-50 rounded-lg p-4 mb-6 text-sm text-left max-w-md mx-auto border border-slate-200">
-                          <h4 className="font-semibold text-slate-700 mb-2">ℹ️ Informações de Debug:</h4>
-                          <div className="space-y-1 text-slate-600">
-                            <p>• Usuário ID: {user?.id}</p>
-                            <p>• Endereços carregados: {addresses.length}</p>
-                            <p>• Estado loading: {loading ? 'true' : 'false'}</p>
-                            <p>• Erro: {error || 'Nenhum'}</p>
-                          </div>
-                        </div>
                         
                         <button
                           onClick={() => setShowAddressForm(true)}

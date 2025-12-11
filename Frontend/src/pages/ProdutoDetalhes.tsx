@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Plus, Minus, Check, Search, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Search, X, Clock } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import apiService from '../services/api';
 import { Product, Complement } from '../types';
 import Loading from '../components/Loading';
+import { checkStoreStatus, StoreConfig } from '../utils/storeUtils';
 
 import { useNotification } from '../components/NotificationProvider';
 
@@ -24,20 +25,31 @@ const ProdutoDetalhes: React.FC = () => {
   const [addingToCart, setAddingToCart] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [isStoreOpen, setIsStoreOpen] = useState(true);
 
   useEffect(() => {
     const loadProductDetails = async () => {
       if (!id) return;
       try {
         setLoading(true);
-        const [productData, complementsData] = await Promise.all([
+        const [productData, complementsData, storeData] = await Promise.all([
           apiService.getProductById(parseInt(id)),
-          apiService.getComplements()
+          apiService.getComplements(),
+          apiService.getStoreConfig()
         ]);
         setProduct(productData);
         setComplements(complementsData);
+        setStoreConfig(storeData);
+        
         if (productData.images && productData.images.length > 0) {
           setSelectedImage(productData.images[0].url);
+        }
+        
+        // Verificar status da loja
+        if (storeData) {
+          const status = checkStoreStatus(storeData);
+          setIsStoreOpen(status.isOpen);
         }
       } catch (error) {
        
@@ -47,6 +59,18 @@ const ProdutoDetalhes: React.FC = () => {
     };
     loadProductDetails();
   }, [id]);
+
+  // Atualizar status da loja periodicamente
+  useEffect(() => {
+    if (!storeConfig) return;
+
+    const interval = setInterval(() => {
+      const status = checkStoreStatus(storeConfig);
+      setIsStoreOpen(status.isOpen);
+    }, 60000); // Verificar a cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, [storeConfig]);
 
 
   const handleQuantityChange = (delta: number) => {
@@ -84,6 +108,15 @@ const ProdutoDetalhes: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    
+    // Verificar se a loja está aberta
+    if (!isStoreOpen) {
+      const status = storeConfig ? checkStoreStatus(storeConfig) : null;
+      const message = status?.reason || 'A loja está fechada no momento.';
+      notify(message, 'error');
+      return;
+    }
+    
     try {
       setAddingToCart(true);
       await addItem(product.id, quantity, selectedComplements);
@@ -180,7 +213,7 @@ const ProdutoDetalhes: React.FC = () => {
               <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 md:p-5">
                 <p className="text-xs md:text-sm text-purple-700 font-medium mb-1">Preço</p>
                 <p className="text-2xl md:text-4xl font-bold text-purple-600">
-                  R$ {Number(product.price).toFixed(2)}
+                  R$ {Number(product.price).toFixed(2).replace('.', ',')}
                 </p>
               </div>
 
@@ -212,11 +245,31 @@ const ProdutoDetalhes: React.FC = () => {
               {/* Botão Adicionar ao Carrinho */}
               <button
                 onClick={handleAddToCart}
-                disabled={addingToCart}
-                className="w-full py-3 md:py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:bg-purple-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
+                disabled={addingToCart || !isStoreOpen}
+                className={`w-full py-3 md:py-4 text-white font-bold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base ${
+                  !isStoreOpen
+                    ? 'bg-slate-400 cursor-not-allowed'
+                    : addingToCart
+                    ? 'bg-purple-400 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 hover:shadow-xl'
+                }`}
               >
-                <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                {addingToCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
+                {!isStoreOpen ? (
+                  <>
+                    <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                    Loja Fechada
+                  </>
+                ) : addingToCart ? (
+                  <>
+                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                    Adicionando...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                    Adicionar ao Carrinho
+                  </>
+                )}
               </button>
 
               {/* Total */}
@@ -226,7 +279,7 @@ const ProdutoDetalhes: React.FC = () => {
                     Total
                   </span>
                   <span className="text-xl md:text-2xl font-bold text-purple-600">
-                    R$ {calculateTotal().toFixed(2)}
+                    R$ {calculateTotal().toFixed(2).replace('.', ',')}
                   </span>
                 </div>
               </div>

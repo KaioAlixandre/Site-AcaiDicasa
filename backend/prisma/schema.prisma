@@ -348,7 +348,7 @@ model usuario {
   senha     String    @db.VarChar(255)
   funcao    funcao_usuario @default(user)
   criadoEm  DateTime  @default(now())
-  telefone  String?   @db.VarChar(20)
+  telefone  String?   @unique @db.VarChar(20)
   enderecos endereco[]
   carrinho  carrinho?
   pedidos   pedido[]

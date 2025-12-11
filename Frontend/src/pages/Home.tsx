@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Truck, Heart, ShoppingCart, Instagram, MessageCircle, Package } from 'lucide-react';
+import { Star, Truck, Heart, ShoppingCart, Instagram, MessageCircle, Package, Clock } from 'lucide-react';
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
 import Loading from '../components/Loading';
@@ -143,12 +143,17 @@ const Home: React.FC = () => {
           
           {/* Mensagem quando a loja estiver fechada */}
           {!isStoreOpen && storeStatusMessage && (
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800 text-center">
-                <span className="font-semibold">Loja fechada no momento.</span>
-                <br />
-                {storeStatusMessage}
-              </p>
+            <div className="mt-4 p-2.5 bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex-shrink-0 w-7 h-7 bg-purple-200 rounded-full flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 text-purple-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm text-purple-900 font-semibold">
+                    Loja fechada no momento. {storeStatusMessage}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -181,8 +186,12 @@ const Home: React.FC = () => {
                 <div className="mt-2 md:mt-3 flex items-center justify-between">
                   <span className="text-base md:text-lg font-bold text-purple-600">R$ {Number(product.price).toFixed(2).replace('.', ',')}</span>
                   <div
-                    className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all duration-200 hover:shadow-md cursor-pointer"
-                    aria-label="Ver detalhes"
+                    className={`p-2 text-white rounded-lg transition-all duration-200 ${
+                      !isStoreOpen
+                        ? 'bg-slate-300 cursor-not-allowed'
+                        : 'bg-purple-600 hover:bg-purple-700 hover:shadow-md cursor-pointer'
+                    }`}
+                    aria-label={!isStoreOpen ? 'Loja fechada' : 'Ver detalhes'}
                   >
                     <ShoppingCart size={18} />
                   </div>
@@ -255,8 +264,12 @@ const Home: React.FC = () => {
                       R$ {Number(product.price ?? 0).toFixed(2).replace('.', ',')}
                     </span>
                     <div
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto cursor-pointer"
-                      title="Ver detalhes"
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-md sm:rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center ml-auto ${
+                        !isStoreOpen
+                          ? 'bg-slate-300 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700 active:scale-95 cursor-pointer'
+                      }`}
+                      title={!isStoreOpen ? 'Loja fechada' : 'Ver detalhes'}
                     >
                       <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
