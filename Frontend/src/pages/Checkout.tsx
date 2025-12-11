@@ -9,7 +9,10 @@ import {
   Package, 
   Truck, 
   Store, 
-  CheckCircle
+  CheckCircle,
+  Plus,
+  X,
+  Edit
 } from 'lucide-react';
 import apiService from '../services/api';
 import { useCart } from '../contexts/CartContext';
@@ -51,6 +54,10 @@ const Checkout: React.FC = () => {
   const [entregaDisponivel, setEntregaDisponivel] = useState(true);
   const [horaEntregaFim, setHoraEntregaFim] = useState<string | null>(null);
   const [horaEntregaInicio, setHoraEntregaInicio] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [userAddresses, setUserAddresses] = useState<any[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const navigate = useNavigate();
 
   // States para o fluxo de cadastro em checkout (quando não há usuário logado)
@@ -137,23 +144,59 @@ const Checkout: React.FC = () => {
     };
   }, [navigate]);
 
-  // Verificar se o usuário tem endereços cadastrados (apenas para entrega)
+  // Carregar endereços do usuário quando logado e tipo de entrega for delivery
   useEffect(() => {
-    if (user && deliveryType === 'delivery') {
-      // Verificar se o usuário não tem endereço
-      if (!user.enderecos || user.enderecos.length === 0) {
-       
-        navigate('/add-address');
-        return;
+    const loadAddresses = async () => {
+      if (user && deliveryType === 'delivery') {
+        setLoadingAddresses(true);
+        try {
+          const addresses = await apiService.getAddresses();
+          setUserAddresses(addresses);
+          // Selecionar o endereço padrão automaticamente
+          const defaultAddress = addresses.find((addr: any) => addr.isDefault) || addresses[0];
+          if (defaultAddress) {
+            setSelectedAddressId(defaultAddress.id);
+          } else if (addresses.length === 0) {
+            // Se não há endereços, abrir modal para criar
+            setShowAddressModal(true);
+            setShowAddressForm(true);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar endereços:', error);
+          // Tentar usar endereços do perfil do usuário como fallback
+          // Mapear de português para inglês
+          if (user.enderecos && user.enderecos.length > 0) {
+            const mappedAddresses = user.enderecos.map((addr: any) => ({
+              id: addr.id,
+              street: addr.rua || addr.street || '',
+              number: addr.numero || addr.number || '',
+              complement: addr.complemento || addr.complement || '',
+              neighborhood: addr.bairro || addr.neighborhood || '',
+              reference: addr.pontoReferencia || addr.reference || '',
+              isDefault: addr.padrao || addr.isDefault || false,
+              userId: addr.usuarioId || addr.userId || 0
+            }));
+            setUserAddresses(mappedAddresses);
+            const defaultAddress = mappedAddresses.find((addr: any) => addr.isDefault) || mappedAddresses[0];
+            if (defaultAddress) {
+              setSelectedAddressId(defaultAddress.id);
+            }
+          } else {
+            // Se não há endereços, abrir modal para criar
+            setShowAddressModal(true);
+            setShowAddressForm(true);
+          }
+        } finally {
+          setLoadingAddresses(false);
+        }
+      } else if (deliveryType === 'pickup') {
+        setUserAddresses([]);
+        setSelectedAddressId(null);
+        setShowAddressModal(false);
       }
-      
-      // Telefone não precisa ser verificado aqui pois é obrigatório no cadastro
-      // Se chegou aqui, o usuário tem endereço e telefone (telefone sempre existe após cadastro)
-      setShowAddressForm(false);
-    } else if (deliveryType === 'pickup') {
-      setShowAddressForm(false);
-    }
-  }, [user, deliveryType, navigate]);
+    };
+    loadAddresses();
+  }, [user, deliveryType]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
@@ -182,8 +225,22 @@ const Checkout: React.FC = () => {
       await apiService.addAddress(addressData);
       await refreshUserProfile();
       notify('Endereço cadastrado com sucesso!', 'success');
-      // Não precisa redirecionar para adicionar telefone, pois telefone já foi cadastrado no registro
+      // Recarregar endereços e selecionar o novo endereço
+      const addresses = await apiService.getAddresses();
+      setUserAddresses(addresses);
+      const newAddress = addresses[addresses.length - 1]; // O último é o recém-criado
+      setSelectedAddressId(newAddress.id);
       setShowAddressForm(false);
+      // Limpar formulário
+      setAddressForm({
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        reference: '',
+        isDefault: false
+      });
+      setHasNumber(true);
     } catch (error) {
       notify('Erro ao cadastrar endereço!', 'error');
     }
@@ -204,10 +261,17 @@ const Checkout: React.FC = () => {
         setLoading(false);
         return;
       }
+      // Validar endereço selecionado para entrega
+      if (deliveryType === 'delivery' && !selectedAddressId) {
+        notify('Selecione um endereço de entrega!', 'warning');
+        setLoading(false);
+        return;
+      }
+
       await apiService.createOrder({
         items,
         paymentMethod, // <-- este campo é obrigatório!
-        addressId: deliveryType === 'delivery' ? user.enderecos?.[0]?.id : undefined,
+        addressId: deliveryType === 'delivery' ? (selectedAddressId ?? undefined) : undefined,
         deliveryType,
         deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
         notes: orderNotes.trim() || undefined, // Adiciona observações se houver
@@ -677,13 +741,28 @@ const Checkout: React.FC = () => {
                     Tipo de Entrega
                   </h3>
                   <div className="space-y-2">
-                    <label className={`flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg cursor-pointer transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50 ${!entregaDisponivel ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}>
+                    <label 
+                      className={`flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg cursor-pointer transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50 ${!entregaDisponivel ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'}`}
+                      onClick={(e) => {
+                        if (entregaDisponivel && deliveryType === 'delivery' && user) {
+                          e.preventDefault();
+                          setShowAddressModal(true);
+                        }
+                      }}
+                    >
                       <input
                         type="radio"
                         name="deliveryType"
                         value="delivery"
                         checked={deliveryType === 'delivery'}
-                        onChange={() => entregaDisponivel && setDeliveryType('delivery')}
+                        onChange={() => {
+                          if (entregaDisponivel) {
+                            setDeliveryType('delivery');
+                            if (user) {
+                              setShowAddressModal(true);
+                            }
+                          }
+                        }}
                         className="w-4 h-4 text-purple-600 mr-2 md:mr-3"
                         disabled={!entregaDisponivel}
                       />
@@ -692,15 +771,43 @@ const Checkout: React.FC = () => {
                           <Truck size={16} className="md:w-5 md:h-5 text-purple-600" />
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
-                          <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
-                          {!entregaDisponivel && (
-                            <div className="text-xs text-red-600 font-semibold mt-1">
-                              {horaEntregaInicio && new Date() < (() => { const [h, m] = horaEntregaInicio.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()
-                                ? `O serviço de entrega em casa só inicia às ${horaEntregaInicio}`
-                                : `Horário de entrega encerrado${horaEntregaFim ? ` (${horaEntregaFim})` : ''}`}
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
+                              <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
+                              {deliveryType === 'delivery' && user && selectedAddressId && (
+                                <div className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
+                                  <MapPin size={12} />
+                                  {(() => {
+                                    const selectedAddress = userAddresses.find((addr: any) => addr.id === selectedAddressId);
+                                    return selectedAddress 
+                                      ? `${selectedAddress.street}, ${selectedAddress.number} - ${selectedAddress.neighborhood}`
+                                      : 'Endereço selecionado';
+                                  })()}
+                                </div>
+                              )}
+                              {!entregaDisponivel && (
+                                <div className="text-xs text-red-600 font-semibold mt-1">
+                                  {horaEntregaInicio && new Date() < (() => { const [h, m] = horaEntregaInicio.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()
+                                    ? `O serviço de entrega em casa só inicia às ${horaEntregaInicio}`
+                                    : `Horário de entrega encerrado${horaEntregaFim ? ` (${horaEntregaFim})` : ''}`}
+                                </div>
+                              )}
                             </div>
-                          )}
+                            {deliveryType === 'delivery' && user && selectedAddressId && entregaDisponivel && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowAddressModal(true);
+                                }}
+                                className="ml-2 p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+                                title="Trocar endereço"
+                              >
+                                <Edit size={16} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </label>
@@ -860,6 +967,257 @@ const Checkout: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Seleção de Endereço */}
+      {showAddressModal && user && deliveryType === 'delivery' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+                <MapPin className="text-purple-600" size={20} />
+                Selecionar Endereço de Entrega
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddressModal(false);
+                  setShowAddressForm(false);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Fechar"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {loadingAddresses ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent"></div>
+                </div>
+              ) : showAddressForm ? (
+                <div className="space-y-4">
+                  <h4 className="text-base font-semibold text-gray-800 mb-3">Adicionar Novo Endereço</h4>
+                  <form className="space-y-3" onSubmit={handleAddressSubmit}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                          Rua / Avenida
+                        </label>
+                        <input
+                          name="street"
+                          value={addressForm.street}
+                          onChange={handleAddressChange}
+                          placeholder="Nome da rua"
+                          required
+                          className="w-full px-3 py-2 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                          Número
+                        </label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <input
+                            type="checkbox"
+                            id="hasNumberModal"
+                            checked={hasNumber}
+                            onChange={handleHasNumberChange}
+                            className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                          />
+                          <label htmlFor="hasNumberModal" className="text-xs text-slate-700 cursor-pointer">
+                            Endereço possui número?
+                          </label>
+                        </div>
+                        <input
+                          name="number"
+                          value={addressForm.number}
+                          onChange={handleAddressChange}
+                          placeholder="123"
+                          required={hasNumber}
+                          disabled={!hasNumber}
+                          className={`w-full px-3 py-2 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 ${!hasNumber ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                        Complemento (opcional)
+                      </label>
+                      <input
+                        name="complement"
+                        value={addressForm.complement}
+                        onChange={handleAddressChange}
+                        placeholder="Apartamento, bloco, etc."
+                        className="w-full px-3 py-2 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                        Bairro
+                      </label>
+                      <input
+                        name="neighborhood"
+                        value={addressForm.neighborhood}
+                        onChange={handleAddressChange}
+                        placeholder="Nome do bairro"
+                        required
+                        className="w-full px-3 py-2 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1.5">
+                        Ponto de Referência (opcional)
+                      </label>
+                      <input
+                        name="reference"
+                        value={addressForm.reference}
+                        onChange={handleAddressChange}
+                        placeholder="Ex: Próximo ao mercado"
+                        className="w-full px-3 py-2 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={addressLoading}
+                        className="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      >
+                        {addressLoading ? 'Salvando...' : 'Salvar Endereço'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddressForm(false);
+                          setAddressForm({
+                            street: '',
+                            number: '',
+                            complement: '',
+                            neighborhood: '',
+                            reference: '',
+                            isDefault: false
+                          });
+                          setHasNumber(true);
+                        }}
+                        className="px-4 py-2.5 bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-300 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userAddresses.length === 0 ? (
+                    <div className="text-center py-8 text-slate-600">
+                      <MapPin size={48} className="mx-auto mb-3 text-slate-400" />
+                      <p className="text-sm mb-4">Nenhum endereço cadastrado</p>
+                      <button
+                        onClick={() => setShowAddressForm(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                      >
+                        <Plus size={16} />
+                        Adicionar novo endereço
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        {userAddresses.map((address: any) => {
+                          const isSelected = selectedAddressId === address.id;
+                          return (
+                            <label
+                              key={address.id}
+                              className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                isSelected
+                                  ? 'border-purple-500 bg-purple-50'
+                                  : 'border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="selectedAddress"
+                                value={address.id}
+                                checked={isSelected}
+                                onChange={() => setSelectedAddressId(address.id)}
+                                className="w-4 h-4 text-purple-600 mr-3 mt-0.5"
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-semibold text-slate-900">
+                                    {address.street}, {address.number}
+                                  </span>
+                                  {address.isDefault && (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                                      Padrão
+                                    </span>
+                                  )}
+                                </div>
+                                {address.complement && (
+                                  <div className="text-xs text-slate-600 mb-1">
+                                    {address.complement}
+                                  </div>
+                                )}
+                                <div className="text-xs text-slate-600">
+                                  {address.neighborhood}
+                                  {address.reference && ` • ${address.reference}`}
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => setShowAddressForm(true)}
+                        className="w-full mt-4 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-purple-500 hover:text-purple-600 transition-colors text-sm font-semibold"
+                      >
+                        <Plus size={16} />
+                        Adicionar novo endereço
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!showAddressForm && userAddresses.length > 0 && (
+              <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAddressModal(false);
+                    if (!selectedAddressId) {
+                      setDeliveryType('pickup');
+                    }
+                  }}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedAddressId) {
+                      setShowAddressModal(false);
+                      notify('Endereço selecionado com sucesso!', 'success');
+                    } else {
+                      notify('Selecione um endereço para continuar', 'warning');
+                    }
+                  }}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Confirmar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

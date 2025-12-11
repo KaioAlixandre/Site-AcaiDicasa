@@ -31,7 +31,7 @@ async function sendWhatsAppMessageZApi(phone, message) {
 // Rota para criar um pedido a partir do carrinho
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { paymentMethod, tipoEntrega, deliveryType, taxaEntrega, deliveryFee, notes } = req.body;
+    const { paymentMethod, tipoEntrega, deliveryType, taxaEntrega, deliveryFee, notes, addressId } = req.body;
     
     // Aceitar tanto deliveryType (do frontend) quanto tipoEntrega
     const tipo = deliveryType || tipoEntrega || 'delivery';
@@ -42,7 +42,7 @@ router.post('/', authenticateToken, async (req, res) => {
     if (!paymentMethod) {
         return res.status(400).json({ message: 'Forma de pagamento não informada.' });
     }
-    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${tipo}, Taxa: R$ ${taxa}${notes ? ', Observações: Sim' : ''}`);
+    console.log(`[POST /api/orders] Recebida requisição para criar um pedido. Usuário ID: ${userId}, Tipo: ${tipo}, Taxa: R$ ${taxa}${notes ? ', Observações: Sim' : ''}${addressId ? `, Endereço ID: ${addressId}` : ''}`);
 
     try {
         // Encontrar o carrinho e o usuário com seus endereços em uma única busca
@@ -78,7 +78,22 @@ router.post('/', authenticateToken, async (req, res) => {
         // Para entrega, verificar se tem endereço
         let shippingAddress = null;
         if (tipo === 'delivery') {
-            shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
+            // Se foi fornecido um addressId, usar esse endereço específico
+            if (addressId) {
+                shippingAddress = user.enderecos.find(addr => addr.id === parseInt(addressId));
+                if (!shippingAddress) {
+                    console.warn(`[POST /api/orders] Endereço ID ${addressId} não encontrado para o usuário ${userId}.`);
+                    return res.status(400).json({
+                        message: 'Endereço selecionado não encontrado. Por favor, selecione um endereço válido.',
+                        redirectPath: '/checkout'
+                    });
+                }
+                console.log(`[POST /api/orders] Usando endereço selecionado ID: ${addressId}`);
+            } else {
+                // Fallback: usar endereço padrão ou o primeiro disponível
+                shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
+                console.log(`[POST /api/orders] Usando endereço padrão ou primeiro disponível`);
+            }
             
             if (!shippingAddress) {
                 console.warn(`[POST /api/orders] Usuário ${userId} não possui endereço de entrega cadastrado.`);
@@ -508,17 +523,20 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         if (currentOrder.status === 'pending_payment' && status === 'being_prepared') {
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
-                // Buscar referência do endereço padrão do usuário
-                const userWithAddress = await prisma.usuario.findUnique({
-                    where: { id: updatedOrder.usuarioId },
-                    include: {
-                        enderecos: {
-                            where: { padrao: true },
-                            take: 1
+                // Buscar referência do endereço usado no pedido (não o padrão)
+                // O endereço já está salvo no pedido, buscar a referência correspondente
+                let referenciaEntrega = null;
+                if (updatedOrder.ruaEntrega && updatedOrder.numeroEntrega) {
+                    const enderecoUsado = await prisma.endereco.findFirst({
+                        where: {
+                            usuarioId: updatedOrder.usuarioId,
+                            rua: updatedOrder.ruaEntrega,
+                            numero: updatedOrder.numeroEntrega,
+                            bairro: updatedOrder.bairroEntrega
                         }
-                    }
-                });
-                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                    });
+                    referenciaEntrega = enderecoUsado?.pontoReferencia || null;
+                }
                 const orderWithReference = {
                     ...updatedOrder,
                     referenciaEntrega: referenciaEntrega
@@ -547,17 +565,19 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         if (status === 'on_the_way' && updatedOrder.entregador) {
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                // Buscar referência do endereço padrão do usuário
-                const userWithAddress = await prisma.usuario.findUnique({
-                    where: { id: updatedOrder.usuarioId },
-                    include: {
-                        enderecos: {
-                            where: { padrao: true },
-                            take: 1
+                // Buscar referência do endereço usado no pedido (não o padrão)
+                let referenciaEntrega = null;
+                if (updatedOrder.ruaEntrega && updatedOrder.numeroEntrega) {
+                    const enderecoUsado = await prisma.endereco.findFirst({
+                        where: {
+                            usuarioId: updatedOrder.usuarioId,
+                            rua: updatedOrder.ruaEntrega,
+                            numero: updatedOrder.numeroEntrega,
+                            bairro: updatedOrder.bairroEntrega
                         }
-                    }
-                });
-                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                    });
+                    referenciaEntrega = enderecoUsado?.pontoReferencia || null;
+                }
                 
                 // Mapear campos para compatibilidade com messageService
                 const orderForNotification = {
@@ -684,17 +704,19 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
         if (existingOrder.status === 'pending_payment' && dbStatus === 'being_prepared') {
             try {
                 console.log('💳 Enviando notificação de pagamento confirmado...');
-                // Buscar referência do endereço padrão do usuário
-                const userWithAddress = await prisma.usuario.findUnique({
-                    where: { id: order.usuarioId },
-                    include: {
-                        enderecos: {
-                            where: { padrao: true },
-                            take: 1
+                // Buscar referência do endereço usado no pedido (não o padrão)
+                let referenciaEntrega = null;
+                if (order.ruaEntrega && order.numeroEntrega) {
+                    const enderecoUsado = await prisma.endereco.findFirst({
+                        where: {
+                            usuarioId: order.usuarioId,
+                            rua: order.ruaEntrega,
+                            numero: order.numeroEntrega,
+                            bairro: order.bairroEntrega
                         }
-                    }
-                });
-                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                    });
+                    referenciaEntrega = enderecoUsado?.pontoReferencia || null;
+                }
                 const orderWithReference = {
                     ...order,
                     referenciaEntrega: referenciaEntrega
@@ -732,17 +754,19 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             // Notificação para entrega com entregador
             try {
                 console.log('📱 Enviando notificações de entrega...');
-                // Buscar referência do endereço padrão do usuário
-                const userWithAddress = await prisma.usuario.findUnique({
-                    where: { id: order.usuarioId },
-                    include: {
-                        enderecos: {
-                            where: { padrao: true },
-                            take: 1
+                // Buscar referência do endereço usado no pedido (não o padrão)
+                let referenciaEntrega = null;
+                if (order.ruaEntrega && order.numeroEntrega) {
+                    const enderecoUsado = await prisma.endereco.findFirst({
+                        where: {
+                            usuarioId: order.usuarioId,
+                            rua: order.ruaEntrega,
+                            numero: order.numeroEntrega,
+                            bairro: order.bairroEntrega
                         }
-                    }
-                });
-                const referenciaEntrega = userWithAddress?.enderecos?.[0]?.pontoReferencia || null;
+                    });
+                    referenciaEntrega = enderecoUsado?.pontoReferencia || null;
+                }
                 
                 // Mapear campos para compatibilidade com messageService
                 const orderForNotification = {
