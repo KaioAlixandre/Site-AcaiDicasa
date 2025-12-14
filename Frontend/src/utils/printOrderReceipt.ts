@@ -86,10 +86,15 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
           background: white;
           margin: 0;
           font-size: 10pt;
+          font-weight: bold;
+        }
+        
+        * {
+          font-weight: bold;
         }
         
         .receipt {
-          max-width: 72mm;
+          max-width: 68mm;
           margin: 0 auto;
           background: white;
           width: 100%;
@@ -280,11 +285,12 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
           body {
             padding: 0;
             margin: 0;
+            font-weight: bold;
           }
           
           .receipt {
-            max-width: 80mm;
-            width: 80mm;
+            max-width: 68mm;
+            width: 68mm;
           }
           
           @page {
@@ -297,6 +303,7 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            font-weight: bold !important;
           }
         }
       </style>
