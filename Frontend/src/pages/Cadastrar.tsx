@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Phone, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Phone, Lock, User, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
+import { validatePhoneWithAPI, applyPhoneMask } from '../utils/phoneValidation';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -14,21 +15,42 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [phoneValidating, setPhoneValidating] = useState(false);
+  const [phoneValidationStatus, setPhoneValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [phoneValidationMessage, setPhoneValidationMessage] = useState('');
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    // Aplicar máscara de telefone
+    if (name === 'telefone') {
+      const maskedValue = applyPhoneMask(value);
+      setFormData({
+        ...formData,
+        [name]: maskedValue
+      });
+      // Resetar status de validação quando o usuário digitar
+      if (phoneValidationStatus !== 'idle') {
+        setPhoneValidationStatus('idle');
+        setPhoneValidationMessage('');
+      }
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setPhoneValidationStatus('idle');
+    setPhoneValidationMessage('');
 
-    // Validações
+    // Validações básicas
     if (formData.password !== formData.confirmPassword) {
       setError('As senhas não coincidem');
       return;
@@ -39,11 +61,39 @@ const Register: React.FC = () => {
       return;
     }
 
+    // Validar telefone
+    if (!formData.telefone || formData.telefone.replace(/\D/g, '').length < 10) {
+      setError('Por favor, informe um número de telefone válido');
+      return;
+    }
+
+    // Validar telefone com API
+    setPhoneValidating(true);
     try {
+      const validation = await validatePhoneWithAPI(formData.telefone);
+      
+      if (!validation.valid) {
+        setPhoneValidationStatus('invalid');
+        setPhoneValidationMessage(validation.error || 'Número de telefone inválido');
+        setError(validation.error || 'Número de telefone inválido. Por favor, verifique e tente novamente.');
+        setPhoneValidating(false);
+        return;
+      }
+
+      setPhoneValidationStatus('valid');
+      setPhoneValidationMessage('Número de telefone válido!');
+      
+      // Aguardar um pouco para mostrar o feedback positivo
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Criar conta
       await register(formData.username, formData.telefone, formData.password);
       navigate('/login');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Erro ao criar conta');
+      setPhoneValidationStatus('invalid');
+    } finally {
+      setPhoneValidating(false);
     }
   };
 
@@ -120,10 +170,33 @@ const Register: React.FC = () => {
                   required
                   value={formData.telefone}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  className={`appearance-none block w-full pl-10 pr-10 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm ${
+                    phoneValidationStatus === 'valid' 
+                      ? 'border-green-300 bg-green-50' 
+                      : phoneValidationStatus === 'invalid'
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
                   placeholder="(00) 00000-0000"
+                  disabled={phoneValidating}
                 />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  {phoneValidating ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                  ) : phoneValidationStatus === 'valid' ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : phoneValidationStatus === 'invalid' ? (
+                    <XCircle className="h-5 w-5 text-red-500" />
+                  ) : null}
+                </div>
               </div>
+              {phoneValidationMessage && (
+                <p className={`mt-1 text-xs ${
+                  phoneValidationStatus === 'valid' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {phoneValidationMessage}
+                </p>
+              )}
             </div>
 
             <div>

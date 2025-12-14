@@ -91,7 +91,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 console.log(`[POST /api/orders] Usando endereço selecionado ID: ${addressId}`);
             } else {
                 // Fallback: usar endereço padrão ou o primeiro disponível
-                shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
+            shippingAddress = user.enderecos.find(addr => addr.padrao) || user.enderecos[0];
                 console.log(`[POST /api/orders] Usando endereço padrão ou primeiro disponível`);
             }
             
@@ -533,8 +533,8 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                             rua: updatedOrder.ruaEntrega,
                             numero: updatedOrder.numeroEntrega,
                             bairro: updatedOrder.bairroEntrega
-                        }
-                    });
+                    }
+                });
                     referenciaEntrega = enderecoUsado?.pontoReferencia || null;
                 }
                 const orderWithReference = {
@@ -574,8 +574,8 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                             rua: updatedOrder.ruaEntrega,
                             numero: updatedOrder.numeroEntrega,
                             bairro: updatedOrder.bairroEntrega
-                        }
-                    });
+                    }
+                });
                     referenciaEntrega = enderecoUsado?.pontoReferencia || null;
                 }
                 
@@ -713,8 +713,8 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                             rua: order.ruaEntrega,
                             numero: order.numeroEntrega,
                             bairro: order.bairroEntrega
-                        }
-                    });
+                    }
+                });
                     referenciaEntrega = enderecoUsado?.pontoReferencia || null;
                 }
                 const orderWithReference = {
@@ -763,8 +763,8 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                             rua: order.ruaEntrega,
                             numero: order.numeroEntrega,
                             bairro: order.bairroEntrega
-                        }
-                    });
+                    }
+                });
                     referenciaEntrega = enderecoUsado?.pontoReferencia || null;
                 }
                 

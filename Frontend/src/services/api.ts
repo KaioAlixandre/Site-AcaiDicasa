@@ -57,11 +57,11 @@ class ApiService {
             // Verificar se estamos na página de login/register para evitar loop
             const currentPath = window.location.pathname;
             if (!currentPath.includes('/login') && !currentPath.includes('/cadastrar')) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
               // Só redirecionar se não estiver já na página de login
               if (currentPath !== '/login' && currentPath !== '/cadastrar') {
-                window.location.href = '/login';
+            window.location.href = '/login';
               }
             }
           }

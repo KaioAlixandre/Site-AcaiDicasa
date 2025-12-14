@@ -20,17 +20,19 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const formatValue = (val: string | number) => {
     const numVal = typeof val === 'string' ? parseFloat(val) : val;
+    // Tratar valores NaN, null ou undefined
+    const safeVal = (isNaN(numVal) || numVal === null || numVal === undefined) ? 0 : numVal;
     
     switch (format) {
       case 'currency':
         return new Intl.NumberFormat('pt-BR', {
           style: 'currency',
           currency: 'BRL'
-        }).format(numVal);
+        }).format(safeVal);
       case 'percentage':
-        return `${numVal.toFixed(1)}%`;
+        return `${safeVal.toFixed(1)}%`;
       default:
-        return numVal.toLocaleString('pt-BR');
+        return safeVal.toLocaleString('pt-BR');
     }
   };
 

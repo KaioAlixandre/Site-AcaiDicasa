@@ -12,13 +12,15 @@ import {
   CheckCircle,
   Plus,
   X,
-  Edit
+  Edit,
+  Phone
 } from 'lucide-react';
 import apiService from '../services/api';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { AddressForm } from '../types';
 import { checkStoreStatus } from '../utils/storeUtils';
+import { validatePhoneWithAPI, applyPhoneMask } from '../utils/phoneValidation';
 
 const paymentMethods = [
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD', icon: <CreditCard size={20} />, color: 'blue' },
@@ -68,6 +70,9 @@ const Checkout: React.FC = () => {
   const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
   const [regLoading, setRegLoading] = useState<boolean>(false);
   const [regError, setRegError] = useState<string>('');
+  const [regPhoneValidating, setRegPhoneValidating] = useState<boolean>(false);
+  const [regPhoneValidationStatus, setRegPhoneValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [regPhoneValidationMessage, setRegPhoneValidationMessage] = useState<string>('');
   // Estado para login rápido dentro do checkout
   const [loginMode, setLoginMode] = useState<boolean>(false);
   const [loginTelefoneLocal, setLoginTelefoneLocal] = useState<string>('');
@@ -147,7 +152,7 @@ const Checkout: React.FC = () => {
   // Carregar endereços do usuário quando logado e tipo de entrega for delivery
   useEffect(() => {
     const loadAddresses = async () => {
-      if (user && deliveryType === 'delivery') {
+    if (user && deliveryType === 'delivery') {
         setLoadingAddresses(true);
         try {
           const addresses = await apiService.getAddresses();
@@ -160,7 +165,7 @@ const Checkout: React.FC = () => {
             // Se não há endereços, abrir modal para criar
             setShowAddressModal(true);
             setShowAddressForm(true);
-          }
+      }
         } catch (error) {
           console.error('Erro ao carregar endereços:', error);
           // Tentar usar endereços do perfil do usuário como fallback
@@ -189,11 +194,11 @@ const Checkout: React.FC = () => {
         } finally {
           setLoadingAddresses(false);
         }
-      } else if (deliveryType === 'pickup') {
+    } else if (deliveryType === 'pickup') {
         setUserAddresses([]);
         setSelectedAddressId(null);
         setShowAddressModal(false);
-      }
+    }
     };
     loadAddresses();
   }, [user, deliveryType]);
@@ -469,6 +474,9 @@ const Checkout: React.FC = () => {
     const handleRegisterSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setRegError('');
+      setRegPhoneValidationStatus('idle');
+      setRegPhoneValidationMessage('');
+      
       if (!regTelefone || !regPassword) {
         setRegError('Preencha telefone e senha');
         return;
@@ -482,7 +490,28 @@ const Checkout: React.FC = () => {
         return;
       }
 
+      // Validar telefone
+      if (!regTelefone || regTelefone.replace(/\D/g, '').length < 10) {
+        setRegError('Por favor, informe um número de telefone válido');
+        return;
+      }
+
+      // Validar telefone com API
+      setRegPhoneValidating(true);
       try {
+        const validation = await validatePhoneWithAPI(regTelefone);
+        
+        if (!validation.valid) {
+          setRegPhoneValidationStatus('invalid');
+          setRegPhoneValidationMessage(validation.error || 'Número de telefone inválido');
+          setRegError(validation.error || 'Número de telefone inválido. Por favor, verifique e tente novamente.');
+          setRegPhoneValidating(false);
+          return;
+        }
+
+        setRegPhoneValidationStatus('valid');
+        setRegPhoneValidationMessage('Número de telefone válido!');
+        
         setRegLoading(true);
         // Criar conta
         await register(regName.trim(), regTelefone.trim(), regPassword);
@@ -506,8 +535,10 @@ const Checkout: React.FC = () => {
         }
       } catch (err: any) {
         setRegError(err.message || 'Erro ao criar conta');
+        setRegPhoneValidationStatus('invalid');
       } finally {
         setRegLoading(false);
+        setRegPhoneValidating(false);
       }
     };
 
@@ -574,14 +605,22 @@ const Checkout: React.FC = () => {
             >
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Número de Celular</label>
-                <input
-                  value={loginTelefoneLocal}
-                  onChange={(e) => setLoginTelefoneLocal(e.target.value)}
-                  type="tel"
-                  placeholder="(00) 00000-0000"
-                  required
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    value={loginTelefoneLocal}
+                    onChange={(e) => {
+                      const maskedValue = applyPhoneMask(e.target.value);
+                      setLoginTelefoneLocal(maskedValue);
+                    }}
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    required
+                    className="w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Senha</label>
@@ -642,14 +681,49 @@ const Checkout: React.FC = () => {
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Número de Celular</label>
-                <input
-                  value={regTelefone}
-                  onChange={(e) => setRegTelefone(e.target.value)}
-                  type="tel"
-                  placeholder="(00) 00000-0000"
-                  required
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    value={regTelefone}
+                    onChange={(e) => {
+                      const maskedValue = applyPhoneMask(e.target.value);
+                      setRegTelefone(maskedValue);
+                      if (regPhoneValidationStatus !== 'idle') {
+                        setRegPhoneValidationStatus('idle');
+                        setRegPhoneValidationMessage('');
+                      }
+                    }}
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    required
+                    disabled={regPhoneValidating}
+                    className={`w-full pl-10 pr-10 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-200 ${
+                      regPhoneValidationStatus === 'valid' 
+                        ? 'border-green-300 bg-green-50' 
+                        : regPhoneValidationStatus === 'invalid'
+                        ? 'border-red-300 bg-red-50'
+                        : 'border-gray-300'
+                    }`}
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    {regPhoneValidating ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                    ) : regPhoneValidationStatus === 'valid' ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : regPhoneValidationStatus === 'invalid' ? (
+                      <X className="h-4 w-4 text-red-500" />
+                    ) : null}
+                  </div>
+                </div>
+                {regPhoneValidationMessage && (
+                  <p className={`mt-1 text-xs ${
+                    regPhoneValidationStatus === 'valid' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {regPhoneValidationMessage}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -772,9 +846,9 @@ const Checkout: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
-                              <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
+                        <div className="flex-1">
+                          <div className="text-sm md:text-base font-semibold text-slate-900">Entrega em casa</div>
+                          <div className="text-xs md:text-sm text-slate-600">+ R$ {deliveryFee.toFixed(2)} taxa de entrega</div>
                               {deliveryType === 'delivery' && user && selectedAddressId && (
                                 <div className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
                                   <MapPin size={12} />
@@ -786,13 +860,13 @@ const Checkout: React.FC = () => {
                                   })()}
                                 </div>
                               )}
-                              {!entregaDisponivel && (
-                                <div className="text-xs text-red-600 font-semibold mt-1">
-                                  {horaEntregaInicio && new Date() < (() => { const [h, m] = horaEntregaInicio.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()
-                                    ? `O serviço de entrega em casa só inicia às ${horaEntregaInicio}`
-                                    : `Horário de entrega encerrado${horaEntregaFim ? ` (${horaEntregaFim})` : ''}`}
-                                </div>
-                              )}
+                          {!entregaDisponivel && (
+                            <div className="text-xs text-red-600 font-semibold mt-1">
+                              {horaEntregaInicio && new Date() < (() => { const [h, m] = horaEntregaInicio.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; })()
+                                ? `O serviço de entrega em casa só inicia às ${horaEntregaInicio}`
+                                : `Horário de entrega encerrado${horaEntregaFim ? ` (${horaEntregaFim})` : ''}`}
+                            </div>
+                          )}
                             </div>
                             {deliveryType === 'delivery' && user && selectedAddressId && entregaDisponivel && (
                               <button

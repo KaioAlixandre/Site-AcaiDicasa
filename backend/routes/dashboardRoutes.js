@@ -4,13 +4,24 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 
-// Função auxiliar para obter início e fim do dia
+// Função auxiliar para obter início e fim do dia (usando fuso horário do Brasil - America/Sao_Paulo)
 function getStartAndEndOfDay(date = new Date()) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
+  // Obter a data atual no fuso horário do Brasil
+  const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+  // Criar início do dia (00:00:00) no fuso horário do Brasil
+  const startBrasil = new Date(brasilNow);
+  startBrasil.setHours(0, 0, 0, 0);
+  
+  // Criar fim do dia (23:59:59.999) no fuso horário do Brasil
+  const endBrasil = new Date(brasilNow);
+  endBrasil.setHours(23, 59, 59, 999);
+  
+  // Converter para UTC (MySQL armazena em UTC)
+  // O offset do Brasil é UTC-3, então precisamos adicionar 3 horas para converter para UTC
+  const offsetHours = 3; // UTC-3
+  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
   
   return { start, end };
 }
@@ -37,6 +48,13 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     const today = new Date();
     const { start: dayStart, end: dayEnd } = getStartAndEndOfDay(today);
     const { start: weekStart, end: weekEnd } = getStartAndEndOfWeek(today);
+
+    // Log para debug - verificar se as datas estão corretas
+    console.log('[Dashboard] Data atual:', today.toISOString());
+    console.log('[Dashboard] Início do dia (local):', dayStart.toISOString());
+    console.log('[Dashboard] Fim do dia (local):', dayEnd.toISOString());
+    console.log('[Dashboard] Início do dia (formato local):', dayStart.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+    console.log('[Dashboard] Fim do dia (formato local):', dayEnd.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
 
     console.log('[Dashboard] Buscando faturamento do dia...');
     // 1. Faturamento do dia
@@ -70,7 +88,7 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
 
     // 3. Ticket médio do dia
     const dailyTicketAverage = dailySales > 0 ? 
-      (parseFloat(dailyRevenue._sum.precoTotal || 0) / dailySales).toFixed(2) : 0;
+      parseFloat((parseFloat(dailyRevenue._sum.precoTotal || 0) / dailySales).toFixed(2)) : 0;
 
     // 4. Vendas da semana (por dia)
     const weeklyStats = await prisma.pedido.groupBy({
@@ -127,12 +145,22 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
           where: { id: item.produtoId },
           select: { id: true, nome: true, preco: true }
         });
+        // Se o produto não existir, retornar dados padrão
+        if (!product) {
+          return {
+            id: item.produtoId,
+            name: 'Produto não encontrado',
+            price: 0,
+            quantitySold: Number(item._sum.quantidade) || 0,
+            orderCount: Number(item._count.produtoId) || 0
+          };
+        }
         return {
           id: product.id,
           name: product.nome, // garantir campo 'name' para o frontend
-          preco: product.preco,
-          quantitySold: item._sum.quantidade,
-          orderCount: item._count.produtoId
+          price: Number(product.preco) || 0, // Converter Decimal para número e mapear para 'price'
+          quantitySold: Number(item._sum.quantidade) || 0,
+          orderCount: Number(item._count.produtoId) || 0
         };
       })
     );
@@ -210,10 +238,10 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
 
     // Calcular variações percentuais
     const revenueChange = yesterdayRevenue._sum.precoTotal ? 
-      (((parseFloat(dailyRevenue._sum.precoTotal || 0) - parseFloat(yesterdayRevenue._sum.precoTotal || 0)) / parseFloat(yesterdayRevenue._sum.precoTotal || 0)) * 100).toFixed(1) : 0;
+      parseFloat((((parseFloat(dailyRevenue._sum.precoTotal || 0) - parseFloat(yesterdayRevenue._sum.precoTotal || 0)) / parseFloat(yesterdayRevenue._sum.precoTotal || 0)) * 100).toFixed(1)) : 0;
     
     const ordersChange = yesterdayOrders ? 
-      (((dailySales - yesterdayOrders) / yesterdayOrders) * 100).toFixed(1) : 0;
+      parseFloat((((dailySales - yesterdayOrders) / yesterdayOrders) * 100).toFixed(1)) : 0;
 
     // 10. Preparar dados da semana para gráfico
     const weeklyData = [];

@@ -6,11 +6,12 @@ interface TopProductsTableProps {
 }
 
 const TopProductsTable: React.FC<TopProductsTableProps> = ({ products }) => {
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    const numValue = Number(value) || 0;
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(numValue);
   };
 
   if (!products || products.length === 0) {
@@ -70,14 +71,14 @@ const TopProductsTable: React.FC<TopProductsTableProps> = ({ products }) => {
                   <div className="text-sm text-gray-900">{formatCurrency(product.price)}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900 font-semibold">{product.quantitySold}</div>
+                  <div className="text-sm text-gray-900 font-semibold">{Number(product.quantitySold) || 0}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{product.orderCount}</div>
+                  <div className="text-sm text-gray-900">{Number(product.orderCount) || 0}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-semibold text-green-600">
-                    {formatCurrency(product.price * product.quantitySold)}
+                    {formatCurrency((Number(product.price) || 0) * (Number(product.quantitySold) || 0))}
                   </div>
                 </td>
               </tr>

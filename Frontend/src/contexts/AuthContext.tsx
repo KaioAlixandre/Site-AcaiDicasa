@@ -15,9 +15,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+        const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-
+          
       if (storedToken && storedUser) {
         try {
           setToken(storedToken);
@@ -44,8 +44,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setUser(parsedUser);
               console.warn('Erro ao carregar perfil, usando dados do localStorage:', profileError.message);
             }
-          }
-        } catch (error) {
+        }
+      } catch (error) {
           // Erro ao parsear ou acessar localStorage, manter como não autenticado
           console.error('Erro ao inicializar autenticação:', error);
           setToken(null);
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Carregar perfil completo com endereços
       const userProfile = await apiService.getProfile();
-     
+      
       
       setUser(userProfile);
       localStorage.setItem('user', JSON.stringify(userProfile));
