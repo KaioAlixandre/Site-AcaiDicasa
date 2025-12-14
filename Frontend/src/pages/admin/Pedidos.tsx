@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign } from 'lucide-react';
 import { Order } from '../../types';
 import { printOrderReceipt } from '../../utils/printOrderReceipt';
@@ -35,11 +35,6 @@ const Pedidos: React.FC<{
   onRefresh?: () => void
 }> = ({ orders, handleAdvanceStatus, onRefresh }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Referência para rastrear pedidos já impressos
-  const printedOrdersRef = useRef<Set<number>>(new Set());
-  // Referência para rastrear o último conjunto de IDs de pedidos
-  const lastOrderIdsRef = useRef<Set<number>>(new Set());
 
   const handleRefresh = async () => {
     if (onRefresh) {
@@ -58,62 +53,6 @@ const Pedidos: React.FC<{
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  // Efeito para detectar e imprimir novos pedidos automaticamente
-  useEffect(() => {
-    if (orders.length === 0) {
-      // Inicializar com conjunto vazio se não houver pedidos
-      lastOrderIdsRef.current = new Set();
-      return;
-    }
-
-    // Criar conjunto de IDs atuais
-    const currentOrderIds = new Set(orders.map(order => order.id));
-    
-    // Encontrar novos pedidos (que não estavam na última verificação)
-    const newOrders = orders.filter(order => {
-      const isNew = !lastOrderIdsRef.current.has(order.id);
-      const wasNotPrinted = !printedOrdersRef.current.has(order.id);
-      // Considerar novo se foi criado nos últimos 60 segundos
-      const orderDate = new Date(order.createdAt);
-      const now = new Date();
-      const secondsSinceCreation = (now.getTime() - orderDate.getTime()) / 1000;
-      const isRecent = secondsSinceCreation <= 60; // 60 segundos
-      
-      return isNew && wasNotPrinted && isRecent;
-    });
-
-    // Imprimir novos pedidos
-    if (newOrders.length > 0) {
-      // Ordenar por data de criação (mais recente primeiro)
-      newOrders.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA;
-      });
-
-      // Imprimir apenas o pedido mais recente
-      const newestOrder = newOrders[0];
-      
-      // Aguardar um pequeno delay para garantir que a página está carregada
-      setTimeout(() => {
-        printOrderReceipt({
-          order: newestOrder,
-          user: newestOrder.user ? {
-            nomeUsuario: newestOrder.user.username,
-            telefone: (newestOrder.user as any).telefone || (newestOrder.user as any).phone,
-            email: (newestOrder.user as any).email
-          } : undefined
-        });
-        
-        // Marcar como impresso
-        printedOrdersRef.current.add(newestOrder.id);
-      }, 1000); // Delay de 1 segundo para garantir que tudo está carregado
-    }
-
-    // Atualizar referência dos IDs
-    lastOrderIdsRef.current = currentOrderIds;
-  }, [orders]);
 
   // Polling automático para verificar novos pedidos a cada 5 segundos
   useEffect(() => {

@@ -443,64 +443,23 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
     </html>
   `;
 
-  // Criar uma nova janela para impressão (oculta)
-  const printWindow = window.open('', '_blank', 'width=1,height=1');
+  // Criar uma nova janela para impressão
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
   if (!printWindow) {
-    // Se pop-ups estiverem bloqueados, tentar imprimir na janela atual
-    const printContent = document.createElement('div');
-    printContent.innerHTML = receiptHTML;
-    printContent.style.position = 'absolute';
-    printContent.style.left = '-9999px';
-    document.body.appendChild(printContent);
-    
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.body.removeChild(printContent);
-      }, 100);
-    }, 100);
+    alert('Por favor, permita pop-ups para imprimir a nota.');
     return;
   }
 
-  // Escrever o conteúdo na janela
   printWindow.document.write(receiptHTML);
   printWindow.document.close();
 
-  // Função para imprimir e fechar
-  const executePrint = () => {
-    try {
-      printWindow.focus();
-      // Chamar print() - o navegador pode mostrar diálogo, mas tentamos imprimir automaticamente
-      printWindow.print();
-      
-      // Fechar a janela após um delay (dar tempo para a impressão iniciar)
-      // Usar um tempo maior para garantir que o diálogo de impressão apareceu
-      setTimeout(() => {
-        try {
-          printWindow.close();
-        } catch (e) {
-          // Ignorar erro ao fechar (pode estar bloqueado)
-        }
-      }, 1000);
-    } catch (error) {
-      console.error('Erro ao imprimir:', error);
-    }
-  };
-
-  // Aguardar o carregamento completo e imprimir automaticamente
-  if (printWindow.document.readyState === 'complete') {
-    executePrint();
-  } else {
-    printWindow.onload = () => {
-      setTimeout(executePrint, 300);
-    };
-    
-    // Fallback: se onload não disparar, tentar imprimir após um tempo
+  // Aguardar o carregamento e imprimir
+  printWindow.onload = () => {
     setTimeout(() => {
-      if (printWindow.document.readyState === 'complete') {
-        executePrint();
-      }
-    }, 1000);
-  }
+      printWindow.print();
+      // Fechar a janela após impressão (opcional)
+      // printWindow.close();
+    }, 250);
+  };
 };
 
