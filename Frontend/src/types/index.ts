@@ -96,6 +96,7 @@ export interface Order {
   totalPrice: number;
   status: OrderStatus;
   deliveryType?: string;
+  deliveryFee?: number;
   createdAt: string;
   userId: number;
   shippingStreet: string;
