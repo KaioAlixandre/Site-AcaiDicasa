@@ -3,6 +3,7 @@ import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 import { Deliverer } from '../../types';
 import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { applyPhoneMask, validatePhoneWithAPI } from '../../utils/phoneValidation';
 
 const Entregadores: React.FC = () => {
   const [deliverers, setDeliverers] = useState<Deliverer[]>([]);
@@ -14,6 +15,7 @@ const Entregadores: React.FC = () => {
     phone: '',
     email: ''
   });
+  const [validatingPhone, setValidatingPhone] = useState(false);
 
   useEffect(() => {
     loadDeliverers();
@@ -56,7 +58,13 @@ const Entregadores: React.FC = () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone') {
+      // Aplicar máscara de telefone
+      const maskedValue = applyPhoneMask(value);
+      setForm(prev => ({ ...prev, [name]: maskedValue }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +73,23 @@ const Entregadores: React.FC = () => {
       notify('Nome e telefone são obrigatórios', 'warning');
       return;
     }
+    
+    // Validar telefone com API
+    setValidatingPhone(true);
+    try {
+      const phoneValidation = await validatePhoneWithAPI(form.phone);
+      if (!phoneValidation.valid) {
+        notify(phoneValidation.error || 'Número de telefone inválido. Verifique o formato (DDD + número).', 'warning');
+        setValidatingPhone(false);
+        return;
+      }
+    } catch (error) {
+      notify('Erro ao validar telefone. Tente novamente.', 'error');
+      setValidatingPhone(false);
+      return;
+    }
+    setValidatingPhone(false);
+    
     try {
       if (editingDeliverer) {
         await apiService.updateDeliverer(editingDeliverer.id, form);
@@ -364,9 +389,10 @@ const Entregadores: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-3 sm:px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  disabled={validatingPhone}
+                  className="flex-1 px-3 sm:px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingDeliverer ? 'Salvar' : 'Cadastrar'}
+                  {validatingPhone ? 'Validando...' : editingDeliverer ? 'Salvar' : 'Cadastrar'}
                 </button>
               </div>
             </form>

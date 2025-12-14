@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotification } from '../../components/NotificationProvider';
 import { Pencil, Trash2, Plus, ChefHat, Phone, User } from 'lucide-react';
+import { applyPhoneMask, validatePhoneWithAPI } from '../../utils/phoneValidation';
 
 interface Cozinheiro {
   id: number;
@@ -20,6 +21,7 @@ const Cozinheiros: React.FC = () => {
     telefone: '',
     ativo: true
   });
+  const [validatingPhone, setValidatingPhone] = useState(false);
 
   const { notify } = useNotification();
   const loadCozinheiros = async () => {
@@ -75,6 +77,23 @@ const Cozinheiros: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar telefone com API
+    setValidatingPhone(true);
+    try {
+      const phoneValidation = await validatePhoneWithAPI(formData.telefone);
+      if (!phoneValidation.valid) {
+        notify(phoneValidation.error || 'Número de telefone inválido. Verifique o formato (DDD + número).', 'warning');
+        setValidatingPhone(false);
+        return;
+      }
+    } catch (error) {
+      notify('Erro ao validar telefone. Tente novamente.', 'error');
+      setValidatingPhone(false);
+      return;
+    }
+    setValidatingPhone(false);
+    
     try {
       const token = localStorage.getItem('token');
       const url = editingCozinheiro 
@@ -269,7 +288,10 @@ const Cozinheiros: React.FC = () => {
                   <input
                     type="tel"
                     value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    onChange={(e) => {
+                      const maskedValue = applyPhoneMask(e.target.value);
+                      setFormData({ ...formData, telefone: maskedValue });
+                    }}
                     placeholder="(00) 00000-0000"
                     required
                     className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -299,9 +321,10 @@ const Cozinheiros: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+                    disabled={validatingPhone}
+                    className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {editingCozinheiro ? 'Salvar' : 'Adicionar'}
+                    {validatingPhone ? 'Validando...' : editingCozinheiro ? 'Salvar' : 'Adicionar'}
                   </button>
                 </div>
               </form>

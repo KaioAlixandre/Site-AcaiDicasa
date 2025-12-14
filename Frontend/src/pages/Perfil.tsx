@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { apiService } from '../services/api';
 import Loading from '../components/Loading';
+import { applyPhoneMask, validatePhoneWithAPI } from '../utils/phoneValidation';
 
 const Profile: React.FC = () => {
   const { user, loading: authLoading, refreshUserProfile } = useAuth();
@@ -52,7 +53,7 @@ const Profile: React.FC = () => {
     };
   };
 
-  // Função para formatar telefone
+  // Função para formatar telefone (mantida para exibição)
   const formatPhone = (phone: string): string => {
     // Remove tudo que não é número
     const cleaned = phone.replace(/\D/g, '');
@@ -104,8 +105,24 @@ const Profile: React.FC = () => {
 
   const handleSavePhone = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     setPhoneLoading(true);
     setError(null);
+    
+    // Validar telefone com API
+    try {
+      const phoneValidation = await validatePhoneWithAPI(phoneValue);
+      if (!phoneValidation.valid) {
+        setError(phoneValidation.error || 'Número de telefone inválido. Verifique o formato (DDD + número).');
+        setPhoneLoading(false);
+        return;
+      }
+    } catch (error) {
+      setError('Erro ao validar telefone. Tente novamente.');
+      setPhoneLoading(false);
+      return;
+    }
+    
     try {
       await apiService.updatePhone(phoneValue);
       await refreshUserProfile();
@@ -325,10 +342,16 @@ const Profile: React.FC = () => {
                   {editingPhone ? (
                     <form onSubmit={handleSavePhone} className="flex items-center gap-2">
                       <input
-                        type="text"
+                        type="tel"
                         value={phoneValue}
-                        onChange={e => setPhoneValue(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm w-36 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        onChange={e => {
+                          const maskedValue = applyPhoneMask(e.target.value);
+                          setPhoneValue(maskedValue);
+                          setError(null); // Limpar erro ao digitar
+                        }}
+                        className={`border rounded px-2 py-1 text-sm w-36 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                          error ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="(99) 99999-9999"
                         disabled={phoneLoading}
                         autoFocus
