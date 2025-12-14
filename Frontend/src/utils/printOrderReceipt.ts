@@ -80,90 +80,97 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
         }
         
         body {
-          font-family: Arial, sans-serif;
-          padding: 20px;
-          color: #1f2937;
+          font-family: 'Courier New', monospace;
+          padding: 5mm;
+          color: #000;
           background: white;
+          margin: 0;
+          font-size: 10pt;
         }
         
         .receipt {
-          max-width: 800px;
+          max-width: 72mm;
           margin: 0 auto;
           background: white;
+          width: 100%;
         }
         
         .header {
           text-align: center;
-          border-bottom: 3px solid #1f2937;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-        }
-        
-        .header h1 {
-          font-size: 32px;
-          font-weight: bold;
-          color: #1f2937;
+          border-bottom: 1px solid #000;
+          padding-bottom: 8px;
           margin-bottom: 10px;
         }
         
+        .header h1 {
+          font-size: 14pt;
+          font-weight: bold;
+          color: #000;
+          margin-bottom: 4px;
+          line-height: 1.2;
+        }
+        
         .header p {
-          font-size: 14px;
-          color: #4b5563;
-          margin: 2px 0;
+          font-size: 8pt;
+          color: #000;
+          margin: 1px 0;
+          line-height: 1.2;
         }
         
         .section {
-          margin-bottom: 25px;
+          margin-bottom: 10px;
         }
         
         .section-title {
-          font-size: 18px;
+          font-size: 10pt;
           font-weight: bold;
-          color: #1f2937;
-          margin-bottom: 15px;
-          border-bottom: 2px solid #e5e7eb;
-          padding-bottom: 5px;
+          color: #000;
+          margin-bottom: 6px;
+          border-bottom: 1px solid #000;
+          padding-bottom: 2px;
+          text-align: center;
         }
         
         .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
-          margin-bottom: 15px;
+          display: block;
+          margin-bottom: 8px;
         }
         
         .info-item {
-          font-size: 14px;
+          font-size: 9pt;
+          margin-bottom: 4px;
+          line-height: 1.3;
         }
         
         .info-label {
-          color: #6b7280;
-          font-size: 12px;
-          margin-bottom: 3px;
+          color: #000;
+          font-size: 8pt;
+          margin-bottom: 1px;
         }
         
         .info-value {
           font-weight: bold;
-          color: #1f2937;
+          color: #000;
+          font-size: 9pt;
         }
         
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 10px;
+          margin-top: 5px;
+          font-size: 8pt;
         }
         
         table thead {
-          background-color: #f3f4f6;
-          border-bottom: 2px solid #d1d5db;
+          border-bottom: 1px solid #000;
         }
         
         table th {
-          padding: 12px;
+          padding: 3px 2px;
           text-align: left;
           font-weight: bold;
-          font-size: 13px;
-          color: #374151;
+          font-size: 8pt;
+          color: #000;
         }
         
         table th.text-center {
@@ -175,9 +182,10 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
         }
         
         table td {
-          padding: 12px;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 13px;
+          padding: 3px 2px;
+          border-bottom: 1px dotted #666;
+          font-size: 8pt;
+          line-height: 1.2;
         }
         
         table td.text-center {
@@ -190,93 +198,105 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
         
         .item-name {
           font-weight: bold;
-          color: #1f2937;
+          color: #000;
+          font-size: 8pt;
         }
         
         .item-complements {
-          font-size: 11px;
-          color: #6b7280;
-          margin-top: 3px;
+          font-size: 7pt;
+          color: #000;
+          margin-top: 1px;
           font-style: italic;
         }
         
         .summary {
-          margin-top: 20px;
-          border-top: 2px solid #1f2937;
-          padding-top: 15px;
+          margin-top: 10px;
+          border-top: 1px solid #000;
+          padding-top: 6px;
         }
         
         .summary-row {
           display: flex;
           justify-content: space-between;
-          padding: 8px 0;
-          font-size: 14px;
+          padding: 2px 0;
+          font-size: 9pt;
+          line-height: 1.3;
         }
         
         .summary-row.total {
-          border-top: 2px solid #1f2937;
-          margin-top: 10px;
-          padding-top: 15px;
-          font-size: 20px;
+          border-top: 1px solid #000;
+          margin-top: 4px;
+          padding-top: 6px;
+          font-size: 11pt;
           font-weight: bold;
         }
         
         .summary-label {
-          color: #374151;
+          color: #000;
         }
         
         .summary-value {
           font-weight: bold;
-          color: #1f2937;
+          color: #000;
         }
         
         .summary-value.total {
-          color: #7c3aed;
-          font-size: 24px;
+          color: #000;
+          font-size: 12pt;
         }
         
         .footer {
           text-align: center;
-          margin-top: 40px;
-          padding-top: 20px;
-          border-top: 2px solid #e5e7eb;
-          color: #6b7280;
-          font-size: 12px;
+          margin-top: 15px;
+          padding-top: 10px;
+          border-top: 1px solid #000;
+          color: #000;
+          font-size: 8pt;
+          line-height: 1.3;
         }
         
         .notes {
-          background-color: #fef3c7;
-          border: 1px solid #fbbf24;
-          border-radius: 6px;
-          padding: 12px;
-          margin-top: 15px;
+          border: 1px solid #000;
+          padding: 5px;
+          margin-top: 8px;
+          font-size: 8pt;
         }
         
         .notes-title {
           font-weight: bold;
-          color: #92400e;
-          margin-bottom: 5px;
-          font-size: 13px;
+          color: #000;
+          margin-bottom: 3px;
+          font-size: 8pt;
         }
         
         .notes-content {
-          color: #78350f;
-          font-size: 12px;
+          color: #000;
+          font-size: 8pt;
           white-space: pre-wrap;
+          line-height: 1.3;
         }
         
         @media print {
           body {
             padding: 0;
+            margin: 0;
           }
           
           .receipt {
-            max-width: 100%;
+            max-width: 80mm;
+            width: 80mm;
           }
           
           @page {
-            size: A4;
-            margin: 1.5cm;
+            size: 80mm auto;
+            margin: 0;
+            padding: 0;
+          }
+          
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
         }
       </style>
