@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Phone, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
+import { applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -26,15 +27,42 @@ const Login: React.FC = () => {
   }, [location.state]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    // Aplicar máscara de telefone
+    if (name === 'telefone') {
+      const maskedValue = applyPhoneMask(value);
+      setFormData({
+        ...formData,
+        [name]: maskedValue
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validação básica de formato do telefone (sem chamar API)
+    if (formData.telefone) {
+      const cleaned = formData.telefone.replace(/\D/g, '');
+      if (cleaned.length < 10 || cleaned.length > 11) {
+        setError('Por favor, informe um número de telefone válido (10 ou 11 dígitos)');
+        return;
+      }
+      
+      // Validação local rápida
+      const validation = validatePhoneLocal(formData.telefone);
+      if (!validation.valid) {
+        setError(validation.error || 'Número de telefone inválido');
+        return;
+      }
+    }
 
     try {
       await login(formData.telefone, formData.password);

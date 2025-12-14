@@ -20,7 +20,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { AddressForm } from '../types';
 import { checkStoreStatus } from '../utils/storeUtils';
-import { validatePhoneWithAPI, applyPhoneMask } from '../utils/phoneValidation';
+import { validatePhoneWithAPI, applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
 
 const paymentMethods = [
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD', icon: <CreditCard size={20} />, color: 'blue' },
@@ -573,6 +573,21 @@ const Checkout: React.FC = () => {
                   setLoginErrorLocal('Preencha telefone e senha');
                   return;
                 }
+                
+                // Validação básica de formato do telefone
+                const cleaned = loginTelefoneLocal.replace(/\D/g, '');
+                if (cleaned.length < 10 || cleaned.length > 11) {
+                  setLoginErrorLocal('Por favor, informe um número de telefone válido (10 ou 11 dígitos)');
+                  return;
+                }
+                
+                // Validação local rápida
+                const validation = validatePhoneLocal(loginTelefoneLocal);
+                if (!validation.valid) {
+                  setLoginErrorLocal(validation.error || 'Número de telefone inválido');
+                  return;
+                }
+                
                 try {
                   setLoginLoadingLocal(true);
                   await login(loginTelefoneLocal.trim(), loginPasswordLocal);
