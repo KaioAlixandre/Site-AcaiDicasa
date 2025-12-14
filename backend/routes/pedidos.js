@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification, sendDeliveredConfirmationNotification } = require('../services/messageService');
+const { printReceiptAutomatically } = require('../services/printService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -338,6 +339,41 @@ router.post('/', authenticateToken, async (req, res) => {
                 console.error('❌ Erro ao notificar cozinheiro:', err);
             }
         }
+
+        // Buscar pedido completo com relacionamentos para impressão
+        const orderForPrint = await prisma.pedido.findUnique({
+            where: { id: newOrder.id },
+            include: {
+                usuario: {
+                    select: {
+                        nomeUsuario: true,
+                        telefone: true,
+                        email: true
+                    }
+                },
+                itens_pedido: {
+                    include: {
+                        produto: true,
+                        complementos: {
+                            include: {
+                                complemento: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Imprimir nota automaticamente (apenas se houver impressora configurada)
+        // Isso roda em background e não bloqueia a resposta
+        printReceiptAutomatically(orderForPrint, orderForPrint.usuario, {
+            name: process.env.STORE_NAME || 'Açaidicasa',
+            address: process.env.STORE_ADDRESS || 'Praça Geraldo Sá - Centro',
+            cnpj: process.env.STORE_CNPJ,
+            phone: process.env.STORE_PHONE
+        }).catch(err => {
+            console.error('Erro ao imprimir nota automaticamente:', err);
+        });
 
         res.status(201).json({ message: 'Pedido criado com sucesso!', order: newOrder });
     } catch (err) {
