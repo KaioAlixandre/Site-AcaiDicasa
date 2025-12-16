@@ -6,6 +6,12 @@ const { authenticateToken, authorize } = require('./auth');
 
 console.log('🚀 [CozinheirosRoutes] Módulo de rotas de cozinheiros carregado');
 
+// Função para remover máscara do telefone (garantir apenas dígitos)
+const removePhoneMask = (phone) => {
+    if (!phone) return phone;
+    return phone.toString().replace(/\D/g, '');
+};
+
 // Listar todos os cozinheiros
 router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
   console.log('🔍 [GET /api/cozinheiros] Buscando cozinheiros');
@@ -36,11 +42,14 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
     return res.status(400).json({ error: 'Nome e telefone são obrigatórios' });
   }
   
+  // Remover máscara do telefone antes de salvar
+  const telefoneLimpo = removePhoneMask(telefone);
+  
   try {
     const cozinheiro = await prisma.cozinheiro.create({
       data: {
         nome,
-        telefone,
+        telefone: telefoneLimpo,
         ativo: ativo !== undefined ? ativo : true
       }
     });
@@ -61,12 +70,15 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
   
   const { nome, telefone, ativo } = req.body;
   
+  // Remover máscara do telefone antes de salvar
+  const telefoneLimpo = removePhoneMask(telefone);
+  
   try {
     const cozinheiro = await prisma.cozinheiro.update({
       where: { id: parseInt(id) },
       data: {
         nome,
-        telefone,
+        telefone: telefoneLimpo,
         ativo
       }
     });

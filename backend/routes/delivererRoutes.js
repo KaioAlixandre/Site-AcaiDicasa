@@ -4,6 +4,12 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 
+// Função para remover máscara do telefone (garantir apenas dígitos)
+const removePhoneMask = (phone) => {
+    if (!phone) return phone;
+    return phone.toString().replace(/\D/g, '');
+};
+
 // GET - Listar todos os entregadores
 router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
   try {
@@ -38,9 +44,12 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
       return res.status(400).json({ message: 'Nome e telefone são obrigatórios' });
     }
 
+    // Remover máscara do telefone antes de salvar
+    const telefoneLimpo = removePhoneMask(telefone);
+
     // Verificar se já existe entregador com o mesmo telefone
     const existingDeliverer = await prisma.entregador.findFirst({
-      where: { telefone }
+      where: { telefone: telefoneLimpo }
     });
 
     if (existingDeliverer) {
@@ -50,7 +59,7 @@ router.post('/', authenticateToken, authorize('admin'), async (req, res) => {
     const deliverer = await prisma.entregador.create({
       data: {
         nome,
-        telefone,
+        telefone: telefoneLimpo,
         email: email || null
       }
     });
@@ -83,6 +92,9 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
       return res.status(400).json({ message: 'Nome e telefone são obrigatórios' });
     }
 
+    // Remover máscara do telefone antes de salvar
+    const telefoneLimpo = removePhoneMask(telefone);
+
     // Verificar se o entregador existe
     const existingDeliverer = await prisma.entregador.findUnique({
       where: { id: parseInt(id) }
@@ -95,7 +107,7 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
     // Verificar se outro entregador já tem o mesmo telefone
     const delivererWithSamePhone = await prisma.entregador.findFirst({
       where: { 
-        telefone,
+        telefone: telefoneLimpo,
         id: { not: parseInt(id) }
       }
     });
@@ -108,7 +120,7 @@ router.put('/:id', authenticateToken, authorize('admin'), async (req, res) => {
       where: { id: parseInt(id) },
       data: {
         nome,
-        telefone,
+        telefone: telefoneLimpo,
         email: email || null,
         ativo: ativo !== undefined ? ativo : true
       }

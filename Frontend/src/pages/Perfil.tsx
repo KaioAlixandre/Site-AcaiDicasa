@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Address } from '../types';
 import { apiService } from '../services/api';
 import Loading from '../components/Loading';
-import { applyPhoneMask, validatePhoneWithAPI } from '../utils/phoneValidation';
+import { applyPhoneMask, validatePhoneWithAPI, removePhoneMask } from '../utils/phoneValidation';
 
 const Profile: React.FC = () => {
   const { user, loading: authLoading, refreshUserProfile } = useAuth();
@@ -124,7 +124,9 @@ const Profile: React.FC = () => {
     }
     
     try {
-      await apiService.updatePhone(phoneValue);
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(phoneValue);
+      await apiService.updatePhone(telefoneSemMascara);
       await refreshUserProfile();
       setEditingPhone(false);
     } catch (err) {

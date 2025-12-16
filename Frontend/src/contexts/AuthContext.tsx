@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
 import { apiService } from '../services/api';
+import { removePhoneMask } from '../utils/phoneValidation';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -61,9 +62,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (telefone: string, password: string) => {
     try {
       setLoading(true);
-     
-      
-      const response = await apiService.login({ telefone, password });
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(telefone);
+      const response = await apiService.login({ telefone: telefoneSemMascara, password });
      
       
       // Salvar token no localStorage ANTES de fazer outras requisições
@@ -89,7 +90,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (username: string, telefone: string, password: string) => {
     try {
       setLoading(true);
-      await apiService.register({ username, telefone, password });
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(telefone);
+      await apiService.register({ username, telefone: telefoneSemMascara, password });
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erro ao criar conta');
     } finally {

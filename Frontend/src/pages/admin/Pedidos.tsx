@@ -50,7 +50,7 @@ const Pedidos: React.FC<{
   
   // Estados para os filtros
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('today');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -71,15 +71,22 @@ const Pedidos: React.FC<{
   const isToday = (date: string) => {
     const orderDate = new Date(date);
     const today = new Date();
-    return orderDate.toDateString() === today.toDateString();
+    orderDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return orderDate.getTime() === today.getTime();
   };
 
   // Função para verificar se uma data é esta semana
   const isThisWeek = (date: string) => {
     const orderDate = new Date(date);
     const today = new Date();
-    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-    const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
     return orderDate >= startOfWeek && orderDate <= endOfWeek;
   };
 
@@ -101,14 +108,14 @@ const Pedidos: React.FC<{
     });
   }, [orders, statusFilter, dateFilter]);
 
-  // Limpar todos os filtros
+  // Limpar todos os filtros (exceto o filtro de data que sempre será 'today')
   const clearFilters = () => {
     setStatusFilter('all');
-    setDateFilter('all');
+    setDateFilter('today'); // Sempre manter como 'today'
   };
 
-  // Contar filtros ativos
-  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (dateFilter !== 'all' ? 1 : 0);
+  // Contar filtros ativos (considerando 'today' como padrão, não conta como filtro ativo)
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (dateFilter !== 'today' && dateFilter !== 'all' ? 1 : 0);
 
   return (
     <div id="pedidos" className="page">
@@ -266,9 +273,9 @@ const Pedidos: React.FC<{
                     Status: {getStatusInPortuguese(statusFilter)}
                   </span>
                 )}
-                {dateFilter !== 'all' && (
+                {dateFilter !== 'today' && dateFilter !== 'all' && (
                   <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                    Período: {dateFilter === 'today' ? 'Hoje' : 'Esta semana'}
+                    Período: {dateFilter === 'week' ? 'Esta semana' : 'Todos'}
                   </span>
                 )}
               </p>

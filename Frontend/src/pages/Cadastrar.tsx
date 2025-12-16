@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Phone, Lock, User, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/Loading';
-import { validatePhoneWithAPI, applyPhoneMask } from '../utils/phoneValidation';
+import { validatePhoneWithAPI, applyPhoneMask, removePhoneMask } from '../utils/phoneValidation';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -86,8 +86,9 @@ const Register: React.FC = () => {
       // Aguardar um pouco para mostrar o feedback positivo
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Criar conta
-      await register(formData.username, formData.telefone, formData.password);
+      // Criar conta - remover máscara antes de enviar
+      const telefoneSemMascara = removePhoneMask(formData.telefone);
+      await register(formData.username, telefoneSemMascara, formData.password);
       navigate('/login');
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta');

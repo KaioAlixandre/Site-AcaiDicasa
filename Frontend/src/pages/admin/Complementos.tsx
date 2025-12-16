@@ -53,6 +53,7 @@ const Complementos: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterCategory, setFilterCategory] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingComplement, setEditingComplement] = useState<Complement | null>(null);
   const [formData, setFormData] = useState<ComplementFormData>({
@@ -108,14 +109,38 @@ const Complementos: React.FC = () => {
       );
     }
 
+    // Filtro por categoria
+    if (filterCategory !== null) {
+      if (filterCategory === 0) {
+        // Filtro para complementos sem categoria (null ou undefined)
+        filtered = filtered.filter(complement =>
+          !complement.categoryId || complement.categoryId === null
+        );
+      } else {
+        filtered = filtered.filter(complement =>
+          complement.categoryId === filterCategory
+        );
+      }
+    }
+
     setFilteredComplements(filtered);
-  }, [complements, searchTerm, filterActive]);
+  }, [complements, searchTerm, filterActive, filterCategory]);
 
   // Carregar dados ao montar o componente
   useEffect(() => {
     loadComplements();
     loadCategories();
   }, [showInactive]);
+
+  // Resetar filtro de categoria se a categoria selecionada não existir mais
+  useEffect(() => {
+    if (filterCategory !== null && filterCategory !== 0) {
+      const categoryExists = categories.some(cat => cat.id === filterCategory);
+      if (!categoryExists) {
+        setFilterCategory(null);
+      }
+    }
+  }, [categories, filterCategory]);
 
   // Reset do formulário
   const resetForm = () => {
@@ -329,16 +354,40 @@ const Complementos: React.FC = () => {
             </div>
 
             {/* Linha de filtros */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {/* Filtro por Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {/* Filtro por Categoria */}
               <div className="flex items-center gap-2">
                 <Filter className="text-gray-500 hidden sm:block" size={18} />
+                <select
+                  value={filterCategory !== null ? filterCategory : ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      setFilterCategory(null);
+                    } else if (value === '0') {
+                      setFilterCategory(0); // Valor especial para "Sem Categoria"
+                    } else {
+                      setFilterCategory(parseInt(value));
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:outline-none"
+                >
+                  <option value="">Todas as Categorias</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                  <option value="0">Sem Categoria</option>
+                </select>
+              </div>
+
+              {/* Filtro por Status */}
+              <div className="flex items-center gap-2">
                 <select
                   value={filterActive}
                   onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
                   className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:outline-none"
                 >
-                  <option value="all">Todos</option>
+                  <option value="all">Todos os Status</option>
                   <option value="active">Apenas Ativos</option>
                   <option value="inactive">Apenas Inativos</option>
                 </select>

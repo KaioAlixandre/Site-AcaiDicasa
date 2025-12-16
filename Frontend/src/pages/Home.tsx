@@ -30,7 +30,7 @@ const Home: React.FC = () => {
         ]);
         
         // Filtrar apenas produtos ativos E em destaque
-        const activeProducts = productsData.filter(product => product.isActive && product.isFeatured).slice(0, 4);
+        const activeProducts = productsData.filter(product => product.isActive && product.isFeatured);
         setFeaturedProducts(activeProducts);
         
         // Todos os produtos ativos

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../components/NotificationProvider';
+import { applyPhoneMask, removePhoneMask } from '../utils/phoneValidation';
 
 function AddPhone() {
   const [phone, setPhone] = useState('');
@@ -15,7 +16,9 @@ function AddPhone() {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiService.updatePhone(phone);
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(phone);
+      await apiService.updatePhone(telefoneSemMascara);
       await refreshUserProfile(); // Atualizar perfil do usuário
       notify('Telefone cadastrado com sucesso!', 'success');
       navigate('/checkout'); // Voltar para o checkout
@@ -34,8 +37,12 @@ function AddPhone() {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <input
           name="phone"
+          type="tel"
           value={phone}
-          onChange={e => setPhone(e.target.value)}
+          onChange={e => {
+            const maskedValue = applyPhoneMask(e.target.value);
+            setPhone(maskedValue);
+          }}
           placeholder="Telefone (ex: (99) 99999-9999)"
           required
           className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500" />

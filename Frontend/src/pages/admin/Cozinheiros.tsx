@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotification } from '../../components/NotificationProvider';
 import { Pencil, Trash2, Plus, ChefHat, Phone, User } from 'lucide-react';
-import { applyPhoneMask, validatePhoneWithAPI } from '../../utils/phoneValidation';
+import { applyPhoneMask, validatePhoneWithAPI, removePhoneMask } from '../../utils/phoneValidation';
 
 interface Cozinheiro {
   id: number;
@@ -95,6 +95,13 @@ const Cozinheiros: React.FC = () => {
     setValidatingPhone(false);
     
     try {
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(formData.telefone);
+      const dataToSend = {
+        ...formData,
+        telefone: telefoneSemMascara
+      };
+      
       const token = localStorage.getItem('token');
       const url = editingCozinheiro 
         ? `/api/cozinheiros/${editingCozinheiro.id}`
@@ -106,7 +113,7 @@ const Cozinheiros: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
       if (!response.ok) {
         throw new Error('Erro ao salvar cozinheiro');

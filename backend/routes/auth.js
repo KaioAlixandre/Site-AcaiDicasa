@@ -7,6 +7,12 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Função para remover máscara do telefone (garantir apenas dígitos)
+const removePhoneMask = (phone) => {
+    if (!phone) return phone;
+    return phone.toString().replace(/\D/g, '');
+};
+
 const authenticateToken = async (req, res, next) => {
     console.log('🔗 [Auth Route: authenticateToken] Verificando token de autenticação...');
     const authHeader = req.headers['authorization'];
@@ -59,10 +65,12 @@ const authorize = (role) => {
 
 router.post('/login', async (req, res) => {
     const { telefone, password } = req.body;
-    console.log(`🔐 [POST /auth/login] Tentativa de login para telefone: ${telefone}`);
+    // Remover máscara do telefone antes de buscar
+    const telefoneLimpo = removePhoneMask(telefone);
+    console.log(`🔐 [POST /auth/login] Tentativa de login para telefone: ${telefoneLimpo}`);
     
     try {
-        const user = await prisma.usuario.findUnique({ where: { telefone } });
+        const user = await prisma.usuario.findUnique({ where: { telefone: telefoneLimpo } });
         if (!user || !(await bcrypt.compare(password, user.senha))) {
             console.warn(`⚠️ [POST /auth/login] Credenciais inválidas para telefone: ${telefone}`);
             return res.status(400).json({ message: 'Credenciais inválidas.' });
@@ -79,17 +87,19 @@ router.post('/login', async (req, res) => {
 
 router.post('/register', async (req, res) => {
     const { username, telefone, password } = req.body;
-    console.log(`👤 [POST /auth/register] Tentativa de registro para usuário: ${username}, telefone: ${telefone}`);
+    // Remover máscara do telefone antes de salvar
+    const telefoneLimpo = removePhoneMask(telefone);
+    console.log(`👤 [POST /auth/register] Tentativa de registro para usuário: ${username}, telefone: ${telefoneLimpo}`);
     
     try {
-        const existingUser = await prisma.usuario.findUnique({ where: { telefone } });
+        const existingUser = await prisma.usuario.findUnique({ where: { telefone: telefoneLimpo } });
         if (existingUser) {
-            console.warn(`⚠️ [POST /auth/register] Telefone já existe: ${telefone}`);
+            console.warn(`⚠️ [POST /auth/register] Telefone já existe: ${telefoneLimpo}`);
             return res.status(400).json({ message: 'Telefone já cadastrado.' });
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await prisma.usuario.create({
-            data: { nomeUsuario: username, telefone, senha: hashedPassword }
+            data: { nomeUsuario: username, telefone: telefoneLimpo, senha: hashedPassword }
         });
         console.log(`✅ [POST /auth/register] Usuário cadastrado com sucesso: ${username} (ID: ${newUser.id})`);
         res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
@@ -342,10 +352,12 @@ router.put('/profile/address/:addressId', authenticateToken, async (req, res) =>
 router.put('/profile/phone', authenticateToken, async (req, res) => {
     const { phone } = req.body;
     const userId = req.user.id;
+    // Remover máscara do telefone antes de salvar
+    const telefoneLimpo = removePhoneMask(phone);
 
     console.log(`📱 [PUT /auth/profile/phone] Atualizando telefone para usuário ID: ${userId}`);
 
-    if (!phone) {
+    if (!telefoneLimpo) {
         console.warn('⚠️ [PUT /auth/profile/phone] Telefone não fornecido.');
         return res.status(400).json({ message: 'Telefone é obrigatório.' });
     }
@@ -353,41 +365,7 @@ router.put('/profile/phone', authenticateToken, async (req, res) => {
     try {
         const updatedUser = await prisma.usuario.update({
             where: { id: userId },
-            data: { telefone: phone },
-            select: {
-                id: true,
-                nomeUsuario: true,
-                email: true,
-                telefone: true,
-                funcao: true,
-                enderecos: true
-            }
-        });
-
-        console.log(`✅ [PUT /auth/profile/phone] Telefone atualizado para usuário ID: ${userId}`);
-        res.json({ success: true, user: updatedUser });
-    } catch (err) {
-        console.error('❌ [PUT /auth/profile/phone] Erro interno:', err);
-        res.status(500).json({ message: 'Erro interno do servidor.' });
-    }
-});
-
-// PUT /auth/profile/phone - Atualizar telefone
-router.put('/profile/phone', authenticateToken, async (req, res) => {
-    const { phone } = req.body;
-    const userId = req.user.id;
-
-    console.log(`📱 [PUT /auth/profile/phone] Atualizando telefone para usuário ID: ${userId}`);
-
-    if (!phone) {
-        console.warn('⚠️ [PUT /auth/profile/phone] Telefone não fornecido.');
-        return res.status(400).json({ message: 'Telefone é obrigatório.' });
-    }
-
-    try {
-        const updatedUser = await prisma.usuario.update({
-            where: { id: userId },
-            data: { telefone: phone },
+            data: { telefone: telefoneLimpo },
             select: {
                 id: true,
                 nomeUsuario: true,

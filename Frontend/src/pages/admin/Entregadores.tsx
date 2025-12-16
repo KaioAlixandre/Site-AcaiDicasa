@@ -3,7 +3,7 @@ import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 import { Deliverer } from '../../types';
 import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X } from 'lucide-react';
-import { applyPhoneMask, validatePhoneWithAPI } from '../../utils/phoneValidation';
+import { applyPhoneMask, validatePhoneWithAPI, removePhoneMask } from '../../utils/phoneValidation';
 
 const Entregadores: React.FC = () => {
   const [deliverers, setDeliverers] = useState<Deliverer[]>([]);
@@ -91,11 +91,18 @@ const Entregadores: React.FC = () => {
     setValidatingPhone(false);
     
     try {
+      // Remover máscara antes de enviar ao backend
+      const telefoneSemMascara = removePhoneMask(form.phone);
+      const formDataToSend = {
+        ...form,
+        phone: telefoneSemMascara
+      };
+      
       if (editingDeliverer) {
-        await apiService.updateDeliverer(editingDeliverer.id, form);
+        await apiService.updateDeliverer(editingDeliverer.id, formDataToSend);
         notify('Entregador atualizado com sucesso!', 'success');
       } else {
-        await apiService.createDeliverer(form);
+        await apiService.createDeliverer(formDataToSend);
         notify('Entregador cadastrado com sucesso!', 'success');
       }
       closeModal();

@@ -216,3 +216,12 @@ export const applyPhoneMask = (value: string): string => {
   }
 };
 
+/**
+ * Remove máscara do telefone, retornando apenas os dígitos
+ * @param phone Número de telefone com ou sem máscara
+ * @returns Apenas os dígitos do telefone
+ */
+export const removePhoneMask = (phone: string): string => {
+  return phone.replace(/\D/g, '');
+};
+

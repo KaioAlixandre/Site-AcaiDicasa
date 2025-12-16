@@ -20,7 +20,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { AddressForm } from '../types';
 import { checkStoreStatus } from '../utils/storeUtils';
-import { validatePhoneWithAPI, applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
+import { validatePhoneWithAPI, applyPhoneMask, validatePhoneLocal, removePhoneMask } from '../utils/phoneValidation';
 
 const paymentMethods = [
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD', icon: <CreditCard size={20} />, color: 'blue' },
@@ -513,10 +513,11 @@ const Checkout: React.FC = () => {
         setRegPhoneValidationMessage('Número de telefone válido!');
         
         setRegLoading(true);
-        // Criar conta
-        await register(regName.trim(), regTelefone.trim(), regPassword);
-        // Fazer login automático
-        await login(regTelefone.trim(), regPassword);
+        // Criar conta - remover máscara antes de enviar
+        const telefoneSemMascara = removePhoneMask(regTelefone);
+        await register(regName.trim(), telefoneSemMascara, regPassword);
+        // Fazer login automático - usar telefone sem máscara
+        await login(telefoneSemMascara, regPassword);
         // Após login, verificar perfil e decidir próximo passo
         try {
           const profile = await apiService.getProfile();
@@ -590,7 +591,9 @@ const Checkout: React.FC = () => {
                 
                 try {
                   setLoginLoadingLocal(true);
-                  await login(loginTelefoneLocal.trim(), loginPasswordLocal);
+                  // Remover máscara antes de fazer login
+                  const telefoneSemMascara = removePhoneMask(loginTelefoneLocal);
+                  await login(telefoneSemMascara, loginPasswordLocal);
                   // Buscar perfil atualizado e decidir próximo passo
                   try {
                     const profile = await apiService.getProfile();
