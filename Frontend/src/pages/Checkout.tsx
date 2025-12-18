@@ -23,7 +23,7 @@ import { checkStoreStatus } from '../utils/storeUtils';
 import { validatePhoneWithAPI, applyPhoneMask, validatePhoneLocal, removePhoneMask } from '../utils/phoneValidation';
 
 const paymentMethods = [
-  { label: 'Cartão de Crédito', value: 'CREDIT_CARD', icon: <CreditCard size={20} />, color: 'blue' },
+  { label: 'Cartão de Crédito ou Débito', value: 'CREDIT_CARD', icon: <CreditCard size={20} />, color: 'blue' },
   { label: 'PIX', value: 'PIX', icon: <Smartphone size={20} />, color: 'green' },
   { label: 'Dinheiro na Entrega', value: 'CASH_ON_DELIVERY', icon: <DollarSign size={20} />, color: 'yellow' },
 ];
@@ -83,7 +83,12 @@ const Checkout: React.FC = () => {
   const deliveryFee = 3.00; // Taxa de entrega base
   
   // Calcular se tem direito ao frete grátis
-  const temFreteGratis = promoFreteAtiva && total >= promoFreteValorMinimo && deliveryType === 'delivery';
+  // A promoção só conta se o valor dos PRODUTOS (sem taxa de entrega) for > 15 OU algum produto individual tiver valor > 15
+  // O 'total' aqui é o subtotal dos produtos, sem incluir a taxa de entrega
+  const temProdutoAcimaDe15 = items.some(item => Number(item.product.price) > 15);
+  const temFreteGratis = promoFreteAtiva && 
+    deliveryType === 'delivery' && 
+    (total > promoFreteValorMinimo || temProdutoAcimaDe15);
   const finalTotal = deliveryType === 'delivery' ? total + (temFreteGratis ? 0 : deliveryFee) : total;
 
   // Verificar se a loja está aberta e se há promoção ativa
@@ -202,6 +207,14 @@ const Checkout: React.FC = () => {
     };
     loadAddresses();
   }, [user, deliveryType]);
+
+  // Desabilitar cartão quando entrega em casa estiver selecionada
+  useEffect(() => {
+    if (deliveryType === 'delivery' && paymentMethod === 'CREDIT_CARD') {
+      setPaymentMethod('');
+      notify('Cartão de crédito não está disponível para entrega em casa. Por favor, escolha outra forma de pagamento.', 'warning');
+    }
+  }, [deliveryType]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
@@ -805,14 +818,16 @@ const Checkout: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-lg">Promoção de Frete Grátis Hoje!</h3>
                 <p className="text-sm text-emerald-50">
-                  Pedidos acima de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong> ganham frete grátis!
-                  {total >= promoFreteValorMinimo ? (
+                  Pedidos acima de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong>, sem contar a taxa de entrga ganham frete grátis!
+                  {temFreteGratis ? (
                     <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-semibold">
                       ✓ Você conseguiu!
                     </span>
                   ) : (
                     <span className="ml-2 text-xs">
-                      Faltam apenas R$ {(promoFreteValorMinimo - total).toFixed(2)}
+                      {!temProdutoAcimaDe15 && total <= promoFreteValorMinimo && (
+                        <>Faltam apenas R$ {((promoFreteValorMinimo + 0.01) - total).toFixed(2)}</>
+                      )}
                     </span>
                   )}
                 </p>
@@ -933,20 +948,42 @@ const Checkout: React.FC = () => {
                     Forma de Pagamento
                   </h3>
                   <div className="space-y-2">
-                    {paymentMethods.map((method) => (
-                      <label key={method.value} className="flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg cursor-pointer hover:bg-white transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value={method.value}
-                          checked={paymentMethod === method.value}
-                          onChange={() => setPaymentMethod(method.value)}
-                          className="w-4 h-4 text-purple-600 mr-2 md:mr-3"
-                        />
-                        <div className="text-purple-600 mr-2">{method.icon}</div>
-                        <span className="text-sm md:text-base font-semibold text-slate-900">{method.label}</span>
-                      </label>
-                    ))}
+                    {paymentMethods.map((method) => {
+                      const isDisabled = deliveryType === 'delivery' && method.value === 'CREDIT_CARD';
+                      return (
+                        <label 
+                          key={method.value} 
+                          className={`flex items-center p-2.5 md:p-3 border-2 border-slate-200 rounded-lg transition-all duration-200 has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50 ${
+                            isDisabled 
+                              ? 'opacity-50 cursor-not-allowed bg-slate-100' 
+                              : 'cursor-pointer hover:bg-white'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value={method.value}
+                            checked={paymentMethod === method.value}
+                            onChange={() => {
+                              if (!isDisabled) {
+                                setPaymentMethod(method.value);
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className="w-4 h-4 text-purple-600 mr-2 md:mr-3"
+                          />
+                          <div className="text-purple-600 mr-2">{method.icon}</div>
+                          <div className="flex-1">
+                            <span className="text-sm md:text-base font-semibold text-slate-900">{method.label}</span>
+                            {isDisabled && (
+                              <div className="text-xs text-red-600 font-medium mt-1">
+                                Não disponível para entrega em casa
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

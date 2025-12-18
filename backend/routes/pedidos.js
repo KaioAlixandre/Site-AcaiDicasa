@@ -3,7 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
-const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification, sendDeliveredConfirmationNotification } = require('../services/messageService');
+const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification, sendDeliveredConfirmationNotification, sendOrderCancellationNotification, sendOrderEditNotification } = require('../services/messageService');
 const axios = require('axios');
 
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
@@ -515,6 +515,11 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
                         nome: true,
                         telefone: true
                     }
+                },
+                pagamento: {
+                    select: {
+                        metodo: true
+                    }
                 }
             }
         });
@@ -605,6 +610,17 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
             }
         }
 
+        // Enviar notificação de cancelamento se o status mudou para "canceled"
+        if (status === 'canceled' && currentOrder.status !== 'canceled') {
+            try {
+                console.log('❌ Enviando notificação de cancelamento ao cliente...');
+                await sendOrderCancellationNotification(updatedOrder);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de cancelamento:', error);
+                // Não falha a operação se a notificação falhar
+            }
+        }
+
         console.log(`[PUT /api/orders/status/${orderId}] Status do pedido atualizado com sucesso para "${updatedOrder.status}".`);
         res.status(200).json({ message: 'Status do pedido atualizado com sucesso!', order: updatedOrder });
     } catch (err) {
@@ -614,6 +630,352 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
         }
         console.error(`[PUT /api/orders/status/${orderId}] Erro ao atualizar o status do pedido:`, err.message);
         res.status(500).json({ message: 'Erro ao atualizar o status do pedido.', error: err.message });
+    }
+});
+
+// Rota para atualizar o valor total do pedido (apenas admin) - DEVE VIR ANTES DA ROTA GENÉRICA
+router.put('/:orderId/update-total', authenticateToken, authorize('admin'), async (req, res) => {
+    const orderId = parseInt(req.params.orderId);
+    const { totalPrice } = req.body;
+    console.log(`[PUT /api/orders/${orderId}/update-total] Atualizando valor total do pedido para: R$ ${totalPrice}`);
+
+    try {
+        if (!totalPrice || totalPrice <= 0) {
+            return res.status(400).json({ message: 'Valor total inválido' });
+        }
+
+        const order = await prisma.pedido.findUnique({
+            where: { id: orderId },
+            include: {
+                itens_pedido: {
+                    include: {
+                        produto: true,
+                        complementos: {
+                            include: {
+                                complemento: true
+                            }
+                        }
+                    }
+                },
+                usuario: {
+                    select: {
+                        id: true,
+                        nomeUsuario: true,
+                        email: true,
+                        telefone: true
+                    }
+                }
+            }
+        });
+
+        if (!order) {
+            return res.status(404).json({ message: 'Pedido não encontrado' });
+        }
+
+        // Capturar valor antigo antes de atualizar
+        const oldTotal = parseFloat(order.precoTotal);
+        const newTotal = parseFloat(totalPrice);
+
+        // Atualizar valor do pedido e pagamento
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            // Atualizar pedido
+            const updated = await tx.pedido.update({
+                where: { id: orderId },
+                data: {
+                    precoTotal: newTotal,
+                    atualizadoEm: new Date()
+                },
+                include: {
+                    itens_pedido: {
+                        include: {
+                            produto: true,
+                            complementos: {
+                                include: {
+                                    complemento: true
+                                }
+                            }
+                        }
+                    },
+                    usuario: {
+                        select: {
+                            id: true,
+                            nomeUsuario: true,
+                            email: true,
+                            telefone: true
+                        }
+                    },
+                    pagamento: true
+                }
+            });
+
+            // Atualizar pagamento se existir
+            if (updated.pagamento) {
+                await tx.pagamento.update({
+                    where: { pedidoId: orderId },
+                    data: {
+                        valor: newTotal,
+                        atualizadoEm: new Date()
+                    }
+                });
+            }
+
+            return updated;
+        });
+
+        // Enviar notificação ao cliente se o valor foi alterado
+        if (oldTotal !== newTotal) {
+            try {
+                console.log(`📱 [PUT /api/orders/${orderId}/update-total] Enviando notificação de edição ao cliente...`);
+                const editReason = `O valor do pedido foi ajustado de R$ ${oldTotal.toFixed(2)} para R$ ${newTotal.toFixed(2)}.`;
+                await sendOrderEditNotification(updatedOrder, oldTotal, newTotal, editReason);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de edição:', error);
+                // Não falha a operação se a notificação falhar
+            }
+        }
+
+        console.log(`[PUT /api/orders/${orderId}/update-total] Valor atualizado com sucesso`);
+        res.status(200).json({ message: 'Valor do pedido atualizado com sucesso!', data: updatedOrder });
+    } catch (error) {
+        console.error(`[PUT /api/orders/${orderId}/update-total] Erro:`, error.message);
+        res.status(500).json({ message: 'Erro ao atualizar valor do pedido', error: error.message });
+    }
+});
+
+// Rota para adicionar item ao pedido (apenas admin) - DEVE VIR ANTES DA ROTA GENÉRICA
+router.post('/:orderId/add-item', authenticateToken, authorize('admin'), async (req, res) => {
+    const orderId = parseInt(req.params.orderId);
+    const { productId, quantity, complementIds, price } = req.body;
+    console.log(`[POST /api/orders/${orderId}/add-item] Adicionando item ao pedido`);
+
+    try {
+        if (!productId || !quantity || quantity <= 0) {
+            return res.status(400).json({ message: 'Dados inválidos' });
+        }
+
+        const order = await prisma.pedido.findUnique({
+            where: { id: orderId },
+            include: { itens_pedido: true }
+        });
+
+        if (!order) {
+            return res.status(404).json({ message: 'Pedido não encontrado' });
+        }
+
+        // Verificar se o produto existe
+        const product = await prisma.produto.findUnique({
+            where: { id: productId }
+        });
+
+        if (!product) {
+            return res.status(404).json({ message: 'Produto não encontrado' });
+        }
+
+        // Usar preço fornecido ou preço do produto
+        const itemPrice = price ? parseFloat(price) : parseFloat(product.preco);
+        
+        // Capturar valor antigo antes de atualizar
+        const oldTotal = parseFloat(order.precoTotal);
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            // Adicionar item ao pedido
+            const newItem = await tx.item_pedido.create({
+                data: {
+                    pedidoId: orderId,
+                    produtoId: productId,
+                    quantidade: parseInt(quantity),
+                    precoNoPedido: itemPrice
+                }
+            });
+
+            // Adicionar complementos se fornecidos
+            if (complementIds && Array.isArray(complementIds) && complementIds.length > 0) {
+                await Promise.all(
+                    complementIds.map(complementId =>
+                        tx.item_pedido_complemento.create({
+                            data: {
+                                itemPedidoId: newItem.id,
+                                complementoId: complementId
+                            }
+                        })
+                    )
+                );
+            }
+
+            // Somar o valor do novo item ao valor atual do pedido (que pode ter sido editado manualmente)
+            const itemValue = itemPrice * parseInt(quantity);
+            const currentTotal = parseFloat(order.precoTotal);
+            const newTotal = currentTotal + itemValue;
+
+            // Atualizar pedido
+            const updated = await tx.pedido.update({
+                where: { id: orderId },
+                data: {
+                    precoTotal: newTotal,
+                    atualizadoEm: new Date()
+                },
+                include: {
+                    itens_pedido: {
+                        include: {
+                            produto: true,
+                            complementos: {
+                                include: {
+                                    complemento: true
+                                }
+                            }
+                        }
+                    },
+                    usuario: {
+                        select: {
+                            id: true,
+                            nomeUsuario: true,
+                            email: true,
+                            telefone: true
+                        }
+                    },
+                    pagamento: true
+                }
+            });
+
+            // Atualizar pagamento se existir
+            if (updated.pagamento) {
+                await tx.pagamento.update({
+                    where: { pedidoId: orderId },
+                    data: {
+                        valor: newTotal,
+                        atualizadoEm: new Date()
+                    }
+                });
+            }
+
+            return updated;
+        });
+
+        // Enviar notificação ao cliente se o valor foi alterado
+        const newTotal = parseFloat(updatedOrder.precoTotal);
+        if (oldTotal !== newTotal) {
+            try {
+                console.log(`📱 [POST /api/orders/${orderId}/add-item] Enviando notificação de edição ao cliente...`);
+                const editReason = `Um item foi adicionado ao seu pedido. O valor foi ajustado de R$ ${oldTotal.toFixed(2)} para R$ ${newTotal.toFixed(2)}.`;
+                await sendOrderEditNotification(updatedOrder, oldTotal, newTotal, editReason);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de edição:', error);
+                // Não falha a operação se a notificação falhar
+            }
+        }
+
+        console.log(`[POST /api/orders/${orderId}/add-item] Item adicionado com sucesso`);
+        res.status(200).json({ message: 'Item adicionado ao pedido com sucesso!', data: updatedOrder });
+    } catch (error) {
+        console.error(`[POST /api/orders/${orderId}/add-item] Erro:`, error.message);
+        res.status(500).json({ message: 'Erro ao adicionar item ao pedido', error: error.message });
+    }
+});
+
+// Rota para remover item do pedido (apenas admin) - DEVE VIR ANTES DA ROTA GENÉRICA
+router.delete('/:orderId/remove-item/:itemId', authenticateToken, authorize('admin'), async (req, res) => {
+    const orderId = parseInt(req.params.orderId);
+    const itemId = parseInt(req.params.itemId);
+    console.log(`[DELETE /api/orders/${orderId}/remove-item/${itemId}] Removendo item do pedido`);
+
+    try {
+        const order = await prisma.pedido.findUnique({
+            where: { id: orderId },
+            include: { itens_pedido: true }
+        });
+
+        if (!order) {
+            return res.status(404).json({ message: 'Pedido não encontrado' });
+        }
+
+        const item = order.itens_pedido.find(i => i.id === itemId);
+        if (!item) {
+            return res.status(404).json({ message: 'Item não encontrado no pedido' });
+        }
+
+        // Capturar valor antigo antes de atualizar
+        const oldTotal = parseFloat(order.precoTotal);
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            // Remover complementos do item primeiro
+            await tx.item_pedido_complemento.deleteMany({
+                where: { itemPedidoId: itemId }
+            });
+
+            // Calcular o valor do item que será removido antes de removê-lo
+            const itemValue = parseFloat(item.precoNoPedido) * item.quantidade;
+            
+            // Remover item
+            await tx.item_pedido.delete({
+                where: { id: itemId }
+            });
+
+            // Subtrair o valor do item removido do total atual do pedido (que pode ter sido editado manualmente)
+            const currentTotal = parseFloat(order.precoTotal);
+            const newTotal = currentTotal - itemValue;
+
+            // Atualizar pedido
+            const updated = await tx.pedido.update({
+                where: { id: orderId },
+                data: {
+                    precoTotal: newTotal,
+                    atualizadoEm: new Date()
+                },
+                include: {
+                    itens_pedido: {
+                        include: {
+                            produto: true,
+                            complementos: {
+                                include: {
+                                    complemento: true
+                                }
+                            }
+                        }
+                    },
+                    usuario: {
+                        select: {
+                            id: true,
+                            nomeUsuario: true,
+                            email: true,
+                            telefone: true
+                        }
+                    },
+                    pagamento: true
+                }
+            });
+
+            // Atualizar pagamento se existir
+            if (updated.pagamento) {
+                await tx.pagamento.update({
+                    where: { pedidoId: orderId },
+                    data: {
+                        valor: newTotal,
+                        atualizadoEm: new Date()
+                    }
+                });
+            }
+
+            return updated;
+        });
+
+        // Enviar notificação ao cliente se o valor foi alterado
+        const newTotal = parseFloat(updatedOrder.precoTotal);
+        if (oldTotal !== newTotal) {
+            try {
+                console.log(`📱 [DELETE /api/orders/${orderId}/remove-item/${itemId}] Enviando notificação de edição ao cliente...`);
+                const editReason = `Um item foi removido do seu pedido. O valor foi ajustado de R$ ${oldTotal.toFixed(2)} para R$ ${newTotal.toFixed(2)}.`;
+                await sendOrderEditNotification(updatedOrder, oldTotal, newTotal, editReason);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de edição:', error);
+                // Não falha a operação se a notificação falhar
+            }
+        }
+
+        console.log(`[DELETE /api/orders/${orderId}/remove-item/${itemId}] Item removido com sucesso`);
+        res.status(200).json({ message: 'Item removido do pedido com sucesso!', data: updatedOrder });
+    } catch (error) {
+        console.error(`[DELETE /api/orders/${orderId}/remove-item/${itemId}] Erro:`, error.message);
+        res.status(500).json({ message: 'Erro ao remover item do pedido', error: error.message });
     }
 });
 
@@ -679,7 +1041,12 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             include: {
                 itens_pedido: {
                     include: {
-                        produto: true
+                        produto: true,
+                        complementos: {
+                            include: {
+                                complemento: true
+                            }
+                        }
                     }
                 },
                 usuario: {
@@ -695,6 +1062,11 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                         id: true,
                         nome: true,
                         telefone: true
+                    }
+                },
+                pagamento: {
+                    select: {
+                        metodo: true
                     }
                 }
             }
@@ -746,6 +1118,46 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                 await sendDeliveredConfirmationNotification(order);
             } catch (error) {
                 console.error('❌ Erro ao enviar confirmação de entrega:', error);
+            }
+        }
+
+        // Enviar notificação de cancelamento se o status mudou para "canceled"
+        if (dbStatus === 'canceled' && existingOrder.status !== 'canceled') {
+            try {
+                console.log('❌ Enviando notificação de cancelamento ao cliente...');
+                // Buscar dados completos do pedido com itens e complementos
+                const orderWithItems = await prisma.pedido.findUnique({
+                    where: { id: orderId },
+                    include: {
+                        itens_pedido: {
+                            include: {
+                                produto: true,
+                                complementos: {
+                                    include: {
+                                        complemento: true
+                                    }
+                                }
+                            }
+                        },
+                        usuario: {
+                            select: {
+                                id: true,
+                                nomeUsuario: true,
+                                email: true,
+                                telefone: true
+                            }
+                        },
+                        pagamento: {
+                            select: {
+                                metodo: true
+                            }
+                        }
+                    }
+                });
+                await sendOrderCancellationNotification(orderWithItems);
+            } catch (error) {
+                console.error('❌ Erro ao enviar notificação de cancelamento:', error);
+                // Não falha a operação se a notificação falhar
             }
         }
 
@@ -861,7 +1273,41 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
                 status: 'canceled',
                 atualizadoEm: new Date()
             },
+            include: {
+                itens_pedido: {
+                    include: {
+                        produto: true,
+                        complementos: {
+                            include: {
+                                complemento: true
+                            }
+                        }
+                    }
+                },
+                usuario: {
+                    select: {
+                        id: true,
+                        nomeUsuario: true,
+                        email: true,
+                        telefone: true
+                    }
+                },
+                pagamento: {
+                    select: {
+                        metodo: true
+                    }
+                }
+            }
         });
+
+        // Enviar notificação de cancelamento ao cliente
+        try {
+            console.log('❌ Enviando notificação de cancelamento ao cliente...');
+            await sendOrderCancellationNotification(updatedOrder);
+        } catch (error) {
+            console.error('❌ Erro ao enviar notificação de cancelamento:', error);
+            // Não falha a operação se a notificação falhar
+        }
 
         console.log(`[PUT /api/orders/cancel/${orderId}] Pedido cancelado com sucesso. Pedido ID: ${updatedOrder.id}`);
         res.status(200).json({ message: 'Pedido cancelado com sucesso!', order: updatedOrder });

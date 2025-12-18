@@ -319,6 +319,37 @@ class ApiService {
     return response.data;
   }
 
+  // Admin order editing methods
+  async updateOrderTotal(orderId: number, totalPrice: number): Promise<ApiResponse<Order>> {
+    try {
+      const response: AxiosResponse<ApiResponse<Order>> = await this.api.put(`/orders/${orderId}/update-total`, { totalPrice });
+      return response.data;
+    } catch (error: any) {
+      console.error('Erro ao atualizar valor do pedido:', error);
+      throw error;
+    }
+  }
+
+  async addItemToOrder(orderId: number, data: { productId: number; quantity: number; complementIds?: number[]; price?: number }): Promise<ApiResponse<Order>> {
+    try {
+      const response: AxiosResponse<ApiResponse<Order>> = await this.api.post(`/orders/${orderId}/add-item`, data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Erro ao adicionar item ao pedido:', error);
+      throw error;
+    }
+  }
+
+  async removeItemFromOrder(orderId: number, itemId: number): Promise<ApiResponse<Order>> {
+    try {
+      const response: AxiosResponse<ApiResponse<Order>> = await this.api.delete(`/orders/${orderId}/remove-item/${itemId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Erro ao remover item do pedido:', error);
+      throw error;
+    }
+  }
+
   // Order endpoints - Admin
   async getOrdersAdmin(): Promise<Order[]> {
     const response: AxiosResponse<Order[]> = await this.api.get('/orders/orders');

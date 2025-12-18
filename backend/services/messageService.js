@@ -416,11 +416,152 @@ ${order.observacoes ? ` *OBSERVAÇÕES DO CLIENTE:*\n${order.observacoes}\n` : '
   }
 };
 
+// Serviço para notificação de cancelamento de pedido para o cliente
+const sendOrderCancellationNotification = async (order, reason) => {
+  try {
+    console.log('❌ [MessageService] Enviando notificação de cancelamento ao cliente');
+    console.log('📋 [MessageService] Dados do pedido:', {
+      id: order.id,
+      precoTotal: order.precoTotal || order.totalPrice,
+      usuario: order.usuario?.nomeUsuario || order.user?.username
+    });
+
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
+    const totalPrice = order.precoTotal || order.totalPrice || 0;
+    
+    // Verificar método de pagamento (pode estar em diferentes lugares)
+    const paymentMethod = order.pagamento?.metodo || order.metodoPagamento || order.paymentMethod || '';
+
+    const customerMessage = `
+*Seu pedido #${order.id} foi cancelado* ❌
+
+*Valor do pedido:* R$ ${parseFloat(totalPrice).toFixed(2)}
+*Itens:* ${itemsList}
+
+${paymentMethod === 'PIX' ? 
+  '*Informe sua chave pix para reembolso, ou realize outro pedido.*' : 
+  '*Entre em contato conosco para mais informações sobre o reembolso.*'}
+
+* Estamos à disposição para ajudar!* 💜
+    `.trim();
+
+    // Buscar telefone do usuário (preferencial) ou telefone de entrega
+    const customerPhone = order.usuario?.telefone || order.user?.phone || order.telefoneEntrega || order.shippingPhone;
+    if (customerPhone) {
+      console.log('\n❌ ENVIANDO NOTIFICAÇÃO DE CANCELAMENTO:');
+      console.log(customerMessage);
+      const result = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+      if (result.success) {
+        console.log('✅ Notificação de cancelamento enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar notificação de cancelamento');
+      }
+      return {
+        success: result.success,
+        customerMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível para notificação de cancelamento');
+      return {
+        success: false,
+        error: 'Telefone do cliente não disponível'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificação de cancelamento:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Serviço para notificação de edição de pedido
+const sendOrderEditNotification = async (order, oldTotal, newTotal, editReason) => {
+  try {
+    console.log('✏️ [MessageService] Enviando notificação de edição de pedido ao cliente');
+    console.log('📋 [MessageService] Dados do pedido:', {
+      id: order.id,
+      oldTotal: oldTotal,
+      newTotal: newTotal,
+      usuario: order.usuario?.nomeUsuario || order.user?.username
+    });
+
+    // Construir lista de itens
+    const itemsList = order.itens_pedido?.map(item => {
+      const complementos = item.complementos?.map(ic => 
+        ic.complemento?.nome
+      ).filter(Boolean).join(', ');
+      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
+    }).join('\n') || 'Itens não disponíveis';
+
+    const difference = parseFloat(newTotal) - parseFloat(oldTotal);
+    const differenceText = difference > 0 
+      ? `+R$ ${Math.abs(difference).toFixed(2)}` 
+      : `-R$ ${Math.abs(difference).toFixed(2)}`;
+
+    const customerMessage = `
+*Seu pedido #${order.id} foi editado* ✏️
+
+*Valor anterior:* R$ ${parseFloat(oldTotal).toFixed(2)}
+*Novo valor:* R$ ${parseFloat(newTotal).toFixed(2)}
+*Diferença:* ${differenceText}
+
+${editReason ? `*Motivo da alteração:*\n${editReason}\n` : ''}
+
+*Itens do pedido:*
+${itemsList}
+
+*Se tiver alguma dúvida, entre em contato conosco!* 💜
+    `.trim();
+
+    // Buscar telefone do usuário (preferencial) ou telefone de entrega
+    const customerPhone = order.usuario?.telefone || order.user?.phone || order.telefoneEntrega || order.shippingPhone;
+    if (customerPhone) {
+      console.log('\n✏️ ENVIANDO NOTIFICAÇÃO DE EDIÇÃO DE PEDIDO:');
+      console.log(customerMessage);
+      const result = await sendWhatsAppMessageZApi(customerPhone, customerMessage);
+      if (result.success) {
+        console.log('✅ Notificação de edição de pedido enviada com sucesso!');
+      } else {
+        console.log('❌ Falha ao enviar notificação de edição de pedido');
+      }
+      return {
+        success: result.success,
+        customerMessage,
+        result
+      };
+    } else {
+      console.log('⚠️ Telefone do cliente não disponível para notificação de edição');
+      return {
+        success: false,
+        error: 'Telefone do cliente não disponível'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificação de edição de pedido:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 module.exports = {
   sendDeliveryNotifications,
   sendPickupNotification,
   sendPaymentConfirmationNotification,
   sendCookNotification,
   sendDeliveredConfirmationNotification,
+  sendOrderCancellationNotification,
+  sendOrderEditNotification,
   sendWhatsAppMessageZApi
 };

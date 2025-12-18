@@ -103,7 +103,7 @@ const Home: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-base md:text-lg">Promoção Especial Hoje!</h3>
                 <p className="text-sm text-emerald-50">
-                  {promoFreteMensagem}
+                  {promoFreteMensagem} (sem contar com taxa de entrega)
                 </p>
               </div>
             </div>
