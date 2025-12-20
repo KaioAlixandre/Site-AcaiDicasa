@@ -280,7 +280,7 @@ const Configuracoes: React.FC = () => {
                   <p className="text-sm text-indigo-800">
                     <strong>💡 Resumo:</strong> {config.promocaoDias ? (
                       <>
-                        Frete grátis para pedidos acima de <strong>R$ {config.promocaoValorMinimo || '0,00'}</strong> nos dias selecionados.
+                        Frete grátis para pedidos de <strong>R$ {config.promocaoValorMinimo || '0,00'}</strong> ou mais nos dias selecionados.
                       </>
                     ) : (
                       'Selecione os dias e o valor mínimo para ativar a promoção.'

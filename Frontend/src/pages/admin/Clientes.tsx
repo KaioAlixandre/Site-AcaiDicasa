@@ -17,7 +17,12 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
 
   const averageLTV = calculateAverageLTV();
 
-  
+  // Ordenar clientes por número de pedidos (decrescente)
+  const clientesOrdenados = [...user].sort((a, b) => {
+    const pedidosA = a.order?.length || 0;
+    const pedidosB = b.order?.length || 0;
+    return pedidosB - pedidosA; // Ordem decrescente
+  });
 
   return (
   <div id="clientes" className="page">
@@ -58,14 +63,14 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
-            {user.length === 0 ? (
+            {clientesOrdenados.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-slate-500">
                   Nenhum cliente cadastrado
                 </td>
               </tr>
             ) : (
-              user.map(cliente => {
+              clientesOrdenados.map(cliente => {
                 // Calcular total gasto e quantidade de pedidos
                 const pedidos = cliente.order || [];
                 const totalGasto = pedidos.reduce((acc, order) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Power, PowerOff } from 'lucide-react';
 import { Product, ProductCategory } from '../../types';
 import ModalAdicionarProduto from './components/ModalAdicionarProduto';
 import ModalEditarProduto from './components/ModalEditarProduto';
@@ -113,6 +113,25 @@ const Produtos: React.FC<{
                 <td className="p-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
+                      className={`p-1.5 rounded-md transition-colors ${
+                        prod.isActive
+                          ? 'text-slate-500 hover:bg-slate-200 hover:text-orange-600'
+                          : 'text-slate-500 hover:bg-slate-200 hover:text-green-600'
+                      }`}
+                      onClick={() => {
+                        const formData = new FormData();
+                        formData.append('ativo', (!prod.isActive).toString());
+                        handleUpdateProduct(prod.id, formData);
+                      }}
+                      title={prod.isActive ? 'Desativar produto' : 'Ativar produto'}
+                    >
+                      {prod.isActive ? (
+                        <PowerOff className="w-4 h-4" />
+                      ) : (
+                        <Power className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
                       className="p-1.5 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600"
                       onClick={() => handleEdit(prod)}
                       title="Editar"
@@ -177,6 +196,30 @@ const Produtos: React.FC<{
                 R$ {prod.price ? Number(prod.price).toFixed(2) : '--'}
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium ${
+                    prod.isActive
+                      ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50'
+                      : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                  }`}
+                  onClick={() => {
+                    const formData = new FormData();
+                    formData.append('ativo', (!prod.isActive).toString());
+                    handleUpdateProduct(prod.id, formData);
+                  }}
+                >
+                  {prod.isActive ? (
+                    <>
+                      <PowerOff className="w-3.5 h-3.5" />
+                      <span>Desativar</span>
+                    </>
+                  ) : (
+                    <>
+                      <Power className="w-3.5 h-3.5" />
+                      <span>Ativar</span>
+                    </>
+                  )}
+                </button>
                 <button
                   className="flex items-center justify-center gap-1 px-3 py-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition-colors text-xs font-medium"
                   onClick={() => handleEdit(prod)}

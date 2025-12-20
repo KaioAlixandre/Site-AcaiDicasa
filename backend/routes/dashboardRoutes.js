@@ -26,17 +26,28 @@ function getStartAndEndOfDay(date = new Date()) {
   return { start, end };
 }
 
-// Função auxiliar para obter início e fim da semana
+// Função auxiliar para obter início e fim da semana (usando fuso horário do Brasil)
 function getStartAndEndOfWeek(date = new Date()) {
-  const start = new Date(date);
-  const day = start.getDay();
-  const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Segunda-feira
-  start.setDate(diff);
-  start.setHours(0, 0, 0, 0);
+  // Obter a data atual no fuso horário do Brasil
+  const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6); // Domingo
-  end.setHours(23, 59, 59, 999);
+  // Calcular o início da semana (segunda-feira)
+  const day = brasilNow.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+  const diff = brasilNow.getDate() - day + (day === 0 ? -6 : 1); // Segunda-feira
+  
+  const startBrasil = new Date(brasilNow);
+  startBrasil.setDate(diff);
+  startBrasil.setHours(0, 0, 0, 0);
+  
+  // Criar fim da semana (domingo) no fuso horário do Brasil
+  const endBrasil = new Date(startBrasil);
+  endBrasil.setDate(startBrasil.getDate() + 6); // Domingo
+  endBrasil.setHours(23, 59, 59, 999);
+  
+  // Converter para UTC (MySQL armazena em UTC)
+  const offsetHours = 3; // UTC-3
+  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
   
   return { start, end };
 }
@@ -247,10 +258,29 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     const weeklyData = [];
     const daysOfWeek = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
     
+    // Obter a data atual no fuso horário do Brasil
+    const todayBrasil = new Date(today.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    
+    // Calcular o início da semana (segunda-feira) no fuso horário do Brasil
+    const dayOfWeek = todayBrasil.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Dias desde segunda-feira
+    const mondayBrasil = new Date(todayBrasil);
+    mondayBrasil.setDate(todayBrasil.getDate() - daysFromMonday);
+    mondayBrasil.setHours(0, 0, 0, 0);
+    
     for (let i = 0; i < 7; i++) {
-      const currentDay = new Date(weekStart);
-      currentDay.setDate(weekStart.getDate() + i);
-      const { start: dayStart, end: dayEnd } = getStartAndEndOfDay(currentDay);
+      // Calcular cada dia da semana no fuso horário do Brasil
+      const currentDayBrasil = new Date(mondayBrasil);
+      currentDayBrasil.setDate(mondayBrasil.getDate() + i);
+      
+      // Verificar o dia da semana real para garantir correspondência
+      const realDayOfWeek = currentDayBrasil.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+      const dayIndex = realDayOfWeek === 0 ? 6 : realDayOfWeek - 1; // Converter para índice: 0 = segunda, 6 = domingo
+      
+      // Converter para UTC para usar em getStartAndEndOfDay
+      const offsetHours = 3; // UTC-3
+      const currentDayUTC = new Date(currentDayBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+      const { start: dayStart, end: dayEnd } = getStartAndEndOfDay(currentDayUTC);
       
       const dayStats = await prisma.pedido.aggregate({
         where: {
@@ -271,10 +301,10 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
       });
       
       weeklyData.push({
-        day: daysOfWeek[i],
+        day: daysOfWeek[dayIndex],
         revenue: parseFloat(dayStats._sum.precoTotal || 0),
         orders: dayStats._count.id || 0,
-        date: currentDay.toISOString().split('T')[0]
+        date: currentDayBrasil.toISOString().split('T')[0]
       });
     }
 

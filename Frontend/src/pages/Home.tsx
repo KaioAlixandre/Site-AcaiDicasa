@@ -122,8 +122,8 @@ const Home: React.FC = () => {
             </div>
           </div>
           
-          {/* Promoção de Frete Grátis */}
-          {promoFreteAtiva && (
+          {/* Promoção de Frete Grátis - só aparece quando a loja estiver aberta */}
+          {promoFreteAtiva && isStoreOpen && (
             <div className="mt-4 p-2.5 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="flex-shrink-0 w-7 h-7 bg-emerald-200 rounded-full flex items-center justify-center">

@@ -36,7 +36,7 @@ const Checkout: React.FC = () => {
   const { user, refreshUserProfile, register, login } = useAuth();
   const { notify } = useNotification();
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' ou 'pickup'
+  const [deliveryType, setDeliveryType] = useState(''); // 'delivery' ou 'pickup' - vazio inicialmente
   const [loading, setLoading] = useState(false);
   const [pixInfo] = useState<any>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -83,13 +83,16 @@ const Checkout: React.FC = () => {
   const deliveryFee = 3.00; // Taxa de entrega base
   
   // Calcular se tem direito ao frete grátis
-  // A promoção só conta se o valor dos PRODUTOS (sem taxa de entrega) for > 15 OU algum produto individual tiver valor > 15
+  // A promoção só conta se o valor dos PRODUTOS (sem taxa de entrega) for >= ao valor mínimo configurado
   // O 'total' aqui é o subtotal dos produtos, sem incluir a taxa de entrega
-  const temProdutoAcimaDe15 = items.some(item => Number(item.product.price) > 15);
   const temFreteGratis = promoFreteAtiva && 
     deliveryType === 'delivery' && 
-    (total > promoFreteValorMinimo || temProdutoAcimaDe15);
-  const finalTotal = deliveryType === 'delivery' ? total + (temFreteGratis ? 0 : deliveryFee) : total;
+    total >= promoFreteValorMinimo;
+  const finalTotal = deliveryType === 'delivery' 
+    ? total + (temFreteGratis ? 0 : deliveryFee) 
+    : deliveryType === 'pickup' 
+    ? total 
+    : total; // Se nenhum tipo selecionado, mostra apenas o total dos produtos
 
   // Verificar se a loja está aberta e se há promoção ativa
   useEffect(() => {
@@ -267,6 +270,10 @@ const Checkout: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!deliveryType) {
+      notify('Selecione um tipo de entrega!', 'warning');
+      return;
+    }
     if (!paymentMethod) {
       notify('Selecione uma forma de pagamento!', 'warning');
       return;
@@ -818,15 +825,15 @@ const Checkout: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-lg">Promoção de Frete Grátis Hoje!</h3>
                 <p className="text-sm text-emerald-50">
-                  Pedidos acima de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong>, sem contar a taxa de entrga ganham frete grátis!
+                  Pedidos de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong> ou mais, sem contar a taxa de entrega, ganham frete grátis!
                   {temFreteGratis ? (
                     <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-semibold">
                       ✓ Você conseguiu!
                     </span>
                   ) : (
                     <span className="ml-2 text-xs">
-                      {!temProdutoAcimaDe15 && total <= promoFreteValorMinimo && (
-                        <>Faltam apenas R$ {((promoFreteValorMinimo + 0.01) - total).toFixed(2)}</>
+                      {total < promoFreteValorMinimo && (
+                        <>Faltam apenas R$ {(promoFreteValorMinimo - total).toFixed(2)}</>
                       )}
                     </span>
                   )}
@@ -1070,7 +1077,7 @@ const Checkout: React.FC = () => {
                     type="submit"
                     onClick={handleSubmit}
                     className="w-full mt-3 md:mt-4 bg-purple-600 text-white py-2.5 md:py-3 rounded-lg text-sm md:text-base font-semibold hover:bg-purple-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loading || !paymentMethod}
+                    disabled={loading || !paymentMethod || !deliveryType}
                   >
                     {loading ? (
                       <div className="flex items-center justify-center">
@@ -1085,6 +1092,11 @@ const Checkout: React.FC = () => {
                     )}
                   </button>
 
+                  {!deliveryType && (
+                    <p className="text-xs md:text-sm text-red-600 text-center mt-2 font-medium">
+                      ⚠️ Selecione um tipo de entrega
+                    </p>
+                  )}
                   {!paymentMethod && (
                     <p className="text-xs md:text-sm text-red-600 text-center mt-2 font-medium">
                       ⚠️ Selecione uma forma de pagamento

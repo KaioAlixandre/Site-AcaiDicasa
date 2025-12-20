@@ -47,6 +47,9 @@ const Products: React.FC = () => {
   useEffect(() => {
     let filtered = products;
 
+    // Filtrar apenas produtos ativos
+    filtered = filtered.filter(product => product.isActive === true);
+
     // Filtrar por termo de busca
     if (searchTerm) {
       filtered = filtered.filter(product =>

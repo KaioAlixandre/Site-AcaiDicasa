@@ -305,17 +305,54 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             return res.status(404).json({ message: 'Produto não encontrado.' });
         }
         
-        // Preparar os dados de atualização
-        const updateData = {
-            nome,
-            preco: parseFloat(preco),
-            descricao,
-            categoriaId: parseInt(categoriaId),
-            ativo: ativo === 'true' || ativo === true,
-            destaque: isFeatured === 'true' || isFeatured === true,
-            recebeComplementos: receiveComplements === 'true' || receiveComplements === true,
-            quantidadeComplementos: receiveComplements === 'true' || receiveComplements === true ? parseInt(quantidadeComplementos) || 0 : 0
-        };
+        // Preparar os dados de atualização - apenas incluir campos que foram fornecidos
+        const updateData = {};
+        
+        if (nome !== undefined && nome !== null && nome !== '') {
+            updateData.nome = nome;
+        }
+        
+        if (preco !== undefined && preco !== null && preco !== '') {
+            const parsedPreco = parseFloat(preco);
+            if (!isNaN(parsedPreco)) {
+                updateData.preco = parsedPreco;
+            }
+        } else {
+            // Se preco não foi fornecido, manter o valor existente
+            updateData.preco = existingProduct.preco;
+        }
+        
+        if (descricao !== undefined && descricao !== null) {
+            updateData.descricao = descricao;
+        }
+        
+        if (categoriaId !== undefined && categoriaId !== null && categoriaId !== '') {
+            const parsedCategoriaId = parseInt(categoriaId);
+            if (!isNaN(parsedCategoriaId)) {
+                updateData.categoriaId = parsedCategoriaId;
+            }
+        }
+        
+        if (ativo !== undefined && ativo !== null) {
+            updateData.ativo = ativo === 'true' || ativo === true;
+        }
+        
+        if (isFeatured !== undefined && isFeatured !== null) {
+            updateData.destaque = isFeatured === 'true' || isFeatured === true;
+        }
+        
+        if (receiveComplements !== undefined && receiveComplements !== null) {
+            updateData.recebeComplementos = receiveComplements === 'true' || receiveComplements === true;
+        }
+        
+        if (quantidadeComplementos !== undefined && quantidadeComplementos !== null && quantidadeComplementos !== '') {
+            const parsedQtd = parseInt(quantidadeComplementos);
+            if (!isNaN(parsedQtd)) {
+                updateData.quantidadeComplementos = parsedQtd;
+            }
+        } else if (receiveComplements === 'false' || receiveComplements === false) {
+            updateData.quantidadeComplementos = 0;
+        }
         
         // Se houver novas imagens, deletar as antigas do banco e enviar as novas para o Cloudinary
         if (imageFiles.length > 0) {
