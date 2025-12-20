@@ -92,27 +92,8 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Banner de Promoção de Frete Grátis */}
-      {promoFreteAtiva && (
-        <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 -mt-6">
-          <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg p-4 text-white">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <Truck className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-base md:text-lg">Promoção Especial Hoje!</h3>
-                <p className="text-sm text-emerald-50">
-                  {promoFreteMensagem} (sem contar com taxa de entrega)
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Card de informações */}
-      <div className={`relative z-10 ${promoFreteAtiva ? '-mt-4' : '-mt-10'}`}>
+      <div className="relative z-10 -mt-10">
         <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-md px-4 py-4 md:px-6 md:py-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -140,6 +121,22 @@ const Home: React.FC = () => {
               </a>
             </div>
           </div>
+          
+          {/* Promoção de Frete Grátis */}
+          {promoFreteAtiva && (
+            <div className="mt-4 p-2.5 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex-shrink-0 w-7 h-7 bg-emerald-200 rounded-full flex items-center justify-center">
+                  <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm text-emerald-900 font-semibold">
+                     {promoFreteMensagem} (sem contar com taxa de entrega)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Mensagem quando a loja estiver fechada */}
           {!isStoreOpen && storeStatusMessage && (

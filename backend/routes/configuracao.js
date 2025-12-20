@@ -146,7 +146,7 @@ router.get('/promo-frete-check', async (req, res) => {
       const valorMinimo = parseFloat(config.promocaoValorMinimo || 0);
       return res.json({
         ativa: true,
-        mensagem: `🎉 Promoção de Frete Grátis! Pedidos acima de R$ ${valorMinimo.toFixed(2)} ganham frete grátis hoje!`,
+        mensagem: `Promoção de Frete Grátis! Pedidos acima de R$ ${valorMinimo.toFixed(2)} ganham frete grátis hoje!`,
         valorMinimo: valorMinimo
       });
     }
