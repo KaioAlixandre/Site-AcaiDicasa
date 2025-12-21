@@ -94,9 +94,38 @@ const Checkout: React.FC = () => {
     ? total 
     : total; // Se nenhum tipo selecionado, mostra apenas o total dos produtos
 
+  // Função auxiliar para verificar se está dentro do horário de entrega
+  const isWithinDeliveryHours = (startTime: string | null, endTime: string | null): boolean => {
+    if (!startTime && !endTime) return true; // Se não há horário configurado, considera disponível
+    
+    const now = new Date();
+    
+    if (startTime) {
+      const [h, m] = startTime.split(':').map(Number);
+      const inicio = new Date();
+      inicio.setHours(h, m, 0, 0);
+      if (now < inicio) {
+        return false;
+      }
+    }
+    
+    if (endTime) {
+      const [h, m] = endTime.split(':').map(Number);
+      const fim = new Date();
+      fim.setHours(h, m, 0, 0);
+      if (now > fim) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   // Verificar se a loja está aberta e se há promoção ativa
   useEffect(() => {
     let intervalId: string | number | NodeJS.Timeout | undefined;
+    let storeConfig: any = null;
+    
     const loadStoreConfig = async () => {
       try {
         const [config, promoCheck] = await Promise.all([
@@ -104,36 +133,79 @@ const Checkout: React.FC = () => {
           fetch('/api/store-config/promo-frete-check').then(r => r.json())
         ]);
 
-        if (promoCheck.ativa) {
-          setPromoFreteAtiva(true);
-          setPromoFreteValorMinimo(promoCheck.valorMinimo);
-        }
+        storeConfig = config;
 
         if (config) {
           const status = checkStoreStatus(config);
           if (!status.isOpen) {
+            // Loja fechada - desativar promoção e redirecionar
+            setPromoFreteAtiva(false);
+            setPromoFreteValorMinimo(0);
             notify(`A loja está fechada: ${status.reason}${status.nextOpenTime ? '\n' + status.nextOpenTime : ''}`, 'error');
             navigate('/cart');
+            return;
           }
+
           // Lógica unificada para disponibilidade de entrega
-          const horaFim = config.horaEntregaFim;
-          const horaStart = config.horaEntregaInicio;
+          const horaFim = config.horaEntregaFim || config.deliveryEnd;
+          const horaStart = config.horaEntregaInicio || config.deliveryStart;
           setHoraEntregaFim(horaFim || null);
           setHoraEntregaInicio(horaStart || null);
 
-          const updateDisponibilidade = () => {
+          // Verificar se a promoção está ativa: deve estar dentro do horário de entrega E ser um dia de promoção E loja aberta
+          const dentroHorarioEntrega = isWithinDeliveryHours(horaStart, horaFim);
+          if (promoCheck.ativa && status.isOpen && dentroHorarioEntrega) {
+            setPromoFreteAtiva(true);
+            setPromoFreteValorMinimo(promoCheck.valorMinimo);
+          } else {
+            setPromoFreteAtiva(false);
+            setPromoFreteValorMinimo(0);
+          }
+
+          const updateDisponibilidade = async () => {
+            if (!storeConfig) return;
+            
+            // Verificar status da loja novamente
+            const currentStatus = checkStoreStatus(storeConfig);
+            
+            // Verificar se está dentro do horário de entrega
+            const currentHoraFim = storeConfig.horaEntregaFim || storeConfig.deliveryEnd;
+            const currentHoraStart = storeConfig.horaEntregaInicio || storeConfig.deliveryStart;
+            const dentroHorarioEntrega = isWithinDeliveryHours(currentHoraStart, currentHoraFim);
+            
+            // Se a loja fechou ou está fora do horário de entrega, desativar promoção
+            if (!currentStatus.isOpen || !dentroHorarioEntrega) {
+              setPromoFreteAtiva(false);
+              setPromoFreteValorMinimo(0);
+            } else {
+              // Se a loja está aberta e dentro do horário de entrega, verificar promoção novamente
+              try {
+                const promoCheck = await fetch('/api/store-config/promo-frete-check').then(r => r.json());
+                if (promoCheck.ativa && currentStatus.isOpen && dentroHorarioEntrega) {
+                  setPromoFreteAtiva(true);
+                  setPromoFreteValorMinimo(promoCheck.valorMinimo);
+                } else {
+                  setPromoFreteAtiva(false);
+                  setPromoFreteValorMinimo(0);
+                }
+              } catch (error) {
+                // Em caso de erro, manter estado atual
+              }
+            }
+
+            // Atualizar disponibilidade de entrega
             let disponivel = true;
             const now = new Date();
-            if (horaStart) {
-              const [h, m] = horaStart.split(':').map(Number);
+            if (currentHoraStart) {
+              const [h, m] = currentHoraStart.split(':').map(Number);
               const inicio = new Date();
               inicio.setHours(h, m, 0, 0);
               if (now < inicio) {
                 disponivel = false;
               }
             }
-            if (horaFim) {
-              const [h, m] = horaFim.split(':').map(Number);
+            if (currentHoraFim) {
+              const [h, m] = currentHoraFim.split(':').map(Number);
               const fim = new Date();
               fim.setHours(h, m, 0, 0);
               if (now > fim) {
@@ -148,6 +220,8 @@ const Checkout: React.FC = () => {
         }
       } catch (error) {
         setEntregaDisponivel(true);
+        setPromoFreteAtiva(false);
+        setPromoFreteValorMinimo(0);
       }
     };
 
@@ -155,7 +229,7 @@ const Checkout: React.FC = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [navigate]);
+  }, [navigate, notify]);
 
   // Carregar endereços do usuário quando logado e tipo de entrega for delivery
   useEffect(() => {

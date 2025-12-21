@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Package } from 'lucide-react';
+import { Search, ShoppingCart, Package, Truck } from 'lucide-react';
 import { Product, ProductCategory } from '../types';
 import { apiService } from '../services/api';
 import { checkStoreStatus } from '../utils/storeUtils';
@@ -18,14 +18,17 @@ const Products: React.FC = () => {
   const [storeStatus, setStoreStatus] = useState<any>(null);
   const [showCustomAcaiModal, setShowCustomAcaiModal] = useState(false);
   const [showCustomSorveteModal, setShowCustomSorveteModal] = useState(false);
+  const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
+  const [promoFreteMensagem, setPromoFreteMensagem] = useState<string>('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [productsData, config, categoriesApi] = await Promise.all([
+        const [productsData, config, categoriesApi, promoCheck] = await Promise.all([
           apiService.getProducts(),
           apiService.getStoreConfig(),
-          apiService.getCategories()
+          apiService.getCategories(),
+          fetch('/api/store-config/promo-frete-check').then(r => r.json()).catch(() => ({ ativa: false }))
         ]);
         setProducts(productsData || []);
         // Verificar status da loja
@@ -35,6 +38,12 @@ const Products: React.FC = () => {
         }
         // Usar categorias reais do backend
         setCategories(categoriesApi || []);
+        
+        // Verificar se há promoção ativa
+        if (promoCheck.ativa) {
+          setPromoFreteAtiva(true);
+          setPromoFreteMensagem(promoCheck.mensagem);
+        }
       } catch (error) {
        
       } finally {
@@ -97,6 +106,22 @@ const Products: React.FC = () => {
               className="w-full pl-12 pr-4 py-3.5 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-slate-50 hover:bg-white transition-all duration-200 text-slate-900 placeholder:text-slate-400"
             />
           </div>
+          
+          {/* Promoção de Frete Grátis - só aparece quando a loja estiver aberta */}
+          {promoFreteAtiva && storeStatus?.isOpen && (
+            <div className="mt-4 p-2.5 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex-shrink-0 w-7 h-7 bg-emerald-200 rounded-full flex items-center justify-center">
+                  <Truck className="w-3.5 h-3.5 text-emerald-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm text-emerald-900 font-semibold">
+                     {promoFreteMensagem} (sem contar com taxa de entrega)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
