@@ -1,6 +1,4 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-// Adicionado para navegação SPA
-import { createBrowserHistory } from 'history';
 import { 
   User, 
   Product, 
@@ -15,8 +13,6 @@ import {
   ProductCategory,
   ApiResponse 
 } from '../types';
-
-const history = createBrowserHistory();
 
 class ApiService {
   private api: AxiosInstance;
@@ -65,7 +61,7 @@ class ApiService {
           localStorage.removeItem('user');
               // Só redirecionar se não estiver já na página de login
               if (currentPath !== '/login' && currentPath !== '/cadastrar') {
-                history.push('/login');
+            window.location.href = '/login';
               }
             }
           }

@@ -280,13 +280,13 @@ const Register: React.FC = () => {
               />
               <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-900">
                 Eu concordo com os{' '}
-                <button type="button" className="text-purple-600 hover:text-purple-500" onClick={() => {/* abrir modal ou navegação SPA */}}>
+                <a href="#" className="text-purple-600 hover:text-purple-500">
                   Termos de Uso
-                </button>{' '}
+                </a>{' '}
                 e{' '}
-                <button type="button" className="text-purple-600 hover:text-purple-500" onClick={() => {/* abrir modal ou navegação SPA */}}>
+                <a href="#" className="text-purple-600 hover:text-purple-500">
                   Política de Privacidade
-                </button>
+                </a>
               </label>
             </div>
 
