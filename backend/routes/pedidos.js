@@ -1030,6 +1030,12 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
             }
         }
 
+        // Validação: NENHUM pedido pode ser cancelado se estiver a caminho, pronto para retirada ou entregue
+        if (dbStatus === 'canceled' && (existingOrder.status === 'on_the_way' || existingOrder.status === 'ready_for_pickup' || existingOrder.status === 'delivered')) {
+            console.warn(`[PUT /api/orders/${orderId}] Não é possível cancelar. Status atual: "${existingOrder.status}".`);
+            return res.status(400).json({ message: `Não é possível cancelar um pedido com o status "${existingOrder.status}".` });
+        }
+
         // Atualizar pedido
         const order = await prisma.pedido.update({
             where: { id: orderId },
@@ -1241,9 +1247,9 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
 // Rota para cancelar um pedido
 router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const userRole = req.user.role;
+    const userRole = req.user.funcao; // Corrigido: usar 'funcao' em vez de 'role'
     const orderId = parseInt(req.params.orderId);
-    console.log(`[PUT /api/orders/cancel/${orderId}] Recebida requisição para cancelar pedido. Usuário ID: ${userId}`);
+    console.log(`[PUT /api/orders/cancel/${orderId}] Recebida requisição para cancelar pedido. Usuário ID: ${userId}, Função: ${userRole}`);
 
     try {
         const order = await prisma.pedido.findUnique({
@@ -1256,13 +1262,20 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
         }
 
         // Verifica se o usuário é o dono do pedido ou um administrador
-        if (order.usuarioId !== userId && userRole !== 'admin') {
-            console.warn(`[PUT /api/orders/cancel/${orderId}] Acesso negado. Usuário ID ${userId} tentou cancelar pedido que não lhe pertence.`);
+        if (order.usuarioId !== userId && userRole !== 'admin' && userRole !== 'master') {
+            console.warn(`[PUT /api/orders/cancel/${orderId}] Acesso negado. Usuário ID ${userId} (${userRole}) tentou cancelar pedido que não lhe pertence (pedido do usuário ${order.usuarioId}).`);
             return res.status(403).json({ message: 'Acesso negado: você não tem permissão para cancelar este pedido.' });
         }
         
+        // Se o pedido já está cancelado, não há nada a fazer
+        if (order.status === 'canceled') {
+            console.warn(`[PUT /api/orders/cancel/${orderId}] Pedido já está cancelado.`);
+            return res.status(400).json({ message: 'Este pedido já está cancelado.' });
+        }
+        
         // Verifica se o status do pedido permite o cancelamento
-        if (order.status === 'on_the_way' || order.status === 'delivered' || order.status === 'canceled') {
+        // NENHUM pedido pode ser cancelado se estiver a caminho, pronto para retirada ou entregue (mesmo por admins)
+        if (order.status === 'on_the_way' || order.status === 'ready_for_pickup' || order.status === 'delivered') {
             console.warn(`[PUT /api/orders/cancel/${orderId}] Não é possível cancelar. Status atual: "${order.status}".`);
             return res.status(400).json({ message: `Não é possível cancelar um pedido com o status "${order.status}".` });
         }

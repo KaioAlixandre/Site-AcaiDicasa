@@ -988,7 +988,10 @@ const Pedidos: React.FC<{
                       <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                       <span>Imprimir</span>
                     </button>
-                    {selectedOrder.status !== 'canceled' && selectedOrder.status !== 'delivered' && (
+                    {selectedOrder.status !== 'canceled' && 
+                     selectedOrder.status !== 'on_the_way' && 
+                     selectedOrder.status !== 'ready_for_pickup' && 
+                     selectedOrder.status !== 'delivered' && (
                       <button 
                         onClick={handleCancelOrder}
                         disabled={isLoading}

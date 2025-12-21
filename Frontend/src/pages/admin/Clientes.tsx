@@ -17,11 +17,29 @@ const Clientes: React.FC<{ user: User[] }> = ({ user }) => {
 
   const averageLTV = calculateAverageLTV();
 
-  // Ordenar clientes por número de pedidos (decrescente)
+  // Ordenar clientes por número de pedidos (decrescente) e, em caso de empate, por valor gasto (decrescente)
   const clientesOrdenados = [...user].sort((a, b) => {
     const pedidosA = a.order?.length || 0;
     const pedidosB = b.order?.length || 0;
-    return pedidosB - pedidosA; // Ordem decrescente
+    
+    // Calcular total gasto de cada cliente
+    const totalGastoA = (a.order || []).reduce((acc, order) => {
+      const valor = Number(order.totalPrice) || 0;
+      return acc + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    const totalGastoB = (b.order || []).reduce((acc, order) => {
+      const valor = Number(order.totalPrice) || 0;
+      return acc + (isNaN(valor) ? 0 : valor);
+    }, 0);
+    
+    // Primeiro ordena por número de pedidos (decrescente)
+    if (pedidosB !== pedidosA) {
+      return pedidosB - pedidosA;
+    }
+    
+    // Se o número de pedidos for igual, ordena por valor gasto (decrescente)
+    return totalGastoB - totalGastoA;
   });
 
   return (

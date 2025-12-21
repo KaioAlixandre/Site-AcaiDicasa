@@ -537,10 +537,10 @@ const Complementos: React.FC = () => {
                               onClick={() => handleToggleStatus(complement)}
                               className={`p-1.5 rounded-lg transition-colors ${
                                 complement.isActive 
-                                  ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50' 
-                                  : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                                  ? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
+                                  : 'text-red-600 hover:text-red-900 hover:bg-red-50'
                               }`}
-                              title={complement.isActive ? 'Desativar' : 'Ativar'}
+                              title={complement.isActive ? 'Ativo' : 'Inativo'}
                             >
                               {complement.isActive ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                             </button>
@@ -630,12 +630,12 @@ const Complementos: React.FC = () => {
                         onClick={() => handleToggleStatus(complement)}
                         className={`flex-1 p-2 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs font-medium ${
                           complement.isActive 
-                            ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50' 
-                            : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                            ? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
+                            : 'text-red-600 hover:text-red-900 hover:bg-red-50'
                         }`}
                       >
                         {complement.isActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                        <span>{complement.isActive ? 'Desativar' : 'Ativar'}</span>
+                        <span>{complement.isActive ? 'Ativo' : 'Inativo'}</span>
                       </button>
                       <button
                         onClick={() => handleDelete(complement)}

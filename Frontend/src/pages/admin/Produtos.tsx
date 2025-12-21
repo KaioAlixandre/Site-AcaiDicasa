@@ -115,20 +115,20 @@ const Produtos: React.FC<{
                     <button
                       className={`p-1.5 rounded-md transition-colors ${
                         prod.isActive
-                          ? 'text-slate-500 hover:bg-slate-200 hover:text-orange-600'
-                          : 'text-slate-500 hover:bg-slate-200 hover:text-green-600'
+                          ? 'text-green-600 hover:bg-green-50 hover:text-green-700'
+                          : 'text-red-600 hover:bg-red-50 hover:text-red-700'
                       }`}
                       onClick={() => {
                         const formData = new FormData();
                         formData.append('ativo', (!prod.isActive).toString());
                         handleUpdateProduct(prod.id, formData);
                       }}
-                      title={prod.isActive ? 'Desativar produto' : 'Ativar produto'}
+                      title={prod.isActive ? 'Produto ativo' : 'Produto inativo'}
                     >
                       {prod.isActive ? (
-                        <PowerOff className="w-4 h-4" />
-                      ) : (
                         <Power className="w-4 h-4" />
+                      ) : (
+                        <PowerOff className="w-4 h-4" />
                       )}
                     </button>
                     <button
@@ -199,8 +199,8 @@ const Produtos: React.FC<{
                 <button
                   className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium ${
                     prod.isActive
-                      ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50'
-                      : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                      ? 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                      : 'text-red-600 hover:text-red-900 hover:bg-red-50'
                   }`}
                   onClick={() => {
                     const formData = new FormData();
@@ -210,13 +210,13 @@ const Produtos: React.FC<{
                 >
                   {prod.isActive ? (
                     <>
-                      <PowerOff className="w-3.5 h-3.5" />
-                      <span>Desativar</span>
+                      <Power className="w-3.5 h-3.5" />
+                      <span>Ativo</span>
                     </>
                   ) : (
                     <>
-                      <Power className="w-3.5 h-3.5" />
-                      <span>Ativar</span>
+                      <PowerOff className="w-3.5 h-3.5" />
+                      <span>Inativo</span>
                     </>
                   )}
                 </button>
