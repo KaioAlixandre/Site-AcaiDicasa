@@ -455,9 +455,9 @@ const Pedidos: React.FC<{
               <thead className="border-b border-slate-200 text-slate-500">
                 <tr>
                   <th className="p-2 sm:p-4 text-xs sm:text-sm">Cliente</th>
-                  <th className="p-2 sm:p-4 text-xs sm:text-sm">Itens</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm max-w-[200px] sm:max-w-none">Itens</th>
                   <th className="p-2 sm:p-4 text-xs sm:text-sm hidden md:table-cell">Tipo</th>
-                  <th className="p-2 sm:p-4 text-xs sm:text-sm">Status</th>
+                  <th className="p-2 sm:p-4 text-xs sm:text-sm w-[100px] sm:w-auto">Status</th>
                   <th className="p-2 sm:p-4 text-right text-xs sm:text-sm">Total</th>
                   <th className="p-2 sm:p-4 text-center text-xs sm:text-sm">Ações</th>
                 </tr>
@@ -471,8 +471,8 @@ const Pedidos: React.FC<{
                         {new Date(order.createdAt).toLocaleString('pt-BR')}
                       </div>
                     </td>
-                    <td className="p-2 sm:p-4">
-                      <div className="text-xs sm:text-sm text-slate-600">
+                    <td className="p-2 sm:p-4 max-w-[200px] sm:max-w-none">
+                      <div className="text-[10px] sm:text-xs md:text-sm text-slate-600">
                         {(order.orderitem || []).map(item => {
                           // Verificar se é produto personalizado
                           const isCustomAcai = item.selectedOptionsSnapshot?.customAcai;
@@ -486,13 +486,13 @@ const Pedidos: React.FC<{
                           }
                           
                           return (
-                            <div key={item.id} className="mb-2 last:mb-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">
+                            <div key={item.id} className="mb-1.5 sm:mb-2 last:mb-0">
+                              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                                <span className="font-medium truncate max-w-full">
                                   {item.product.name} x {item.quantity}
                                 </span>
                                 {customData && (
-                                  <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
+                                  <span className={`inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${ 
                                     isCustomAcai ? 'bg-purple-100 text-purple-800' :
                                     isCustomSorvete ? 'bg-blue-100 text-blue-800' : 
                                     'bg-green-100 text-green-800'
@@ -504,13 +504,13 @@ const Pedidos: React.FC<{
                               
                               {/* Complementos de produtos personalizados */}
                               {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
-                                <div className="mt-1 ml-2 sm:ml-4">
-                                  <span className="text-xs text-slate-500">Complementos: </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="mt-0.5 sm:mt-1">
+                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos: </span>
+                                  <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5">
                                     {customData.complementNames.map((complement: string, idx: number) => (
                                       <span 
                                         key={idx}
-                                        className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-green-50 text-green-700 border border-green-200"
+                                        className="inline-flex items-center px-1 py-0.5 rounded text-[9px] sm:text-[10px] bg-green-50 text-green-700 border border-green-200"
                                       >
                                         {complement}
                                       </span>
@@ -521,13 +521,13 @@ const Pedidos: React.FC<{
                               
                               {/* Complementos regulares do produto */}
                               {item.complements && item.complements.length > 0 && (
-                                <div className="mt-1 ml-2 sm:ml-4">
-                                  <span className="text-xs text-slate-500">Complementos: </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="mt-0.5 sm:mt-1">
+                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos: </span>
+                                  <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5">
                                     {item.complements.map((complement) => (
                                       <span 
                                         key={complement.id}
-                                        className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200"
+                                        className="inline-flex items-center px-1 py-0.5 rounded text-[9px] sm:text-[10px] bg-purple-50 text-purple-700 border border-purple-200"
                                       >
                                         {complement.name}
                                       </span>
@@ -555,8 +555,8 @@ const Pedidos: React.FC<{
                         )}
                       </div>
                     </td>
-                    <td className="p-2 sm:p-4">
-                      <span className={`px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getStatusStyle(order.status)}`}>
+                    <td className="p-2 sm:p-4 w-[100px] sm:w-auto">
+                      <span className={`inline-block px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold rounded-full whitespace-nowrap ${getStatusStyle(order.status)}`}>
                         {getStatusInPortuguese(order.status)}
                       </span>
                     </td>
@@ -566,14 +566,23 @@ const Pedidos: React.FC<{
                     <td className="p-2 sm:p-4 text-center">
                       <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <button 
-                          title={order.notes && order.notes.trim() ? "Ver Detalhes (com observações)" : "Ver Detalhes"}
+                          title={
+                            (order.notes && order.notes.trim()) || order.precisaTroco
+                              ? `Ver Detalhes${order.notes && order.notes.trim() ? ' (com observações)' : ''}${order.precisaTroco ? ' (precisa de troco)' : ''}`
+                              : "Ver Detalhes"
+                          }
                           onClick={() => setSelectedOrder(order)}
                           className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-indigo-600 relative"
                         >
                           <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                          {order.notes && order.notes.trim() && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-500 rounded-full border border-white"></span>
-                          )}
+                          <div className="absolute -top-0.5 -right-0.5 flex gap-0.5">
+                            {order.notes && order.notes.trim() && (
+                              <span className="w-2 h-2 bg-yellow-500 rounded-full border border-white" title="Possui observações"></span>
+                            )}
+                            {order.precisaTroco && (
+                              <span className="w-2 h-2 bg-orange-500 rounded-full border border-white" title="Precisa de troco"></span>
+                            )}
+                          </div>
                         </button>
                         <button 
                           title="Imprimir Pedido"
@@ -735,6 +744,31 @@ const Pedidos: React.FC<{
                   </div>
                 </div>
               </div>
+
+              {/* Informação de Troco */}
+              {selectedOrder.paymentMethod === 'CASH_ON_DELIVERY' && selectedOrder.precisaTroco && (
+                <div className="bg-yellow-50 rounded-lg p-2.5 sm:p-3 border-2 border-yellow-300">
+                  <h3 className="text-xs sm:text-sm md:text-base font-bold text-yellow-900 mb-1.5 sm:mb-2 flex items-center gap-1 sm:gap-1.5">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-700" />
+                    Troco Necessário
+                  </h3>
+                  <div className="bg-white rounded-lg p-2 sm:p-2.5 border border-yellow-200">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-slate-700 font-semibold">
+                      {selectedOrder.valorTroco ? (
+                        <>
+                          Cliente pagará com: <span className="text-yellow-700">R$ {Number(selectedOrder.valorTroco).toFixed(2)}</span>
+                          <br />
+                          <span className="text-slate-600 text-[10px] sm:text-xs">
+                            Troco de: R$ {(Number(selectedOrder.valorTroco) - Number(selectedOrder.totalPrice)).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-yellow-700">Cliente precisa de troco</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Itens do Pedido */}
               <div className="bg-slate-50 rounded-lg p-2.5 sm:p-3 border border-slate-200">

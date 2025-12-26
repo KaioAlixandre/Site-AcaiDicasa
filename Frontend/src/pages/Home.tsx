@@ -18,7 +18,37 @@ const Home: React.FC = () => {
   const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
   const [promoFreteMensagem, setPromoFreteMensagem] = useState<string>('');
 
+  // Função auxiliar para verificar se está dentro do horário de funcionamento
+  const isWithinStoreHours = (openingTime: string | null, closingTime: string | null): boolean => {
+    if (!openingTime && !closingTime) return true; // Se não há horário configurado, considera disponível
+    
+    const now = new Date();
+    
+    if (openingTime) {
+      const [h, m] = openingTime.split(':').map(Number);
+      const inicio = new Date();
+      inicio.setHours(h, m, 0, 0);
+      if (now < inicio) {
+        return false;
+      }
+    }
+    
+    if (closingTime) {
+      const [h, m] = closingTime.split(':').map(Number);
+      const fim = new Date();
+      fim.setHours(h, m, 0, 0);
+      if (now > fim) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   useEffect(() => {
+    let intervalId: string | number | NodeJS.Timeout | undefined;
+    let storeConfigData: any = null;
+    
     const loadData = async () => {
       try {
         setLoading(true);
@@ -39,12 +69,7 @@ const Home: React.FC = () => {
         
         setCategories(categoriesData);
         setStoreConfig(storeData);
-        
-        // Verificar se há promoção ativa
-        if (promoCheck.ativa) {
-          setPromoFreteAtiva(true);
-          setPromoFreteMensagem(promoCheck.mensagem);
-        }
+        storeConfigData = storeData;
         
         // Verificar se a loja está aberta com base no horário
         if (storeData) {
@@ -53,31 +78,72 @@ const Home: React.FC = () => {
           if (!status.isOpen && status.reason) {
             setStoreStatusMessage(status.reason);
           }
+
+          // Verificar se a promoção está ativa: deve estar dentro do horário de funcionamento E ser um dia de promoção E loja aberta
+          const dentroHorarioFuncionamento = isWithinStoreHours(storeData.openingTime || storeData.horaAbertura, storeData.closingTime || storeData.horaFechamento);
+          if (promoCheck.ativa && status.isOpen && dentroHorarioFuncionamento) {
+            setPromoFreteAtiva(true);
+            setPromoFreteMensagem(promoCheck.mensagem);
+          } else {
+            setPromoFreteAtiva(false);
+            setPromoFreteMensagem('');
+          }
+
+          // Função para atualizar status e promoção periodicamente
+          const updateStatus = async () => {
+            if (!storeConfigData) return;
+            
+            // Verificar status da loja novamente
+            const currentStatus = checkStoreStatus(storeConfigData);
+            setIsStoreOpen(currentStatus.isOpen);
+            if (!currentStatus.isOpen && currentStatus.reason) {
+              setStoreStatusMessage(currentStatus.reason);
+            } else {
+              setStoreStatusMessage('');
+            }
+            
+            // Verificar se está dentro do horário de funcionamento
+            const currentOpeningTime = storeConfigData.openingTime || storeConfigData.horaAbertura;
+            const currentClosingTime = storeConfigData.closingTime || storeConfigData.horaFechamento;
+            const dentroHorarioFuncionamento = isWithinStoreHours(currentOpeningTime, currentClosingTime);
+            
+            // Se a loja fechou ou está fora do horário de funcionamento, desativar promoção
+            if (!currentStatus.isOpen || !dentroHorarioFuncionamento) {
+              setPromoFreteAtiva(false);
+              setPromoFreteMensagem('');
+            } else {
+              // Se a loja está aberta e dentro do horário de funcionamento, verificar promoção novamente
+              try {
+                const promoCheck = await fetch('/api/store-config/promo-frete-check').then(r => r.json());
+                if (promoCheck.ativa && currentStatus.isOpen && dentroHorarioFuncionamento) {
+                  setPromoFreteAtiva(true);
+                  setPromoFreteMensagem(promoCheck.mensagem);
+                } else {
+                  setPromoFreteAtiva(false);
+                  setPromoFreteMensagem('');
+                }
+              } catch (error) {
+                // Em caso de erro, manter estado atual
+              }
+            }
+          };
+
+          updateStatus();
+          intervalId = setInterval(updateStatus, 30000); // Atualiza a cada 30 segundos
         }
       } catch (error) {
-       
+        setPromoFreteAtiva(false);
+        setPromoFreteMensagem('');
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
-
-  // Atualizar status da loja a cada minuto
-  useEffect(() => {
-    if (!storeConfig) return;
-
-    const interval = setInterval(() => {
-      const status = checkStoreStatus(storeConfig);
-      setIsStoreOpen(status.isOpen);
-      if (!status.isOpen && status.reason) {
-        setStoreStatusMessage(status.reason);
-      }
-    }, 60000); // Verificar a cada 1 minuto
-
-    return () => clearInterval(interval);
-  }, [storeConfig]);
 
   if (loading) {
     return <Loading fullScreen text="Carregando produtos..." />;

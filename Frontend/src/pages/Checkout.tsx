@@ -40,6 +40,8 @@ const Checkout: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [pixInfo] = useState<any>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [needsChange, setNeedsChange] = useState(false); // Precisa de troco?
+  const [changeFor, setChangeFor] = useState(''); // Troco para quanto
   const [addressForm, setAddressForm] = useState<AddressForm>({
     street: '',
     number: '',
@@ -367,13 +369,29 @@ const Checkout: React.FC = () => {
         return;
       }
 
+      // Validar troco se necessário
+      if (paymentMethod === 'CASH_ON_DELIVERY' && needsChange) {
+        if (!changeFor || parseFloat(changeFor) <= 0) {
+          notify('Informe o valor para o qual precisa de troco!', 'warning');
+          setLoading(false);
+          return;
+        }
+        if (parseFloat(changeFor) < finalTotal) {
+          notify(`O valor informado (R$ ${parseFloat(changeFor).toFixed(2)}) deve ser maior ou igual ao total do pedido (R$ ${finalTotal.toFixed(2)})!`, 'warning');
+          setLoading(false);
+          return;
+        }
+      }
+
       await apiService.createOrder({
         items,
         paymentMethod, // <-- este campo é obrigatório!
         addressId: deliveryType === 'delivery' ? (selectedAddressId ?? undefined) : undefined,
         deliveryType,
         deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
-        notes: orderNotes.trim() || undefined, // Adiciona observações se houver
+        notes: orderNotes.trim() || undefined, // Apenas as observações do usuário (sem informações de troco)
+        precisaTroco: paymentMethod === 'CASH_ON_DELIVERY' ? needsChange : false,
+        valorTroco: paymentMethod === 'CASH_ON_DELIVERY' && needsChange && changeFor ? parseFloat(changeFor) : undefined,
       });
       clearCart();
       notify('Pedido realizado com sucesso!', 'success');
@@ -891,25 +909,19 @@ const Checkout: React.FC = () => {
       <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 md:py-8">
         {/* Banner de Promoção */}
         {promoFreteAtiva && deliveryType === 'delivery' && (
-          <div className="mb-4 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl shadow-lg p-4 text-white">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <Truck className="w-6 h-6" />
+          <div className="mb-4 p-2.5 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0 w-7 h-7 bg-emerald-200 rounded-full flex items-center justify-center">
+                <Truck className="w-3.5 h-3.5 text-emerald-700" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-lg">Promoção de Frete Grátis Hoje!</h3>
-                <p className="text-sm text-emerald-50">
+                <p className="text-xs md:text-sm text-emerald-900 font-semibold">
                   Pedidos de <strong>R$ {promoFreteValorMinimo.toFixed(2)}</strong> ou mais, sem contar a taxa de entrega, ganham frete grátis!
-                  {temFreteGratis ? (
-                    <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-semibold">
-                      ✓ Você conseguiu!
-                    </span>
-                  ) : (
-                    <span className="ml-2 text-xs">
-                      {total < promoFreteValorMinimo && (
-                        <>Faltam apenas R$ {(promoFreteValorMinimo - total).toFixed(2)}</>
-                      )}
-                    </span>
+                  {temFreteGratis && (
+                    <span className="ml-2 text-emerald-700">✓ Você conseguiu!</span>
+                  )}
+                  {!temFreteGratis && total < promoFreteValorMinimo && (
+                    <span className="ml-2 text-emerald-600">Faltam apenas R$ {(promoFreteValorMinimo - total).toFixed(2)}</span>
                   )}
                 </p>
               </div>
@@ -1048,6 +1060,11 @@ const Checkout: React.FC = () => {
                             onChange={() => {
                               if (!isDisabled) {
                                 setPaymentMethod(method.value);
+                                // Resetar campos de troco quando mudar método de pagamento
+                                if (method.value !== 'CASH_ON_DELIVERY') {
+                                  setNeedsChange(false);
+                                  setChangeFor('');
+                                }
                               }
                             }}
                             disabled={isDisabled}
@@ -1066,6 +1083,71 @@ const Checkout: React.FC = () => {
                       );
                     })}
                   </div>
+                  
+                  {/* Campos de Troco - apenas para pagamento em dinheiro */}
+                  {paymentMethod === 'CASH_ON_DELIVERY' && (
+                    <div className="mt-4 pt-4 border-t border-slate-300">
+                      <div className="space-y-3">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={needsChange}
+                            onChange={(e) => {
+                              setNeedsChange(e.target.checked);
+                              if (!e.target.checked) {
+                                setChangeFor('');
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                          />
+                          <span className="text-sm md:text-base font-semibold text-slate-900">
+                            Precisa de troco?
+                          </span>
+                        </label>
+                        
+                        {needsChange && (
+                          <div>
+                            <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-2">
+                              Troco para quanto?
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-sm font-semibold">
+                                R$
+                              </span>
+                              <input
+                                type="number"
+                                value={changeFor}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Permite apenas números e ponto decimal
+                                  if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                                    setChangeFor(value);
+                                  }
+                                }}
+                                placeholder="0,00"
+                                min={finalTotal}
+                                step="0.01"
+                                className="w-full pl-10 pr-3 py-2 md:py-2.5 text-sm border-2 border-slate-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                              />
+                            </div>
+                            {changeFor && parseFloat(changeFor) > 0 && (
+                              <div className="mt-2 text-xs md:text-sm text-slate-600">
+                                <span className="font-semibold">Troco:</span>{' '}
+                                <span className="text-purple-600 font-bold">
+                                  R$ {(parseFloat(changeFor) - finalTotal).toFixed(2)}
+                                </span>
+                              </div>
+                            )}
+                            {changeFor && parseFloat(changeFor) > 0 && parseFloat(changeFor) < finalTotal && (
+                              <div className="mt-1 text-xs text-red-600 font-medium">
+                                ⚠️ O valor deve ser maior ou igual ao total do pedido (R$ {finalTotal.toFixed(2)})
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

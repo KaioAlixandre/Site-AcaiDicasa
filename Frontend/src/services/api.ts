@@ -304,6 +304,8 @@ class ApiService {
     deliveryType?: string;
     deliveryFee?: number;
     notes?: string;
+    precisaTroco?: boolean;
+    valorTroco?: number;
   }): Promise<ApiResponse<Order>> {
     const response: AxiosResponse<ApiResponse<Order>> = await this.api.post('/orders', orderData);
     return response.data;
@@ -549,6 +551,50 @@ async toggleDelivererStatus(id: number) {
   // ========== DASHBOARD METHODS ==========
   async getDashboardMetrics() {
     const response = await this.api.get('/dashboard/metrics');
+    return response.data;
+  }
+
+  async getPeriodMetrics(
+    period: 'daily' | 'weekly' | 'monthly' | 'yearly', 
+    month?: number, 
+    year?: number,
+    day?: number
+  ) {
+    let url = `/dashboard/metrics/${period}`;
+    if (period === 'monthly' && month !== undefined && year !== undefined) {
+      url += `?month=${month}&year=${year}`;
+    } else if (period === 'daily' && day !== undefined && month !== undefined && year !== undefined) {
+      url += `?day=${day}&month=${month}&year=${year}`;
+    } else if (period === 'yearly' && year !== undefined) {
+      url += `?year=${year}`;
+    }
+    const response = await this.api.get(url);
+    return response.data;
+  }
+
+  async getTopProducts(
+    period: 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' = 'all',
+    month?: number,
+    year?: number,
+    day?: number
+  ) {
+    let url = '/dashboard/top-products';
+    
+    // Se period for 'all', não adiciona o parâmetro na URL
+    if (period !== 'all') {
+      url += `/${period}`;
+      
+      // Adicionar query parameters para períodos específicos
+      if (period === 'monthly' && month !== undefined && year !== undefined) {
+        url += `?month=${month}&year=${year}`;
+      } else if (period === 'daily' && day !== undefined && month !== undefined && year !== undefined) {
+        url += `?day=${day}&month=${month}&year=${year}`;
+      } else if (period === 'yearly' && year !== undefined) {
+        url += `?year=${year}`;
+      }
+    }
+    
+    const response = await this.api.get(url);
     return response.data;
   }
 

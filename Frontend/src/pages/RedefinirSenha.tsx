@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Lock, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Lock, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff, Phone } from 'lucide-react';
 import Loading from '../components/Loading';
+import { applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
 
 const ResetPassword: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: '',
+    telefone: '',
     code: '',
     newPassword: '',
     confirmPassword: ''
@@ -20,10 +21,10 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Pegar email do state se veio da página anterior
+  // Pegar telefone do state se veio da página anterior
   useEffect(() => {
-    if (location.state?.email) {
-      setFormData(prev => ({ ...prev, email: location.state.email }));
+    if (location.state?.telefone) {
+      setFormData(prev => ({ ...prev, telefone: location.state.telefone }));
     }
     
     // Se está em modo de desenvolvimento, preencher o código automaticamente
@@ -33,18 +34,28 @@ const ResetPassword: React.FC = () => {
   }, [location.state]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Aplicar máscara de telefone
+    if (name === 'telefone') {
+      const maskedValue = applyPhoneMask(value);
+      setFormData({ ...formData, [name]: maskedValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
     setError(''); // Limpar erro ao digitar
   };
 
   const validateForm = () => {
-    if (!formData.email || !formData.code || !formData.newPassword || !formData.confirmPassword) {
+    if (!formData.telefone || !formData.code || !formData.newPassword || !formData.confirmPassword) {
       setError('Todos os campos são obrigatórios.');
       return false;
     }
 
-    if (!formData.email.includes('@')) {
-      setError('Digite um email válido.');
+    // Validar telefone
+    const phoneValidation = validatePhoneLocal(formData.telefone);
+    if (!phoneValidation.valid) {
+      setError(phoneValidation.error || 'Digite um telefone válido.');
       return false;
     }
 
@@ -82,7 +93,7 @@ const ResetPassword: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.email,
+          telefone: formData.telefone,
           code: formData.code,
           newPassword: formData.newPassword
         }),
@@ -113,8 +124,15 @@ const ResetPassword: React.FC = () => {
   };
 
   const handleResendCode = async () => {
-    if (!formData.email) {
-      setError('Digite seu email primeiro.');
+    if (!formData.telefone) {
+      setError('Digite seu telefone primeiro.');
+      return;
+    }
+
+    // Validar telefone
+    const phoneValidation = validatePhoneLocal(formData.telefone);
+    if (!phoneValidation.valid) {
+      setError(phoneValidation.error || 'Digite um telefone válido.');
       return;
     }
 
@@ -125,12 +143,12 @@ const ResetPassword: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify({ telefone: formData.telefone }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        setMessage('Novo código enviado para seu email!');
+        setMessage('Novo código enviado! Verifique seu email ou WhatsApp.');
         setTimeout(() => setMessage(''), 5000);
       } else {
         setError(data.message || 'Erro ao reenviar código.');
@@ -167,7 +185,7 @@ const ResetPassword: React.FC = () => {
             Redefinir Senha
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Digite o código recebido por email e sua nova senha
+            Digite o código recebido e sua nova senha
           </p>
         </div>
 
@@ -176,19 +194,19 @@ const ResetPassword: React.FC = () => {
           {!passwordReset ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
+                <label htmlFor="telefone" className="block text-sm font-medium text-gray-700">
+                  Telefone
                 </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="telefone"
+                  name="telefone"
+                  type="tel"
+                  autoComplete="tel"
                   required
-                  value={formData.email}
+                  value={formData.telefone}
                   onChange={handleChange}
                   className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Digite seu email"
+                  placeholder="(00) 00000-0000"
                 />
               </div>
 

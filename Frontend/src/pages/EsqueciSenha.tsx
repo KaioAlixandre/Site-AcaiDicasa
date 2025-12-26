@@ -1,27 +1,36 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { Phone, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import Loading from '../components/Loading';
+import { applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
 
 const ForgotPassword: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
   const [developmentCode, setDevelopmentCode] = useState('');
   const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedValue = applyPhoneMask(e.target.value);
+    setTelefone(maskedValue);
+    setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email) {
-      setError('Por favor, digite seu email.');
+    if (!telefone) {
+      setError('Por favor, digite seu telefone.');
       return;
     }
 
-    if (!email.includes('@')) {
-      setError('Por favor, digite um email válido.');
+    // Validar telefone
+    const phoneValidation = validatePhoneLocal(telefone);
+    if (!phoneValidation.valid) {
+      setError(phoneValidation.error || 'Por favor, digite um telefone válido.');
       return;
     }
 
@@ -35,14 +44,14 @@ const ForgotPassword: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ telefone }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setMessage(data.message);
-        setEmailSent(true);
+        setCodeSent(true);
         
         // Se está em modo de desenvolvimento, salvar o código
         if (data.development && data.code) {
@@ -53,13 +62,13 @@ const ForgotPassword: React.FC = () => {
         setTimeout(() => {
           navigate('/reset-password', { 
             state: { 
-              email,
+              telefone,
               developmentCode: data.development ? data.code : null 
             } 
           });
         }, 3000);
       } else {
-        setError(data.message || 'Erro ao enviar email de recuperação.');
+        setError(data.message || 'Erro ao enviar código de recuperação.');
       }
     } catch (err) {
      
@@ -87,35 +96,35 @@ const ForgotPassword: React.FC = () => {
           </Link>
           
           <div className="mx-auto h-16 w-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
-            <Mail className="h-8 w-8 text-purple-600" />
+            <Phone className="h-8 w-8 text-purple-600" />
           </div>
           
           <h2 className="text-3xl font-bold text-gray-900">
             Esqueceu sua senha?
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Digite seu email e enviaremos um código de verificação
+            Digite seu telefone e enviaremos um código de verificação
           </p>
         </div>
 
         {/* Form */}
         <div className="bg-white shadow-lg rounded-lg px-8 py-6">
-          {!emailSent ? (
+          {!codeSent ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
+                <label htmlFor="telefone" className="block text-sm font-medium text-gray-700">
+                  Telefone
                 </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="telefone"
+                  name="telefone"
+                  type="tel"
+                  autoComplete="tel"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={telefone}
+                  onChange={handleChange}
                   className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10"
-                  placeholder="Digite seu email"
+                  placeholder="(00) 00000-0000"
                 />
               </div>
 
@@ -141,7 +150,7 @@ const ForgotPassword: React.FC = () => {
               </div>
               
               <h3 className="text-lg font-medium text-gray-900">
-                Email enviado!
+                Código enviado!
               </h3>
               
               {message && (
@@ -152,7 +161,7 @@ const ForgotPassword: React.FC = () => {
               )}
               
               <p className="text-sm text-gray-600">
-                Verifique sua caixa de entrada e clique no link ou digite o código na próxima página.
+                Verifique seu email ou WhatsApp e digite o código na próxima página.
               </p>
               
               {developmentCode && (
@@ -173,7 +182,7 @@ const ForgotPassword: React.FC = () => {
               <button
                 onClick={() => navigate('/reset-password', { 
                   state: { 
-                    email,
+                    telefone,
                     developmentCode: developmentCode || null 
                   } 
                 })}

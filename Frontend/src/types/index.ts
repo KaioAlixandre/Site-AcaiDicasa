@@ -97,6 +97,7 @@ export interface Order {
   status: OrderStatus;
   deliveryType?: string;
   deliveryFee?: number;
+  paymentMethod?: string;
   createdAt: string;
   userId: number;
   shippingStreet: string;
@@ -105,6 +106,8 @@ export interface Order {
   shippingNeighborhood: string;
   shippingPhone?: string;
   notes?: string;
+  precisaTroco?: boolean;
+  valorTroco?: number | null;
   orderitem: OrderItem[];
   payment?: Payment;
   user?: {

@@ -338,6 +338,13 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
               <div class="info-label">Forma de Pagamento</div>
               <div class="info-value">${formatPaymentMethod((order as any).paymentMethod || order.payment?.method)}</div>
             </div>
+            ${order.precisaTroco && order.valorTroco ? `
+            <div class="info-item">
+              <div class="info-label">Troco Necessário</div>
+              <div class="info-value">Cliente pagará com: R$ ${Number(order.valorTroco).toFixed(2)}</div>
+              <div class="info-value" style="font-size: 8pt; margin-top: 2px;">Troco de: R$ ${(Number(order.valorTroco) - Number(order.totalPrice)).toFixed(2)}</div>
+            </div>
+            ` : ''}
           </div>
         </div>
 

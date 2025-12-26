@@ -31,7 +31,7 @@ async function sendWhatsAppMessageZApi(phone, message) {
 // Rota para criar um pedido a partir do carrinho
 router.post('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { paymentMethod, tipoEntrega, deliveryType, taxaEntrega, deliveryFee, notes, addressId } = req.body;
+    const { paymentMethod, tipoEntrega, deliveryType, taxaEntrega, deliveryFee, notes, addressId, precisaTroco, valorTroco } = req.body;
     
     // Aceitar tanto deliveryType (do frontend) quanto tipoEntrega
     const tipo = deliveryType || tipoEntrega || 'delivery';
@@ -162,6 +162,8 @@ router.post('/', authenticateToken, async (req, res) => {
                     taxaEntrega: tipo === 'delivery' ? taxa : 0,
                     metodoPagamento: paymentMethod,
                     observacoes: notes && notes.trim() ? notes.trim() : null,
+                    precisaTroco: paymentMethod === 'CASH_ON_DELIVERY' ? (precisaTroco === true || precisaTroco === 'true') : false,
+                    valorTroco: paymentMethod === 'CASH_ON_DELIVERY' && precisaTroco && valorTroco ? parseFloat(valorTroco) : null,
                     atualizadoEm: new Date(),
                     ruaEntrega: shippingAddress?.rua || null,
                     numeroEntrega: shippingAddress?.numero || null,
@@ -268,11 +270,16 @@ router.post('/', authenticateToken, async (req, res) => {
                     (tipo === 'pickup' ? ` Você pode retirar em breve!` : ` Em breve será enviado para entrega.`) + `\n\n` +
                     ` *Obrigado por escolher a gente! 💜*\n`;
             } else if (paymentMethod === 'CASH_ON_DELIVERY') {
+                // Adicionar informação de troco se necessário
+                const trocoInfo = precisaTroco && valorTroco 
+                    ? `\n💰 *Troco para:* R$ ${parseFloat(valorTroco).toFixed(2)}`
+                    : '';
+                
                 message =
                     ` *Pedido Confirmado!* 🎉\n\n` +
                     ` *Pedido Nº:* ${newOrder.id}\n\n` +
                     ` *Itens:*\n${itens}\n\n` +
-                    `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
+                    `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}${trocoInfo}\n` +
                     `💵 *Forma de pagamento:* Dinheiro ${tipo === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
                     `${deliveryInfo}` +
                     notesSection + `\n\n` +
@@ -391,6 +398,8 @@ router.get('/history', authenticateToken, async (req, res) => {
             shippingPhone: order.telefoneEntrega,
             deliveryFee: order.taxaEntrega,
             notes: order.observacoes,
+            precisaTroco: order.precisaTroco || false,
+            valorTroco: order.valorTroco ? Number(order.valorTroco) : null,
             orderitem: order.itens_pedido.map(item => ({
                 id: item.id,
                 orderId: item.pedidoId,
@@ -1400,6 +1409,8 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
             shippingPhone: order.telefoneEntrega,
             deliveryFee: order.taxaEntrega,
             notes: order.observacoes,
+            precisaTroco: order.precisaTroco || false,
+            valorTroco: order.valorTroco ? Number(order.valorTroco) : null,
             user: order.usuario ? {
                 id: order.usuario.id,
                 username: order.usuario.nomeUsuario,

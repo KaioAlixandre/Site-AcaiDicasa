@@ -165,6 +165,8 @@ model pedido {
   metodoPagamento      metodo_pagamento?
   entregadorId          Int?
   observacoes          String?      @db.Text
+  precisaTroco         Boolean      @default(false)
+  valorTroco           Decimal?     @db.Decimal(10, 2)
   atualizadoEm         DateTime
   entregador           entregador?  @relation(fields: [entregadorId], references: [id], map: "Order_delivererId_fkey")
   usuario              usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade, map: "Order_userId_fkey")
@@ -359,13 +361,13 @@ model usuario {
 
 model redefinicao_senha {
   id            Int      @id @default(autoincrement())
-  email         String
+  telefone      String   @db.VarChar(20)
   codigo        String   @db.VarChar(6)
   criadoEm      DateTime @default(now())
   expiraEm      DateTime
   usado         Boolean  @default(false)
   
-  @@index([email])
+  @@index([telefone])
   @@index([codigo])
   @@map("redefinicoes_senha")
 }

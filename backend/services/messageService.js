@@ -2,6 +2,53 @@
 // Serviço para envio de mensagens (WhatsApp/SMS)
 const axios = require('axios');
 
+// Função para verificar se um número possui WhatsApp usando a Z-API
+async function checkPhoneExistsWhatsApp(phone) {
+  try {
+    let cleanPhone = phone.replace(/\D/g, '');
+    
+    // Garantir que o número tem o código do país (55) apenas uma vez
+    // Se já começar com 55, não adicionar novamente
+    if (!cleanPhone.startsWith('55')) {
+      cleanPhone = `55${cleanPhone}`;
+    }
+    
+    const zapApiToken = process.env.zapApiToken;
+    const zapApiInstance = process.env.zapApiInstance;
+    const zapApiClientToken = process.env.zapApiClientToken;
+    // Usar o número como path parameter conforme documentação
+    const zapApiUrl = `https://api.z-api.io/instances/${zapApiInstance}/token/${zapApiToken}/phone-exists/${cleanPhone}`;
+
+    console.log(`🔍 [Z-API] Verificando se número possui WhatsApp: ${cleanPhone}`);
+    console.log(`🔍 [Z-API] URL: ${zapApiUrl}`);
+
+    const response = await axios.get(zapApiUrl, {
+      headers: {
+        'client-token': zapApiClientToken
+      }
+    });
+
+    console.log(`📋 [Z-API] Resposta completa:`, JSON.stringify(response.data, null, 2));
+    
+    const exists = response.data?.exists === true;
+    console.log(`✅ [Z-API] Número ${exists ? 'possui' : 'não possui'} WhatsApp: ${cleanPhone}`);
+    
+    return { 
+      success: true, 
+      exists,
+      response: response.data 
+    };
+  } catch (error) {
+    console.error('❌ [Z-API] Erro ao verificar número:', error.response?.data || error.message);
+    console.error('❌ [Z-API] Detalhes do erro:', error.response?.status, error.response?.statusText);
+    return { 
+      success: false, 
+      exists: false, 
+      error: error.message 
+    };
+  }
+}
+
 // Função para enviar mensagem via WhatsApp usando a Z-API
 async function sendWhatsAppMessageZApi(phone, message) {
   try {
@@ -34,6 +81,7 @@ async function sendWhatsAppMessageZApi(phone, message) {
   }
 }
 
+
 // Serviço para notificação de confirmação de entrega
 const sendDeliveredConfirmationNotification = async (order) => {
   try {
@@ -46,8 +94,7 @@ const sendDeliveredConfirmationNotification = async (order) => {
       return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
     }).join('\n') || 'Itens não disponíveis';
 
-    const customerMessage = `
-*Seu pedido #${order.id} foi entregue com sucesso!* 💜\n\nAgradecemos por escolher o melhor açaí! Esperamos que você saboreie cada colher.`;
+    const customerMessage = `*Seu pedido #${order.id} foi entregue com sucesso!* 💜\n\nAgradecemos por escolher o melhor açaí! Esperamos que você saboreie cada colher.`;
 
     // Buscar telefone do usuário (preferencial) ou telefone de entrega
     const customerPhone = order.usuario?.telefone || order.telefoneEntrega;
@@ -104,11 +151,16 @@ const sendPickupNotification = async (order) => {
     // Construir endereço da loja (pode vir de configurações)
     const storeAddress = "Rua da Loja, 123 - Centro"; // TODO: Pegar das configurações da loja
 
+    // Verificar se precisa de troco
+    const trocoInfo = order.precisaTroco && order.valorTroco 
+      ? `\n💰 *Troco para:* R$ ${parseFloat(order.valorTroco).toFixed(2)}`
+      : '';
+
     const customerMessage = `
 
  *Seu pedido #${order.id} está pronto para retirada!*
 
- *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+ 💰 *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}${trocoInfo}
  *Itens:* ${itemsList}
 
  ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
@@ -188,6 +240,24 @@ const sendDeliveryNotifications = async (order, deliverer) => {
     
     const address = addressParts.join(', ');
 
+    // Verificar se precisa de troco
+    const trocoInfo = order.precisaTroco && order.valorTroco 
+      ? `\n💰 *Troco para:* R$ ${parseFloat(order.valorTroco).toFixed(2)}`
+      : '';
+
+    // Verificar método de pagamento (pode estar em diferentes lugares)
+    const paymentMethod = order.pagamento?.metodo || order.metodoPagamento || order.paymentMethod || '';
+    let paymentInfo = '';
+    if (paymentMethod === 'PIX') {
+      paymentInfo = '*💳 Pagamento:* PIX - Pedido pago';
+    } else if (paymentMethod === 'CREDIT_CARD') {
+      paymentInfo = '*💳 Pagamento:* Cartão de Crédito - Pedido pago';
+    } else if (paymentMethod === 'CASH_ON_DELIVERY') {
+      paymentInfo = '*💵 Pagamento:* Dinheiro na entrega';
+    } else if (paymentMethod) {
+      paymentInfo = `*💳 Pagamento:* ${paymentMethod}`;
+    }
+
     // Mensagem para o entregador
     const delivererMessage = `
 *📋 Pedido: #${order.id}*
@@ -197,10 +267,17 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 
 *📍 Endereço:* ${address || 'Endereço não informado'}
 
-*Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
 *Itens:* ${itemsList}
 
+💰 *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}${trocoInfo}
+${paymentInfo ? `\n${paymentInfo}` : ''}
+
     `.trim();
+
+    // Verificar se precisa de troco (para mensagem do cliente também)
+    const trocoInfoCliente = order.precisaTroco && order.valorTroco 
+      ? `\n💰 *Troco para:* R$ ${parseFloat(order.valorTroco).toFixed(2)}`
+      : '';
 
     // Mensagem para o cliente
     const customerMessage = `
@@ -211,7 +288,7 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 
 *📍 Endereço:* ${address || 'Endereço não informado'}
 
-*Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}
+💰 *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}${trocoInfoCliente}
 
 *Obrigado pela preferência!* 💜
     `.trim();
@@ -295,11 +372,17 @@ const sendPaymentConfirmationNotification = async (order) => {
       return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
     }).join('\n') || 'Itens não disponíveis';
 
+    // Verificar se precisa de troco
+    const trocoInfo = order.precisaTroco && order.valorTroco 
+      ? `\n💰 *Troco para:* R$ ${parseFloat(order.valorTroco).toFixed(2)}`
+      : '';
+
     const customerMessage = `
 *Seu pagamento foi confirmado com sucesso!✅*
 
 *Pedido #${order.id}*
-*Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+💰 *Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}${trocoInfo}
+
 *Itens:* ${itemsList}
 
 *Seu pedido já está em preparo!*
@@ -365,6 +448,11 @@ const sendCookNotification = async (order, cook) => {
       return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
     }).join('\n') || 'Itens não disponíveis';
 
+    // Verificar se precisa de troco
+    const trocoInfo = order.precisaTroco && order.valorTroco 
+      ? `\n💰 *Troco para:* R$ ${parseFloat(order.valorTroco).toFixed(2)}`
+      : '';
+
     // Mensagem para o cozinheiro
     const cookMessage = `
  *NOVO PEDIDO PARA PREPARAR*
@@ -372,7 +460,7 @@ const sendCookNotification = async (order, cook) => {
  *Pedido:* #${order.id}
  *Cliente:* ${order.usuario?.nomeUsuario || 'N/A'}
 ${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
-*💰 Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}
+💰 *Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}${trocoInfo}
 
 *🍽️ ITENS DO PEDIDO:*
 ${itemsList}
@@ -442,7 +530,7 @@ const sendOrderCancellationNotification = async (order, reason) => {
     const customerMessage = `
 *Seu pedido #${order.id} foi cancelado* ❌
 
-*Valor do pedido:* R$ ${parseFloat(totalPrice).toFixed(2)}
+💰 *Valor do pedido:* R$ ${parseFloat(totalPrice).toFixed(2)}
 *Itens:* ${itemsList}
 
 ${paymentMethod === 'PIX' ? 
@@ -511,9 +599,9 @@ const sendOrderEditNotification = async (order, oldTotal, newTotal, editReason) 
     const customerMessage = `
 *Seu pedido #${order.id} foi editado* ✏️
 
-*Valor anterior:* R$ ${parseFloat(oldTotal).toFixed(2)}
-*Novo valor:* R$ ${parseFloat(newTotal).toFixed(2)}
-*Diferença:* ${differenceText}
+💰 *Valor anterior:* R$ ${parseFloat(oldTotal).toFixed(2)}
+💰 *Novo valor:* R$ ${parseFloat(newTotal).toFixed(2)}
+💰 *Diferença:* ${differenceText}
 
 ${editReason ? `*Motivo da alteração:*\n${editReason}\n` : ''}
 
@@ -563,5 +651,6 @@ module.exports = {
   sendDeliveredConfirmationNotification,
   sendOrderCancellationNotification,
   sendOrderEditNotification,
-  sendWhatsAppMessageZApi
+  sendWhatsAppMessageZApi,
+  checkPhoneExistsWhatsApp
 };

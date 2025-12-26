@@ -5,9 +5,17 @@ const prisma = new PrismaClient();
 const { authenticateToken, authorize } = require('./auth');
 
 // Função auxiliar para obter início e fim do dia (usando fuso horário do Brasil - America/Sao_Paulo)
-function getStartAndEndOfDay(date = new Date()) {
-  // Obter a data atual no fuso horário do Brasil
-  const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+function getStartAndEndOfDay(date = new Date(), day = null, month = null, year = null) {
+  let targetDate = date;
+  
+  // Se day, month e year foram fornecidos, usar esses valores, senão usar a data fornecida
+  if (day !== null && month !== null && year !== null) {
+    // month é 0-indexed (0 = Janeiro, 11 = Dezembro)
+    targetDate = new Date(year, month, day);
+  }
+  
+  // Obter a data no fuso horário do Brasil
+  const brasilNow = new Date(targetDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   
   // Criar início do dia (00:00:00) no fuso horário do Brasil
   const startBrasil = new Date(brasilNow);
@@ -42,6 +50,66 @@ function getStartAndEndOfWeek(date = new Date()) {
   // Criar fim da semana (domingo) no fuso horário do Brasil
   const endBrasil = new Date(startBrasil);
   endBrasil.setDate(startBrasil.getDate() + 6); // Domingo
+  endBrasil.setHours(23, 59, 59, 999);
+  
+  // Converter para UTC (MySQL armazena em UTC)
+  const offsetHours = 3; // UTC-3
+  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  
+  return { start, end };
+}
+
+// Função auxiliar para obter início e fim do mês (usando fuso horário do Brasil)
+function getStartAndEndOfMonth(date = new Date(), month = null, year = null) {
+  let targetYear, targetMonth;
+  
+  // Se month e year foram fornecidos, usar esses valores, senão usar a data atual
+  if (month !== null && year !== null) {
+    targetYear = year;
+    targetMonth = month; // month é 0-indexed (0 = Janeiro, 11 = Dezembro)
+  } else {
+    // Obter a data atual no fuso horário do Brasil
+    const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    targetYear = brasilNow.getFullYear();
+    targetMonth = brasilNow.getMonth();
+  }
+  
+  // Criar início do mês (dia 1, 00:00:00) no fuso horário do Brasil
+  const startBrasil = new Date(targetYear, targetMonth, 1);
+  startBrasil.setHours(0, 0, 0, 0);
+  
+  // Criar fim do mês (último dia, 23:59:59.999) no fuso horário do Brasil
+  const endBrasil = new Date(targetYear, targetMonth + 1, 0);
+  endBrasil.setHours(23, 59, 59, 999);
+  
+  // Converter para UTC (MySQL armazena em UTC)
+  const offsetHours = 3; // UTC-3
+  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  
+  return { start, end };
+}
+
+// Função auxiliar para obter início e fim do ano (usando fuso horário do Brasil)
+function getStartAndEndOfYear(date = new Date(), year = null) {
+  let targetYear;
+  
+  // Se year foi fornecido, usar esse valor, senão usar o ano da data fornecida
+  if (year !== null) {
+    targetYear = year;
+  } else {
+    // Obter a data atual no fuso horário do Brasil
+    const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    targetYear = brasilNow.getFullYear();
+  }
+  
+  // Criar início do ano (1º de janeiro, 00:00:00) no fuso horário do Brasil
+  const startBrasil = new Date(targetYear, 0, 1);
+  startBrasil.setHours(0, 0, 0, 0);
+  
+  // Criar fim do ano (31 de dezembro, 23:59:59.999) no fuso horário do Brasil
+  const endBrasil = new Date(targetYear, 11, 31);
   endBrasil.setHours(23, 59, 59, 999);
   
   // Converter para UTC (MySQL armazena em UTC)
@@ -121,15 +189,11 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
       }
     });
 
-    // 5. Produtos mais vendidos
+    // 5. Produtos mais vendidos (acumulativo - todos os tempos)
     const topProducts = await prisma.item_pedido.groupBy({
       by: ['produtoId'],
       where: {
         pedido: {
-          criadoEm: {
-            gte: weekStart,
-            lte: weekEnd
-          },
           status: {
             in: ['being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered']
           }
@@ -333,6 +397,346 @@ router.get('/metrics', authenticateToken, authorize('admin'), async (req, res) =
     console.error('[Dashboard] Error name:', error.name);
     console.error('[Dashboard] Error message:', error.message);
     console.error('[Dashboard] Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+});
+
+// Rota para obter métricas por período (daily, weekly, monthly, yearly)
+router.get('/metrics/:period', authenticateToken, authorize('admin'), async (req, res) => {
+  try {
+    const { period } = req.params; // daily, weekly, monthly, yearly
+    const { month, year } = req.query; // month (0-11) e year para período monthly
+    const today = new Date();
+    
+    let start, end;
+    let periodName = '';
+    
+    switch (period) {
+      case 'daily':
+        // Se day, month e year foram fornecidos, usar esses valores
+        if (req.query.day !== undefined && req.query.month !== undefined && req.query.year !== undefined) {
+          const dayNum = parseInt(req.query.day, 10);
+          const monthNum = parseInt(req.query.month, 10);
+          const yearNum = parseInt(req.query.year, 10);
+          
+          // Validações básicas
+          if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum) || 
+              monthNum < 0 || monthNum > 11 || dayNum < 1 || dayNum > 31) {
+            return res.status(400).json({ error: 'Data inválida. Dia deve ser 1-31, mês 0-11 e ano um número válido' });
+          }
+          
+          // Verificar se a data é válida (ex: não permitir 31 de fevereiro)
+          const testDate = new Date(yearNum, monthNum, dayNum);
+          if (testDate.getDate() !== dayNum || testDate.getMonth() !== monthNum || testDate.getFullYear() !== yearNum) {
+            return res.status(400).json({ error: 'Data inválida. Verifique se o dia existe no mês selecionado' });
+          }
+          
+          ({ start, end } = getStartAndEndOfDay(today, dayNum, monthNum, yearNum));
+          const formattedDate = new Date(yearNum, monthNum, dayNum).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+          periodName = formattedDate;
+        } else {
+          ({ start, end } = getStartAndEndOfDay(today));
+          periodName = 'Dia';
+        }
+        break;
+      case 'weekly':
+        ({ start, end } = getStartAndEndOfWeek(today));
+        periodName = 'Semana';
+        break;
+      case 'monthly':
+        // Se month e year foram fornecidos, usar esses valores
+        if (month !== undefined && year !== undefined) {
+          const monthNum = parseInt(month, 10);
+          const yearNum = parseInt(year, 10);
+          if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 0 || monthNum > 11) {
+            return res.status(400).json({ error: 'Mês deve ser entre 0-11 e ano deve ser um número válido' });
+          }
+          ({ start, end } = getStartAndEndOfMonth(today, monthNum, yearNum));
+          const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+          periodName = `${monthNames[monthNum]} ${yearNum}`;
+        } else {
+          ({ start, end } = getStartAndEndOfMonth(today));
+          periodName = 'Mês';
+        }
+        break;
+      case 'yearly':
+        // Se year foi fornecido, usar esse valor
+        if (req.query.year !== undefined) {
+          const yearNum = parseInt(req.query.year, 10);
+          if (isNaN(yearNum)) {
+            return res.status(400).json({ error: 'Ano deve ser um número válido' });
+          }
+          ({ start, end } = getStartAndEndOfYear(today, yearNum));
+          periodName = yearNum.toString();
+        } else {
+          ({ start, end } = getStartAndEndOfYear(today));
+          periodName = 'Ano';
+        }
+        break;
+      default:
+        return res.status(400).json({ error: 'Período inválido. Use: daily, weekly, monthly ou yearly' });
+    }
+
+    console.log(`[Dashboard] Buscando métricas para período: ${periodName}`);
+    console.log(`[Dashboard] Data início (UTC): ${start.toISOString()}`);
+    console.log(`[Dashboard] Data fim (UTC): ${end.toISOString()}`);
+    console.log(`[Dashboard] Data início (Brasil): ${start.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    console.log(`[Dashboard] Data fim (Brasil): ${end.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+
+    // Faturamento do período
+    const periodRevenue = await prisma.pedido.aggregate({
+      where: {
+        criadoEm: {
+          gte: start,
+          lte: end
+        },
+        status: {
+          in: ['being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered']
+        }
+      },
+      _sum: {
+        precoTotal: true
+      }
+    });
+
+    // Número de vendas do período
+    const periodSales = await prisma.pedido.count({
+      where: {
+        criadoEm: {
+          gte: start,
+          lte: end
+        },
+        status: {
+          in: ['being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered']
+        }
+      }
+    });
+
+    console.log(`[Dashboard] Receita encontrada: ${periodRevenue._sum.precoTotal || 0}`);
+    console.log(`[Dashboard] Pedidos encontrados: ${periodSales}`);
+
+    // Ticket médio do período
+    const periodTicketAverage = periodSales > 0 ? 
+      parseFloat((parseFloat(periodRevenue._sum.precoTotal || 0) / periodSales).toFixed(2)) : 0;
+
+    res.json({
+      period: periodName,
+      revenue: parseFloat(periodRevenue._sum.precoTotal || 0),
+      sales: periodSales,
+      ticketAverage: periodTicketAverage
+    });
+
+  } catch (error) {
+    console.error('[Dashboard] Erro ao buscar métricas do período:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+});
+
+// Rota para obter produtos mais vendidos (acumulativo - padrão)
+router.get('/top-products', authenticateToken, authorize('admin'), async (req, res) => {
+  try {
+    // Não aplica filtro de data (acumulativo)
+    const whereFilter = {
+      pedido: {
+        status: {
+          in: ['being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered']
+        }
+      }
+    };
+    
+    // Buscar produtos mais vendidos
+    const topProducts = await prisma.item_pedido.groupBy({
+      by: ['produtoId'],
+      where: whereFilter,
+      _sum: {
+        quantidade: true
+      },
+      _count: {
+        produtoId: true
+      },
+      orderBy: {
+        _sum: {
+          quantidade: 'desc'
+        }
+      },
+      take: 5
+    });
+    
+    // Buscar detalhes dos produtos
+    const topProductsWithDetails = await Promise.all(
+      topProducts.map(async (item) => {
+        const product = await prisma.produto.findUnique({
+          where: { id: item.produtoId },
+          select: { id: true, nome: true, preco: true }
+        });
+        
+        if (!product) {
+          return {
+            id: item.produtoId,
+            name: 'Produto não encontrado',
+            price: 0,
+            quantitySold: Number(item._sum.quantidade) || 0,
+            orderCount: Number(item._count.produtoId) || 0
+          };
+        }
+        
+        return {
+          id: product.id,
+          name: product.nome,
+          price: Number(product.preco) || 0,
+          quantitySold: Number(item._sum.quantidade) || 0,
+          orderCount: Number(item._count.produtoId) || 0
+        };
+      })
+    );
+    
+    res.json(topProductsWithDetails);
+    
+  } catch (error) {
+    console.error('[Dashboard] Erro ao buscar produtos mais vendidos:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+});
+
+// Rota para obter produtos mais vendidos por período específico
+router.get('/top-products/:period', authenticateToken, authorize('admin'), async (req, res) => {
+  try {
+    const period = req.params.period; // daily, weekly, monthly, yearly
+    const { day, month, year } = req.query;
+    const today = new Date();
+    
+    let start = null, end = null;
+    
+    // Determinar as datas baseado no período
+    switch (period) {
+      case 'daily':
+        if (day !== undefined && month !== undefined && year !== undefined) {
+          const dayNum = parseInt(day, 10);
+          const monthNum = parseInt(month, 10);
+          const yearNum = parseInt(year, 10);
+          
+          if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum) || 
+              monthNum < 0 || monthNum > 11 || dayNum < 1 || dayNum > 31) {
+            return res.status(400).json({ error: 'Data inválida' });
+          }
+          
+          const testDate = new Date(yearNum, monthNum, dayNum);
+          if (testDate.getDate() !== dayNum || testDate.getMonth() !== monthNum || testDate.getFullYear() !== yearNum) {
+            return res.status(400).json({ error: 'Data inválida' });
+          }
+          
+          ({ start, end } = getStartAndEndOfDay(today, dayNum, monthNum, yearNum));
+        } else {
+          ({ start, end } = getStartAndEndOfDay(today));
+        }
+        break;
+      case 'weekly':
+        ({ start, end } = getStartAndEndOfWeek(today));
+        break;
+      case 'monthly':
+        if (month !== undefined && year !== undefined) {
+          const monthNum = parseInt(month, 10);
+          const yearNum = parseInt(year, 10);
+          if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 0 || monthNum > 11) {
+            return res.status(400).json({ error: 'Mês e ano inválidos' });
+          }
+          ({ start, end } = getStartAndEndOfMonth(today, monthNum, yearNum));
+        } else {
+          ({ start, end } = getStartAndEndOfMonth(today));
+        }
+        break;
+      case 'yearly':
+        if (year !== undefined) {
+          const yearNum = parseInt(year, 10);
+          if (isNaN(yearNum)) {
+            return res.status(400).json({ error: 'Ano inválido' });
+          }
+          ({ start, end } = getStartAndEndOfYear(today, yearNum));
+        } else {
+          ({ start, end } = getStartAndEndOfYear(today));
+        }
+        break;
+      default:
+        return res.status(400).json({ error: 'Período inválido. Use: daily, weekly, monthly ou yearly' });
+    }
+    
+    // Construir filtro de where
+    const whereFilter = {
+      pedido: {
+        status: {
+          in: ['being_prepared', 'ready_for_pickup', 'on_the_way', 'delivered']
+        },
+        criadoEm: {
+          gte: start,
+          lte: end
+        }
+      }
+    };
+    
+    // Buscar produtos mais vendidos
+    const topProducts = await prisma.item_pedido.groupBy({
+      by: ['produtoId'],
+      where: whereFilter,
+      _sum: {
+        quantidade: true
+      },
+      _count: {
+        produtoId: true
+      },
+      orderBy: {
+        _sum: {
+          quantidade: 'desc'
+        }
+      },
+      take: 5
+    });
+    
+    // Buscar detalhes dos produtos
+    const topProductsWithDetails = await Promise.all(
+      topProducts.map(async (item) => {
+        const product = await prisma.produto.findUnique({
+          where: { id: item.produtoId },
+          select: { id: true, nome: true, preco: true }
+        });
+        
+        if (!product) {
+          return {
+            id: item.produtoId,
+            name: 'Produto não encontrado',
+            price: 0,
+            quantitySold: Number(item._sum.quantidade) || 0,
+            orderCount: Number(item._count.produtoId) || 0
+          };
+        }
+        
+        return {
+          id: product.id,
+          name: product.nome,
+          price: Number(product.preco) || 0,
+          quantitySold: Number(item._sum.quantidade) || 0,
+          orderCount: Number(item._count.produtoId) || 0
+        };
+      })
+    );
+    
+    res.json(topProductsWithDetails);
+    
+  } catch (error) {
+    console.error('[Dashboard] Erro ao buscar produtos mais vendidos:', error);
     res.status(500).json({ 
       error: 'Erro interno do servidor', 
       details: error.message 

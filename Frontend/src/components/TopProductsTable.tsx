@@ -16,17 +16,12 @@ const TopProductsTable: React.FC<TopProductsTableProps> = ({ products }) => {
 
   if (!products || products.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Produtos Mais Vendidos</h3>
-        <p className="text-gray-500 text-center py-8">Nenhum produto vendido ainda</p>
-      </div>
+      <p className="text-gray-500 text-center py-8">Nenhum produto vendido ainda</p>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Produtos Mais Vendidos</h3>
-      <div className="overflow-x-auto">
+    <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -85,7 +80,6 @@ const TopProductsTable: React.FC<TopProductsTableProps> = ({ products }) => {
             ))}
           </tbody>
         </table>
-      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   DollarSign, 
   ShoppingCart, 
@@ -8,17 +8,42 @@ import {
   Target
 } from 'lucide-react';
 import { apiService } from '../../services/api';
-import { DashboardMetrics } from '../../types';
+import { DashboardMetrics, TopProduct } from '../../types';
 import MetricCard from '../../components/MetricCard';
 import TopProductsTable from '../../components/TopProductsTable';
 import WeeklyChart from '../../components/WeeklyChart';
 import OrderStatusOverview from '../../components/OrderStatusOverview';
+
+type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+interface PeriodMetrics {
+  period: string;
+  revenue: number;
+  sales: number;
+  ticketAverage: number;
+}
 
 const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('weekly');
+  const [periodMetrics, setPeriodMetrics] = useState<PeriodMetrics | null>(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
+  const [selectedYearForYearly, setSelectedYearForYearly] = useState<number>(new Date().getFullYear());
+  
+  // Estados para produtos mais vendidos
+  const [topProductsPeriod, setTopProductsPeriod] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('all');
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [topProductsLoading, setTopProductsLoading] = useState(false);
+  const [topProductsMonth, setTopProductsMonth] = useState<number>(new Date().getMonth());
+  const [topProductsYear, setTopProductsYear] = useState<number>(new Date().getFullYear());
+  const [topProductsDay, setTopProductsDay] = useState<number>(new Date().getDate());
+  const [topProductsYearForYearly, setTopProductsYearForYearly] = useState<number>(new Date().getFullYear());
 
   const fetchMetrics = async () => {
     try {
@@ -35,9 +60,86 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Função para obter o número de dias em um mês
+  const getDaysInMonth = (month: number, year: number): number => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const fetchPeriodMetrics = useCallback(async (period: Period, month?: number, year?: number, day?: number) => {
+    try {
+      setPeriodLoading(true);
+      const data = await apiService.getPeriodMetrics(period, month, year, day);
+      setPeriodMetrics(data);
+    } catch (err) {
+      console.error('Erro ao carregar métricas do período:', err);
+    } finally {
+      setPeriodLoading(false);
+    }
+  }, []);
+
+  const fetchTopProducts = useCallback(async (
+    period: 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly',
+    month?: number,
+    year?: number,
+    day?: number
+  ) => {
+    try {
+      setTopProductsLoading(true);
+      const data = await apiService.getTopProducts(period, month, year, day);
+      setTopProducts(data);
+    } catch (err) {
+      console.error('Erro ao carregar produtos mais vendidos:', err);
+      setTopProducts([]);
+    } finally {
+      setTopProductsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMetrics();
-  }, []);
+    fetchTopProducts('all'); // Carregar produtos acumulativos por padrão
+  }, [fetchTopProducts]);
+
+  // Ajustar o dia selecionado quando o mês ou ano muda (para evitar dias inválidos como 31 de fevereiro)
+  useEffect(() => {
+    if (selectedPeriod === 'daily') {
+      const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+      if (selectedDay > daysInMonth) {
+        setSelectedDay(daysInMonth);
+      }
+    }
+    if (topProductsPeriod === 'daily') {
+      const daysInMonth = getDaysInMonth(topProductsMonth, topProductsYear);
+      if (topProductsDay > daysInMonth) {
+        setTopProductsDay(daysInMonth);
+      }
+    }
+  }, [selectedMonth, selectedYear, selectedPeriod, selectedDay, topProductsMonth, topProductsYear, topProductsPeriod, topProductsDay]);
+
+  // Buscar produtos mais vendidos quando o período muda
+  useEffect(() => {
+    if (topProductsPeriod === 'monthly') {
+      fetchTopProducts(topProductsPeriod, topProductsMonth, topProductsYear);
+    } else if (topProductsPeriod === 'daily') {
+      fetchTopProducts(topProductsPeriod, topProductsMonth, topProductsYear, topProductsDay);
+    } else if (topProductsPeriod === 'yearly') {
+      fetchTopProducts(topProductsPeriod, undefined, topProductsYearForYearly);
+    } else {
+      fetchTopProducts(topProductsPeriod);
+    }
+  }, [topProductsPeriod, topProductsMonth, topProductsYear, topProductsDay, topProductsYearForYearly, fetchTopProducts]);
+
+  useEffect(() => {
+    if (selectedPeriod === 'monthly') {
+      fetchPeriodMetrics(selectedPeriod, selectedMonth, selectedYear);
+    } else if (selectedPeriod === 'daily') {
+      fetchPeriodMetrics(selectedPeriod, selectedMonth, selectedYear, selectedDay);
+    } else if (selectedPeriod === 'yearly') {
+      fetchPeriodMetrics(selectedPeriod, undefined, selectedYearForYearly);
+    } else {
+      fetchPeriodMetrics(selectedPeriod);
+    }
+  }, [selectedPeriod, selectedMonth, selectedYear, selectedDay, selectedYearForYearly, fetchPeriodMetrics]);
 
   const formatLastUpdate = () => {
     return new Intl.DateTimeFormat('pt-BR', {
@@ -161,60 +263,424 @@ const Dashboard: React.FC = () => {
             title="Vendas da Semana"
           />
 
-          {/* Faturamento Semanal */}
+          {/* Resumo por Período */}
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Resumo Semanal</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Resumo de Faturamento</h3>
               <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
             </div>
             
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-green-50 rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-green-700">Faturamento Total da Semana</p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-900">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    }).format(metrics.weekly.revenue)}
-                  </p>
-                </div>
-                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
+            {/* Period Selector */}
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  onClick={() => setSelectedPeriod('daily')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    selectedPeriod === 'daily'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Diário
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('weekly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    selectedPeriod === 'weekly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Semanal
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('monthly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    selectedPeriod === 'monthly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Mensal
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('yearly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    selectedPeriod === 'yearly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Anual
+                </button>
               </div>
+              
+              {/* Date Selector for Daily Period */}
+              {selectedPeriod === 'daily' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar data:
+                  </label>
+                  <select
+                    value={selectedDay}
+                    onChange={(e) => setSelectedDay(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: getDaysInMonth(selectedMonth, selectedYear) }, (_, i) => {
+                      const day = i + 1;
+                      return (
+                        <option key={day} value={day}>
+                          {day.toString().padStart(2, '0')}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={0}>Janeiro</option>
+                    <option value={1}>Fevereiro</option>
+                    <option value={2}>Março</option>
+                    <option value={3}>Abril</option>
+                    <option value={4}>Maio</option>
+                    <option value={5}>Junho</option>
+                    <option value={6}>Julho</option>
+                    <option value={7}>Agosto</option>
+                    <option value={8}>Setembro</option>
+                    <option value={9}>Outubro</option>
+                    <option value={10}>Novembro</option>
+                    <option value={11}>Dezembro</option>
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-blue-50 rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-blue-700">Total de Pedidos na Semana</p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-900">
-                    {metrics.weekly.data.reduce((sum, day) => sum + day.orders, 0)}
-                  </p>
+              {/* Month/Year Selector for Monthly Period */}
+              {selectedPeriod === 'monthly' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar mês:
+                  </label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={0}>Janeiro</option>
+                    <option value={1}>Fevereiro</option>
+                    <option value={2}>Março</option>
+                    <option value={3}>Abril</option>
+                    <option value={4}>Maio</option>
+                    <option value={5}>Junho</option>
+                    <option value={6}>Julho</option>
+                    <option value={7}>Agosto</option>
+                    <option value={8}>Setembro</option>
+                    <option value={9}>Outubro</option>
+                    <option value={10}>Novembro</option>
+                    <option value={11}>Dezembro</option>
+                  </select>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-                <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
-              </div>
+              )}
 
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-purple-50 rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-purple-700">Ticket Médio da Semana</p>
-                  <p className="text-lg sm:text-2xl font-bold text-purple-900">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    }).format(
-                      metrics.weekly.data.reduce((sum, day) => sum + day.orders, 0) > 0
-                        ? metrics.weekly.revenue / metrics.weekly.data.reduce((sum, day) => sum + day.orders, 0)
-                        : 0
-                    )}
-                  </p>
+              {/* Year Selector for Yearly Period */}
+              {selectedPeriod === 'yearly' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar ano:
+                  </label>
+                  <select
+                    value={selectedYearForYearly}
+                    onChange={(e) => setSelectedYearForYearly(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-                <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0 ml-2" />
-              </div>
+              )}
             </div>
+
+            {periodLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : periodMetrics ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-green-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-green-700">
+                      Faturamento Total do {periodMetrics.period}
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(periodMetrics.revenue)}
+                    </p>
+                  </div>
+                  <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
+                </div>
+
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-blue-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-blue-700">
+                      Total de Pedidos do {periodMetrics.period}
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-blue-900">
+                      {periodMetrics.sales}
+                    </p>
+                  </div>
+                  <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
+                </div>
+
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-purple-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-purple-700">
+                      Ticket Médio do {periodMetrics.period}
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(periodMetrics.ticketAverage)}
+                    </p>
+                  </div>
+                  <Target className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0 ml-2" />
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 text-sm">
+                Nenhum dado disponível
+              </div>
+            )}
           </div>
         </div>
 
         {/* Produtos Mais Vendidos */}
         <div className="mb-4">
-          <TopProductsTable products={metrics.topProducts} />
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Produtos Mais Vendidos</h3>
+            </div>
+            
+            {/* Period Selector */}
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  onClick={() => setTopProductsPeriod('all')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    topProductsPeriod === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Geral
+                </button>
+                <button
+                  onClick={() => setTopProductsPeriod('daily')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    topProductsPeriod === 'daily'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Diário
+                </button>
+                <button
+                  onClick={() => setTopProductsPeriod('weekly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    topProductsPeriod === 'weekly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Semanal
+                </button>
+                <button
+                  onClick={() => setTopProductsPeriod('monthly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    topProductsPeriod === 'monthly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Mensal
+                </button>
+                <button
+                  onClick={() => setTopProductsPeriod('yearly')}
+                  className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                    topProductsPeriod === 'yearly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Anual
+                </button>
+              </div>
+              
+              {/* Date Selector for Daily Period */}
+              {topProductsPeriod === 'daily' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar data:
+                  </label>
+                  <select
+                    value={topProductsDay}
+                    onChange={(e) => setTopProductsDay(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: getDaysInMonth(topProductsMonth, topProductsYear) }, (_, i) => {
+                      const day = i + 1;
+                      return (
+                        <option key={day} value={day}>
+                          {day.toString().padStart(2, '0')}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <select
+                    value={topProductsMonth}
+                    onChange={(e) => setTopProductsMonth(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={0}>Janeiro</option>
+                    <option value={1}>Fevereiro</option>
+                    <option value={2}>Março</option>
+                    <option value={3}>Abril</option>
+                    <option value={4}>Maio</option>
+                    <option value={5}>Junho</option>
+                    <option value={6}>Julho</option>
+                    <option value={7}>Agosto</option>
+                    <option value={8}>Setembro</option>
+                    <option value={9}>Outubro</option>
+                    <option value={10}>Novembro</option>
+                    <option value={11}>Dezembro</option>
+                  </select>
+                  <select
+                    value={topProductsYear}
+                    onChange={(e) => setTopProductsYear(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {/* Month/Year Selector for Monthly Period */}
+              {topProductsPeriod === 'monthly' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar mês:
+                  </label>
+                  <select
+                    value={topProductsMonth}
+                    onChange={(e) => setTopProductsMonth(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={0}>Janeiro</option>
+                    <option value={1}>Fevereiro</option>
+                    <option value={2}>Março</option>
+                    <option value={3}>Abril</option>
+                    <option value={4}>Maio</option>
+                    <option value={5}>Junho</option>
+                    <option value={6}>Julho</option>
+                    <option value={7}>Agosto</option>
+                    <option value={8}>Setembro</option>
+                    <option value={9}>Outubro</option>
+                    <option value={10}>Novembro</option>
+                    <option value={11}>Dezembro</option>
+                  </select>
+                  <select
+                    value={topProductsYear}
+                    onChange={(e) => setTopProductsYear(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {/* Year Selector for Yearly Period */}
+              {topProductsPeriod === 'yearly' && (
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    Selecionar ano:
+                  </label>
+                  <select
+                    value={topProductsYearForYearly}
+                    onChange={(e) => setTopProductsYearForYearly(parseInt(e.target.value, 10))}
+                    className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const year = new Date().getFullYear() - 2 + i;
+                      return (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {topProductsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <TopProductsTable products={topProducts} />
+            )}
+          </div>
         </div>
 
         {/* Insights e Dicas */}
