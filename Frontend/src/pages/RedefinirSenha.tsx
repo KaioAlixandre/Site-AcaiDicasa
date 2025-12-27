@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Lock, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff, Phone } from 'lucide-react';
+import { Lock, ArrowLeft, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import Loading from '../components/Loading';
 import { applyPhoneMask, validatePhoneLocal } from '../utils/phoneValidation';
 

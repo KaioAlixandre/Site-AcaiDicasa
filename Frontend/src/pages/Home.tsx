@@ -4,7 +4,7 @@ import { Star, Truck, Heart, ShoppingCart, Instagram, MessageCircle, Package, Cl
 import apiService from '../services/api';
 import { Product, ProductCategory } from '../types';
 import Loading from '../components/Loading';
-import { checkStoreStatus, StoreConfig } from '../utils/storeUtils';
+import { checkStoreStatus } from '../utils/storeUtils';
 
 const Home: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -12,7 +12,6 @@ const Home: React.FC = () => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [storeStatusMessage, setStoreStatusMessage] = useState<string>('');
   const [promoFreteAtiva, setPromoFreteAtiva] = useState(false);
@@ -68,7 +67,6 @@ const Home: React.FC = () => {
         setAllProducts(active);
         
         setCategories(categoriesData);
-        setStoreConfig(storeData);
         storeConfigData = storeData;
         
         // Verificar se a loja está aberta com base no horário
