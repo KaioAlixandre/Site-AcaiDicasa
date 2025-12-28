@@ -252,6 +252,7 @@ export interface Deliverer {
   email?: string;
   isActive: boolean;
   createdAt: string;
+  deliveriesCount?: number;
 }
 
 // Dashboard related types

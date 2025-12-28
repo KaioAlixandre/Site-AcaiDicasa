@@ -14,7 +14,14 @@ const removePhoneMask = (phone) => {
 router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
   try {
     const deliverers = await prisma.entregador.findMany({
-      orderBy: { criadoEm: 'desc' }
+      orderBy: { criadoEm: 'desc' },
+      include: {
+        pedidos: {
+          where: {
+            status: 'delivered'
+          }
+        }
+      }
     });
 
     // Transformar campos do português para inglês
@@ -25,7 +32,8 @@ router.get('/', authenticateToken, authorize('admin'), async (req, res) => {
       email: deliverer.email,
       isActive: deliverer.ativo,
       createdAt: deliverer.criadoEm,
-      updatedAt: deliverer.atualizadoEm
+      updatedAt: deliverer.atualizadoEm,
+      deliveriesCount: deliverer.pedidos.length
     }));
 
     res.json(transformedDeliverers);
