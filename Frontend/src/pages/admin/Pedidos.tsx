@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign, Edit, Trash2, Plus, Save } from 'lucide-react';
+import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign, Edit, Trash2, Plus, Save, List } from 'lucide-react';
 import { Order, Product } from '../../types';
 import { printOrderReceipt } from '../../utils/printOrderReceipt';
 import apiService from '../../services/api';
@@ -64,6 +64,7 @@ const Pedidos: React.FC<{
   const [newItemQuantity, setNewItemQuantity] = useState<number>(1);
   const [newItemPrice, setNewItemPrice] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showComplementsModal, setShowComplementsModal] = useState<{ orderId: number, itemId: number, complements: any[] } | null>(null);
 
   // Carregar produtos quando abrir modal de edição
   useEffect(() => {
@@ -504,35 +505,35 @@ const Pedidos: React.FC<{
                               
                               {/* Complementos de produtos personalizados */}
                               {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
-                                <div className="mt-0.5 sm:mt-1">
-                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos: </span>
-                                  <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5">
-                                    {customData.complementNames.map((complement: string, idx: number) => (
-                                      <span 
-                                        key={idx}
-                                        className="inline-flex items-center px-1 py-0.5 rounded text-[9px] sm:text-[10px] bg-green-50 text-green-700 border border-green-200"
-                                      >
-                                        {complement}
-                                      </span>
-                                    ))}
-                                  </div>
+                                <div className="mt-0.5 sm:mt-1 flex items-center gap-1.5">
+                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos:</span>
+                                  <button
+                                    onClick={() => setShowComplementsModal({ 
+                                      orderId: order.id, 
+                                      itemId: item.id, 
+                                      complements: customData.complementNames.map((name: string, idx: number) => ({ id: idx, name })) 
+                                    })}
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] sm:text-[9px] bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                                    title="Ver complementos"
+                                  >
+                                    <List className="w-2.5 h-2.5" />
+                                    <span>{customData.complementNames.length}</span>
+                                  </button>
                                 </div>
                               )}
                               
                               {/* Complementos regulares do produto */}
                               {item.complements && item.complements.length > 0 && (
-                                <div className="mt-0.5 sm:mt-1">
-                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos: </span>
-                                  <div className="flex flex-wrap gap-0.5 sm:gap-1 mt-0.5">
-                                    {item.complements.map((complement) => (
-                                      <span 
-                                        key={complement.id}
-                                        className="inline-flex items-center px-1 py-0.5 rounded text-[9px] sm:text-[10px] bg-purple-50 text-purple-700 border border-purple-200"
-                                      >
-                                        {complement.name}
-                                      </span>
-                                    ))}
-                                  </div>
+                                <div className="mt-0.5 sm:mt-1 flex items-center gap-1.5">
+                                  <span className="text-[9px] sm:text-[10px] text-slate-500">Complementos:</span>
+                                  <button
+                                    onClick={() => setShowComplementsModal({ orderId: order.id, itemId: item.id, complements: item.complements || [] })}
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] sm:text-[9px] bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                                    title="Ver complementos"
+                                  >
+                                    <List className="w-2.5 h-2.5" />
+                                    <span>{item.complements.length}</span>
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -812,16 +813,20 @@ const Pedidos: React.FC<{
                         {/* Complementos de produtos personalizados */}
                         {customData && customData.complementNames && Array.isArray(customData.complementNames) && customData.complementNames.length > 0 && (
                           <div className="mt-1 pt-1 border-t border-slate-200">
-                            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 mb-0.5 sm:mb-1">Complementos:</p>
-                            <div className="flex flex-wrap gap-0.5">
-                              {customData.complementNames.map((complement: string, idx: number) => (
-                                <span 
-                                  key={idx}
-                                  className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] bg-green-50 text-green-700 border border-green-200 font-medium break-all">
-                                
-                                  {complement}
-                                </span>
-                              ))}
+                            <div className="flex items-center gap-2">
+                              <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600">Complementos:</p>
+                              <button
+                                onClick={() => setShowComplementsModal({ 
+                                  orderId: selectedOrder.id, 
+                                  itemId: item.id, 
+                                  complements: customData.complementNames.map((name: string, idx: number) => ({ id: idx, name })) 
+                                })}
+                                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] sm:text-[9px] bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                                title="Ver complementos"
+                              >
+                                <List className="w-2.5 h-2.5" />
+                                <span>{customData.complementNames.length}</span>
+                              </button>
                             </div>
                           </div>
                         )}
@@ -829,16 +834,16 @@ const Pedidos: React.FC<{
                         {/* Complementos regulares do produto */}
                         {item.complements && item.complements.length > 0 && (
                           <div className="mt-1 pt-1 border-t border-slate-200">
-                            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 mb-0.5 sm:mb-1">Complementos:</p>
-                            <div className="flex flex-wrap gap-0.5">
-                              {item.complements.map((complement) => (
-                                <span 
-                                  key={complement.id}
-                                  className="inline-flex items-center px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] bg-purple-50 text-purple-700 border border-purple-200 font-medium break-all"
-                                >
-                                  {complement.name}
-                                </span>
-                              ))}
+                            <div className="flex items-center gap-2">
+                              <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600">Complementos:</p>
+                              <button
+                                onClick={() => setShowComplementsModal({ orderId: selectedOrder.id, itemId: item.id, complements: item.complements || [] })}
+                                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] sm:text-[9px] bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                                title="Ver complementos"
+                              >
+                                <List className="w-2.5 h-2.5" />
+                                <span>{item.complements.length}</span>
+                              </button>
                             </div>
                           </div>
                         )}
@@ -1050,6 +1055,48 @@ const Pedidos: React.FC<{
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Complementos */}
+      {showComplementsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <List className="w-5 h-5 text-purple-600" />
+                Complementos
+              </h3>
+              <button 
+                onClick={() => setShowComplementsModal(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {showComplementsModal.complements.map((complement: any) => (
+                <div
+                  key={complement.id}
+                  className="p-2 sm:p-3 bg-purple-50 border border-purple-200 rounded-lg"
+                >
+                  <span className="text-sm sm:text-base font-medium text-purple-800">
+                    {complement.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <button
+                onClick={() => setShowComplementsModal(null)}
+                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
