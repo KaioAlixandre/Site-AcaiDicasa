@@ -5,7 +5,13 @@ import {
   TrendingUp, 
   RefreshCw,
   Calendar,
-  Target
+  Target,
+  Lightbulb,
+  Trophy,
+  BarChart3,
+  CheckCircle,
+  Rocket,
+  AlertTriangle
 } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { DashboardMetrics, TopProduct } from '../../types';
@@ -686,28 +692,34 @@ const Dashboard: React.FC = () => {
         {/* Insights e Dicas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">💡 Insights</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-yellow-500" />
+              Insights
+            </h3>
             <div className="space-y-2 sm:space-y-3">
               {metrics.daily.revenueChange > 10 && (
-                <div className="p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200 flex items-start gap-2">
+                  <Rocket className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                   <p className="text-green-800 text-xs sm:text-sm">
-                    🚀 Excelente! O faturamento de hoje está {metrics.daily.revenueChange.toFixed(1)}% maior que ontem!
+                    Excelente! O faturamento de hoje está {metrics.daily.revenueChange.toFixed(1)}% maior que ontem!
                   </p>
                 </div>
               )}
               
               {metrics.topProducts.length > 0 && (
-                <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
+                  <Trophy className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-blue-800 text-xs sm:text-sm">
-                    🏆 Seu produto mais vendido é "{metrics.topProducts[0].name || 'Produto desconhecido'}" com {metrics.topProducts[0].quantitySold ?? 0} unidades vendidas!
+                    Seu produto mais vendido é "{metrics.topProducts[0].name || 'Produto desconhecido'}" com {metrics.topProducts[0].quantitySold ?? 0} unidades vendidas!
                   </p>
                 </div>
               )}
               
               {metrics.daily.ticketAverage > 0 && (
-                <div className="p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200 flex items-start gap-2">
+                  <DollarSign className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
                   <p className="text-purple-800 text-xs sm:text-sm">
-                    💰 Seu ticket médio hoje é de {new Intl.NumberFormat('pt-BR', {
+                    Seu ticket médio hoje é de {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL'
                     }).format(metrics.daily.ticketAverage)}
@@ -718,27 +730,33 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">📊 Próximas Ações</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-indigo-600" />
+              Próximas Ações
+            </h3>
             <div className="space-y-2 sm:space-y-3">
               {metrics.pendingOrders > 5 && (
-                <div className="p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                   <p className="text-yellow-800 text-xs sm:text-sm">
-                    ⚠️ Você tem muitos pedidos pendentes. Considere processar os mais antigos primeiro.
+                    Você tem muitos pedidos pendentes. Considere processar os mais antigos primeiro.
                   </p>
                 </div>
               )}
               
               {metrics.daily.sales === 0 && (
-                <div className="p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200 flex items-start gap-2">
+                  <TrendingUp className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
                   <p className="text-orange-800 text-xs sm:text-sm">
-                    📈 Ainda não houve vendas hoje. Que tal criar uma promoção especial?
+                    Ainda não houve vendas hoje. Que tal criar uma promoção especial?
                   </p>
                 </div>
               )}
               
-              <div className="p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <p className="text-gray-800 text-xs sm:text-sm">
-                  ✅ Continue acompanhando suas métricas diariamente para melhores resultados!
+                  Continue acompanhando suas métricas diariamente para melhores resultados!
                 </p>
               </div>
             </div>

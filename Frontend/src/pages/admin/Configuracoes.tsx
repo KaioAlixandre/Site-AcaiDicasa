@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
+import { Gift, Lightbulb } from 'lucide-react';
 
 const diasSemana = [
   { label: 'Dom', value: '0' },
@@ -214,7 +215,10 @@ const Configuracoes: React.FC = () => {
 
           {/* Seção de Promoção de Taxa de Entrega */}
           <div className="border-t border-slate-200 pt-6 mt-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">🎉 Promoção de Frete Grátis</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <Gift className="w-5 h-5 text-indigo-600" />
+              Promoção de Frete Grátis
+            </h3>
             
             <div className="flex items-center mb-4">
               <input
@@ -277,14 +281,15 @@ const Configuracoes: React.FC = () => {
                 </div>
 
                 <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                  <p className="text-sm text-indigo-800">
-                    <strong>💡 Resumo:</strong> {config.promocaoDias ? (
+                  <p className="text-sm text-indigo-800 flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                    <span><strong>Resumo:</strong> {config.promocaoDias ? (
                       <>
                         Frete grátis para pedidos de <strong>R$ {config.promocaoValorMinimo || '0,00'}</strong> ou mais nos dias selecionados.
                       </>
                     ) : (
                       'Selecione os dias e o valor mínimo para ativar a promoção.'
-                    )}
+                    )}</span>
                   </p>
                 </div>
               </div>

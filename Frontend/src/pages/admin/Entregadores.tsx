@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 import { Deliverer } from '../../types';
-import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X, Truck } from 'lucide-react';
 import { applyPhoneMask, validatePhoneWithAPI, removePhoneMask } from '../../utils/phoneValidation';
 
 const Entregadores: React.FC = () => {
@@ -233,7 +233,7 @@ const Entregadores: React.FC = () => {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-slate-400" />
+                          <Truck className="w-4 h-4 text-slate-400" />
                           <span className="text-slate-600 font-medium">{deliverer.deliveriesCount || 0}</span>
                         </div>
                       </td>
@@ -281,7 +281,7 @@ const Entregadores: React.FC = () => {
                           </div>
                         )}
                         <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <Package className="w-3.5 h-3.5 text-slate-400" />
+                          <Truck className="w-3.5 h-3.5 text-slate-400" />
                           <span>{deliverer.deliveriesCount || 0} entregas</span>
                         </div>
                       </div>
