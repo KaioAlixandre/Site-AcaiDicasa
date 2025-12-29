@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign, Edit, Trash2, Plus, Save, List } from 'lucide-react';
+import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign, Edit, Trash2, Plus, Save, List, ChevronDown, ShoppingCart, TrendingUp, XCircle, Package } from 'lucide-react';
 import { Order, Product } from '../../types';
 import { printOrderReceipt } from '../../utils/printOrderReceipt';
 import apiService from '../../services/api';
@@ -52,7 +52,6 @@ const Pedidos: React.FC<{
   // Estados para os filtros
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('today');
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   // Estados para edição
@@ -258,175 +257,282 @@ const Pedidos: React.FC<{
     setDateFilter('today'); // Sempre manter como 'today'
   };
 
+  // Função para formatar valores em Real brasileiro
+  const formatCurrencyBR = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   // Contar filtros ativos (considerando 'today' como padrão, não conta como filtro ativo)
   const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (dateFilter !== 'today' && dateFilter !== 'all' ? 1 : 0);
 
+  // Calcular métricas baseado no período selecionado
+  const metrics = useMemo(() => {
+    let filteredOrdersForMetrics = orders;
+
+    // Filtrar por período se não for "all"
+    if (dateFilter === 'today') {
+      filteredOrdersForMetrics = orders.filter(order => isToday(order.createdAt));
+    } else if (dateFilter === 'week') {
+      filteredOrdersForMetrics = orders.filter(order => isThisWeek(order.createdAt));
+    }
+
+    const canceledOrders = filteredOrdersForMetrics.filter(order => order.status === 'canceled');
+    
+    const totalValue = filteredOrdersForMetrics
+      .filter(order => order.status !== 'canceled')
+      .reduce((sum, order) => sum + Number(order.totalPrice), 0);
+
+    // Determinar o label do período
+    const periodLabel = dateFilter === 'today' ? 'Hoje' : 
+                       dateFilter === 'week' ? 'Esta Semana' : 
+                       'Geral';
+
+    return {
+      totalOrders: filteredOrdersForMetrics.length,
+      totalValue,
+      totalCanceled: canceledOrders.length,
+      totalOrdersAll: orders.length,
+      periodLabel
+    };
+  }, [orders, dateFilter]);
+
   return (
     <div id="pedidos" className="page">
-      <header className="mb-4 sm:mb-6">
-        <div className="mb-3">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800">Pedidos</h2>
-          <p className="text-slate-500">
-            Gerencie os pedidos recebidos. 
-            {filteredOrders.length !== orders.length && (
-              <span className="ml-2 text-indigo-600 font-medium">
-                {filteredOrders.length} de {orders.length} pedidos
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors relative ${
-              showFilters ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            Filtros
-            {activeFiltersCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
+      {/* Cabeçalho */}
+      <header className="mb-3 sm:mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <div className="flex-1">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-1">Pedidos</h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Gerencie os pedidos recebidos.
+              {filteredOrders.length !== orders.length && (
+                <span className="ml-2 text-indigo-600 font-medium">
+                  {filteredOrders.length} de {orders.length} pedidos
+                </span>
+              )}
+            </p>
+          </div>
           <button 
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className={`bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors ${
+            className={`bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 hover:bg-indigo-700 transition-colors whitespace-nowrap text-xs sm:text-sm ${
               isRefreshing ? 'opacity-75 cursor-not-allowed' : ''
             }`}
           >
-            <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Atualizando...' : 'Atualizar'}
           </button>
         </div>
       </header>
 
-      {/* Painel de Filtros */}
-      {showFilters && (
-        <div className="bg-white p-6 rounded-xl shadow-md mb-6 border border-slate-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Filtros
-            </h3>
-            {activeFiltersCount > 0 && (
-              <button 
-                onClick={clearFilters}
-                className="text-red-600 hover:text-red-700 flex items-center gap-1 text-sm font-medium"
-              >
-                <X className="w-4 h-4" />
-                Limpar Filtros
-              </button>
-            )}
+      {/* Cards de Métricas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        {/* Total de Pedidos */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
+              <ShoppingCart className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Pedidos {metrics.periodLabel}</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.totalOrders}</p>
+            </div>
           </div>
+        </div>
+
+        {/* Valor Total */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-green-100 rounded-md flex-shrink-0">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Valor Total {metrics.periodLabel}</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">
+                {formatCurrencyBR(metrics.totalValue)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Cancelados */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-red-100 rounded-md flex-shrink-0">
+              <XCircle className="w-4 h-4 text-red-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Cancelados {metrics.periodLabel}</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.totalCanceled}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Geral */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-purple-100 rounded-md flex-shrink-0">
+              <Package className="w-4 h-4 text-purple-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Total de Pedidos</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.totalOrdersAll}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Layout de Filtros Ativos */}
+      {(statusFilter !== 'all' || (dateFilter !== 'today' && dateFilter !== 'all')) && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 flex-shrink-0" />
+              <span className="text-sm sm:text-base font-semibold text-indigo-900">Filtros Ativos:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {statusFilter !== 'all' && (
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium ${
+                  statusFilter === 'pending_payment' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                  statusFilter === 'being_prepared' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                  statusFilter === 'ready_for_pickup' ? 'bg-orange-100 text-orange-800 border border-orange-300' :
+                  statusFilter === 'on_the_way' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
+                  statusFilter === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
+                  'bg-red-100 text-red-800 border border-red-300'
+                }`}>
+                  <span className="w-2 h-2 rounded-full bg-current opacity-60"></span>
+                  {getStatusInPortuguese(statusFilter)}
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className="ml-1 hover:opacity-70 transition-opacity"
+                    title="Remover filtro de status"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {dateFilter !== 'today' && dateFilter !== 'all' && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {dateFilter === 'week' ? 'Esta semana' : 'Todos os períodos'}
+                  <button
+                    onClick={() => setDateFilter('today')}
+                    className="ml-1 hover:opacity-70 transition-opacity"
+                    title="Remover filtro de data"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Limpar Todos
+              </button>
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-indigo-200">
+            <p className="text-xs sm:text-sm text-indigo-700">
+              Mostrando <strong>{filteredOrders.length}</strong> de <strong>{orders.length}</strong> pedidos
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Painel de Filtros - Sempre Visível */}
+      <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md mb-6 border border-slate-200">
+        {/* Seção de Filtros */}
+        {activeFiltersCount > 0 && (
+          <div className="flex justify-end items-center mb-3">
+            <button 
+              onClick={clearFilters}
+              className="text-red-600 hover:text-red-700 flex items-center gap-1 text-xs sm:text-sm font-medium"
+            >
+              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+              Limpar Filtros
+            </button>
+          </div>
+        )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Filtro por Status */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
                 Status do Pedido
               </label>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="all"
-                    checked={statusFilter === 'all'}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="mr-2 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-600">Todos os status</span>
-                </label>
-                {[
-                  { value: 'pending_payment', label: 'Pagamento Pendente', color: 'text-yellow-600' },
-                  { value: 'being_prepared', label: 'Preparando', color: 'text-blue-600' },
-                  { value: 'ready_for_pickup', label: 'Pronto para Retirada', color: 'text-orange-600' },
-                  { value: 'on_the_way', label: 'A Caminho', color: 'text-purple-600' },
-                  { value: 'delivered', label: 'Entregue', color: 'text-green-600' },
-                  { value: 'canceled', label: 'Cancelado', color: 'text-red-600' }
-                ].map((status) => (
-                  <label key={status.value} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="status"
-                      value={status.value}
-                      checked={statusFilter === status.value}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="mr-2 text-indigo-600"
-                    />
-                    <span className={`text-sm ${status.color} font-medium`}>{status.label}</span>
-                  </label>
-                ))}
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-2.5 py-1.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white text-xs sm:text-sm text-slate-700 cursor-pointer"
+                >
+                  <option value="all">Todos os status</option>
+                  <option value="pending_payment">Pagamento Pendente</option>
+                  <option value="being_prepared">Preparando</option>
+                  <option value="ready_for_pickup">Pronto para Retirada</option>
+                  <option value="on_the_way">A Caminho</option>
+                  <option value="delivered">Entregue</option>
+                  <option value="canceled">Cancelado</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
             </div>
 
             {/* Filtro por Data */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                <Calendar className="w-4 h-4 inline mr-1" />
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+                <Calendar className="w-3.5 h-3.5 inline mr-1" />
                 Período
               </label>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="date"
-                    value="all"
-                    checked={dateFilter === 'all'}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="mr-2 text-indigo-600"
-                  />
-                  <span className="text-sm text-slate-600">Todos os períodos</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="date"
-                    value="today"
-                    checked={dateFilter === 'today'}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="mr-2 text-indigo-600"
-                  />
-                  <span className="text-sm text-indigo-600 font-medium">Hoje</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="date"
-                    value="week"
-                    checked={dateFilter === 'week'}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="mr-2 text-indigo-600"
-                  />
-                  <span className="text-sm text-indigo-600 font-medium">Esta semana</span>
-                </label>
+              <div className="relative">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="w-full px-2.5 py-1.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white text-xs sm:text-sm text-slate-700 cursor-pointer"
+                >
+                  <option value="all">Todos os períodos</option>
+                  <option value="today">Hoje</option>
+                  <option value="week">Esta semana</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
             </div>
           </div>
 
-          {/* Resumo dos filtros ativos */}
+          {/* Resumo dos filtros ativos no painel */}
           {activeFiltersCount > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-200">
-              <p className="text-sm text-slate-600">
-                <span className="font-medium">Filtros ativos:</span>
-                {statusFilter !== 'all' && (
-                  <span className="ml-2 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs">
-                    Status: {getStatusInPortuguese(statusFilter)}
-                  </span>
-                )}
-                {dateFilter !== 'today' && dateFilter !== 'all' && (
-                  <span className="ml-2 bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                    Período: {dateFilter === 'week' ? 'Esta semana' : 'Todos'}
-                  </span>
-                )}
-              </p>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                <p className="text-xs font-medium text-indigo-900 mb-2">Preview dos Filtros Ativos:</p>
+                <div className="flex flex-wrap gap-2">
+                  {statusFilter !== 'all' && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                      statusFilter === 'pending_payment' ? 'bg-yellow-100 text-yellow-800' :
+                      statusFilter === 'being_prepared' ? 'bg-blue-100 text-blue-800' :
+                      statusFilter === 'ready_for_pickup' ? 'bg-orange-100 text-orange-800' :
+                      statusFilter === 'on_the_way' ? 'bg-purple-100 text-purple-800' :
+                      statusFilter === 'delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {getStatusInPortuguese(statusFilter)}
+                    </span>
+                  )}
+                  {dateFilter !== 'today' && dateFilter !== 'all' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                      <Calendar className="w-3 h-3" />
+                      {dateFilter === 'week' ? 'Esta semana' : 'Todos os períodos'}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
-      )}
 
       <div className="bg-white p-2 sm:p-3 rounded-xl shadow-md">
         {filteredOrders.length === 0 ? (

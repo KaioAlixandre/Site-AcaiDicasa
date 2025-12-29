@@ -14,7 +14,11 @@ import {
   Save,
   Eye,
   EyeOff,
-  FolderTree
+  FolderTree,
+  Package,
+  CheckCircle2,
+  XCircle,
+  ChevronDown
 } from 'lucide-react';
 import apiService from '../../services/api';
 import ModalGerenciarCategoriasComplementos from './components/ModalGerenciarCategoriasComplementos';
@@ -67,6 +71,27 @@ const Complementos: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Função para atualizar dados
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([loadComplements(), loadCategories()]);
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Calcular métricas
+  const metrics = {
+    total: complements.length,
+    active: complements.filter(c => c.isActive).length,
+    inactive: complements.filter(c => !c.isActive).length,
+    filtered: filteredComplements.length
+  };
 
   // Carregar categorias
   const loadCategories = async () => {
@@ -290,74 +315,135 @@ const Complementos: React.FC = () => {
   };
 
   return (
-    <div className="p-3 sm:p-4">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Complementos</h1>
-            <p className="text-xs sm:text-sm text-gray-600">Gerencie os complementos disponíveis</p>
+    <div className="page">
+      {/* Cabeçalho */}
+      <header className="mb-3 sm:mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <div className="flex-1">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-1">Complementos</h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Gerencie os complementos disponíveis.
+              {filteredComplements.length !== complements.length && (
+                <span className="ml-2 text-indigo-600 font-medium">
+                  {filteredComplements.length} de {complements.length} complementos
+                </span>
+              )}
+            </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowManageCategoriesModal(true)}
-              className="bg-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold hover:bg-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="bg-purple-600 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 hover:bg-purple-700 transition-colors whitespace-nowrap text-xs sm:text-sm"
             >
-              <FolderTree size={18} className="sm:w-5 sm:h-5" />
-              <span>Categorias</span>
+              <FolderTree className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Categorias</span>
             </button>
             <button
               onClick={handleCreate}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
+              className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 hover:bg-indigo-700 transition-colors whitespace-nowrap text-xs sm:text-sm"
             >
-              <Plus size={18} className="sm:w-5 sm:h-5" />
-              <span>Novo Complemento</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Novo Complemento</span>
+              <span className="sm:hidden">Novo</span>
+            </button>
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 hover:bg-indigo-700 transition-colors whitespace-nowrap text-xs sm:text-sm ${
+                isRefreshing ? 'opacity-75 cursor-not-allowed' : ''
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 sm:p-4 rounded-lg sm:rounded-xl shadow-lg">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold">{complements.length}</div>
-            <div className="text-xs sm:text-sm text-blue-100">Total</div>
-          </div>
-          <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 sm:p-4 rounded-lg sm:rounded-xl shadow-lg">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold">{complements.filter(c => c.isActive).length}</div>
-            <div className="text-xs sm:text-sm text-green-100">Ativos</div>
-          </div>
-          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-3 sm:p-4 rounded-lg sm:rounded-xl shadow-lg">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold">{complements.filter(c => !c.isActive).length}</div>
-            <div className="text-xs sm:text-sm text-red-100">Inativos</div>
-          </div>
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-3 sm:p-4 rounded-lg sm:rounded-xl shadow-lg">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold">{filteredComplements.length}</div>
-            <div className="text-xs sm:text-sm text-purple-100">Filtrados</div>
+      {/* Cards de Métricas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        {/* Total */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-blue-100 rounded-md flex-shrink-0">
+              <Package className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Total</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.total}</p>
+            </div>
           </div>
         </div>
 
-        {/* Filtros e Busca */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col gap-2 sm:gap-3">
-            {/* Busca */}
-            <div className="w-full">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 sm:py-2.5 text-sm border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
-                />
-              </div>
+        {/* Ativos */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-green-100 rounded-md flex-shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
             </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Ativos</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.active}</p>
+            </div>
+          </div>
+        </div>
 
-            {/* Linha de filtros */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {/* Filtro por Categoria */}
-              <div className="flex items-center gap-2">
-                <Filter className="text-gray-500 hidden sm:block" size={18} />
+        {/* Inativos */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-red-100 rounded-md flex-shrink-0">
+              <XCircle className="w-4 h-4 text-red-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Inativos</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.inactive}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtrados */}
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-purple-100 rounded-md flex-shrink-0">
+              <Filter className="w-4 h-4 text-purple-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[10px] sm:text-xs text-slate-600 mb-0.5">Filtrados</h3>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{metrics.filtered}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Painel de Filtros - Sempre Visível */}
+      <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md mb-6 border border-slate-200">
+        {/* Seção de Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Busca */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+              Buscar Complemento
+            </label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-2.5 py-1.5 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Filtro por Categoria e Status */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Filtro por Categoria */}
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+                Categoria
+              </label>
+              <div className="relative">
                 <select
                   value={filterCategory !== null ? filterCategory : ''}
                   onChange={(e) => {
@@ -365,72 +451,70 @@ const Complementos: React.FC = () => {
                     if (value === '') {
                       setFilterCategory(null);
                     } else if (value === '0') {
-                      setFilterCategory(0); // Valor especial para "Sem Categoria"
+                      setFilterCategory(0);
                     } else {
                       setFilterCategory(parseInt(value));
                     }
                   }}
-                  className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:outline-none"
+                  className="w-full px-2.5 py-1.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white text-xs sm:text-sm text-slate-700 cursor-pointer"
                 >
-                  <option value="">Todas as Categorias</option>
+                  <option value="">Todas</option>
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                   <option value="0">Sem Categoria</option>
                 </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
+            </div>
 
-              {/* Filtro por Status */}
-              <div className="flex items-center gap-2">
+            {/* Filtro por Status */}
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+                Status
+              </label>
+              <div className="relative">
                 <select
                   value={filterActive}
                   onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                  className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg sm:rounded-xl focus:border-purple-500 focus:outline-none"
+                  className="w-full px-2.5 py-1.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white text-xs sm:text-sm text-slate-700 cursor-pointer"
                 >
-                  <option value="all">Todos os Status</option>
-                  <option value="active">Apenas Ativos</option>
-                  <option value="inactive">Apenas Inativos</option>
+                  <option value="all">Todos</option>
+                  <option value="active">Ativos</option>
+                  <option value="inactive">Inativos</option>
                 </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
-
-              {/* Toggle Mostrar Inativos */}
-              <button
-                onClick={() => setShowInactive(!showInactive)}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg sm:rounded-xl font-medium transition-all text-sm ${
-                  showInactive 
-                    ? 'bg-purple-100 text-purple-700 border-2 border-purple-300' 
-                    : 'bg-gray-100 text-gray-600 border-2 border-gray-200'
-                }`}
-              >
-                {showInactive ? <Eye size={16} /> : <EyeOff size={16} />}
-                <span className="hidden sm:inline">Mostrar Inativos</span>
-                <span className="sm:hidden">Inativos</span>
-              </button>
-
-              {/* Refresh */}
-              <button
-                onClick={loadComplements}
-                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm"
-                disabled={loading}
-              >
-                <RefreshCw className={loading ? 'animate-spin' : ''} size={16} />
-                <span>Atualizar</span>
-              </button>
             </div>
           </div>
+        </div>
+
+        {/* Toggle Mostrar Inativos */}
+        <div className="mt-3 pt-3 border-t border-slate-200">
+          <button
+            onClick={() => setShowInactive(!showInactive)}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
+              showInactive 
+                ? 'bg-purple-100 text-purple-700 border border-purple-300' 
+                : 'bg-slate-100 text-slate-600 border border-slate-300'
+            }`}
+          >
+            {showInactive ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span>Mostrar Inativos no Carregamento</span>
+          </button>
         </div>
       </div>
 
       {/* Loading */}
       {loading && (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
         </div>
       )}
 
       {/* Lista de Complementos */}
       {!loading && (
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {filteredComplements.length === 0 ? (
             <div className="p-6 sm:p-12 text-center">
               <AlertCircle className="mx-auto text-gray-400 mb-3 sm:mb-4" size={36} />
