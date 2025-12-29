@@ -101,6 +101,45 @@ model categoria_complemento {
   @@map("categorias_complemento")
 }
 
+model sabor {
+  id          Int                  @id @default(autoincrement())
+  nome        String               @db.VarChar(100)
+  imagemUrl   String?              @db.VarChar(255)
+  ativo       Boolean              @default(true)
+  categoriaId Int?
+  criadoEm    DateTime             @default(now())
+  atualizadoEm DateTime            @updatedAt
+  categoria   categoria_sabor?     @relation(fields: [categoriaId], references: [id], map: "Flavor_categoryId_fkey")
+  
+  @@index([categoriaId], map: "Flavor_categoryId_fkey")
+  @@map("sabores")
+}
+
+model categoria_sabor {
+  id           Int                      @id @default(autoincrement())
+  nome         String                   @unique(map: "FlavorCategory_name_key") @db.VarChar(100)
+  criadoEm     DateTime                 @default(now())
+  atualizadoEm DateTime                 @updatedAt
+  sabores      sabor[]
+  produtos     produto_categoria_sabor[]
+  
+  @@map("categorias_sabor")
+}
+
+model produto_categoria_sabor {
+  id               Int             @id @default(autoincrement())
+  produtoId        Int
+  categoriaSaborId Int
+  quantidade       Int             @default(1)
+  produto          produto         @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "ProductFlavorCategory_productId_fkey")
+  categoriaSabor   categoria_sabor @relation(fields: [categoriaSaborId], references: [id], onDelete: Cascade, map: "ProductFlavorCategory_categoriaSaborId_fkey")
+
+  @@unique([produtoId, categoriaSaborId], map: "ProductFlavorCategory_productId_categoriaSaborId_key")
+  @@index([produtoId], map: "ProductFlavorCategory_productId_fkey")
+  @@index([categoriaSaborId], map: "ProductFlavorCategory_categoriaSaborId_fkey")
+  @@map("produto_categoria_sabor")
+}
+
 model cupom {
   id           Int                 @id @default(autoincrement())
   codigo       String              @unique(map: "Coupon_code_key") @db.VarChar(50)
@@ -245,6 +284,7 @@ model produto {
   destaque           Boolean              @default(false)
   recebeComplementos Boolean              @default(false)
   quantidadeComplementos Int?             @default(0)
+  recebeSabores      Boolean              @default(false)
   itens_carrinho     item_carrinho[]
   itens_pedido       item_pedido[]
   categoria          categoria_produto?   @relation(fields: [categoriaId], references: [id], map: "Product_categoryId_fkey")
@@ -252,6 +292,7 @@ model produto {
   opcoes_produto     opcao_produto[]
   relatorios_vendas  relatorio_vendas_produto[]
   avaliacoes         avaliacao[]
+  categorias_sabor   produto_categoria_sabor[]
 
   @@index([categoriaId], map: "Product_categoryId_fkey")
   @@map("produtos")

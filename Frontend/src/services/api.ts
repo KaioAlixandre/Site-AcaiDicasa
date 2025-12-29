@@ -152,13 +152,21 @@ class ApiService {
       isActive: Boolean(p.isActive),
       isFeatured: Boolean(p.isFeatured),
       receiveComplements: Boolean(p.receiveComplements),
+      quantidadeComplementos: p.quantidadeComplementos ?? 0,
+      receiveFlavors: Boolean(p.receiveFlavors),
+      flavorCategories: Array.isArray(p.flavorCategories)
+        ? p.flavorCategories.map((fc: any) => ({
+            categoryId: fc.categoryId,
+            categoryName: fc.categoryName,
+            quantity: fc.quantity
+          }))
+        : [],
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
       images: Array.isArray(p.images)
         ? p.images.map((img: any) => ({ id: img.id, url: img.url, altText: img.altText || '' }))
         : [],
-      quantidadeComplementos: p.quantidadeComplementos ?? 0,
     }));
   }
 
@@ -174,6 +182,14 @@ class ApiService {
       isFeatured: Boolean(p.isFeatured),
       quantidadeComplementos: p.quantidadeComplementos ?? 0,
       receiveComplements: Boolean(p.receiveComplements),
+      receiveFlavors: Boolean(p.receiveFlavors),
+      flavorCategories: Array.isArray(p.flavorCategories)
+        ? p.flavorCategories.map((fc: any) => ({
+            categoryId: fc.categoryId,
+            categoryName: fc.categoryName,
+            quantity: fc.quantity
+          }))
+        : [],
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
@@ -195,6 +211,14 @@ class ApiService {
       isFeatured: Boolean(p.isFeatured),
       quantidadeComplementos: p.quantidadeComplementos ?? 0,
       receiveComplements: Boolean(p.receiveComplements),
+      receiveFlavors: Boolean(p.receiveFlavors),
+      flavorCategories: Array.isArray(p.flavorCategories)
+        ? p.flavorCategories.map((fc: any) => ({
+            categoryId: fc.categoryId,
+            categoryName: fc.categoryName,
+            quantity: fc.quantity
+          }))
+        : [],
       createdAt: p.createdAt || new Date().toISOString(),
       categoryId: p.categoryId ?? null,
       category: p.category ? { id: p.category.id, name: p.category.name } : undefined,
@@ -545,6 +569,97 @@ async toggleDelivererStatus(id: number) {
 
   async deleteComplementCategory(id: number): Promise<any> {
     const response = await this.api.delete(`/complement-categories/${id}`);
+    return response.data;
+  }
+
+  // ========== FLAVORS METHODS ==========
+  async getFlavors(includeInactive = false): Promise<any[]> {
+    const response = await this.api.get(`/flavors${includeInactive ? '?includeInactive=true' : ''}`);
+    return response.data;
+  }
+
+  async getFlavorById(id: number): Promise<any> {
+    const response = await this.api.get(`/flavors/${id}`);
+    return response.data;
+  }
+
+  async createFlavor(data: { name: string; isActive: boolean; image?: File; categoryId?: number | null }): Promise<any> {
+    const formData = new FormData();
+    formData.append('nome', data.name);
+    formData.append('ativo', String(data.isActive));
+    
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      formData.append('categoriaId', String(data.categoryId));
+    }
+    
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    
+    const response = await this.api.post('/flavors', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async updateFlavor(id: number, data: { name?: string; isActive?: boolean; image?: File; categoryId?: number | null }): Promise<any> {
+    const formData = new FormData();
+    
+    if (data.name !== undefined) {
+      formData.append('nome', data.name);
+    }
+    if (data.isActive !== undefined) {
+      formData.append('ativo', String(data.isActive));
+    }
+    if (data.categoryId !== undefined) {
+      if (data.categoryId === null) {
+        formData.append('categoriaId', '');
+      } else {
+        formData.append('categoriaId', String(data.categoryId));
+      }
+    }
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    
+    const response = await this.api.put(`/flavors/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async deleteFlavor(id: number): Promise<any> {
+    const response = await this.api.delete(`/flavors/${id}`);
+    return response.data;
+  }
+
+  async toggleFlavorStatus(id: number): Promise<any> {
+    const response = await this.api.patch(`/flavors/${id}/toggle`);
+    return response.data;
+  }
+
+  // ========== FLAVOR CATEGORIES METHODS ==========
+  async getFlavorCategories(): Promise<any[]> {
+    const response = await this.api.get('/flavor-categories');
+    return response.data;
+  }
+
+  async createFlavorCategory(name: string): Promise<any> {
+    const response = await this.api.post('/flavor-categories', { name });
+    return response.data;
+  }
+
+  async updateFlavorCategory(id: number, name: string): Promise<any> {
+    const response = await this.api.put(`/flavor-categories/${id}`, { name });
+    return response.data;
+  }
+
+  async deleteFlavorCategory(id: number): Promise<any> {
+    const response = await this.api.delete(`/flavor-categories/${id}`);
     return response.data;
   }
 

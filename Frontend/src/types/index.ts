@@ -27,6 +27,12 @@ export interface Address {
 }
 
 // Product related types
+export interface ProductFlavorCategory {
+  categoryId: number;
+  categoryName: string;
+  quantity: number;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -36,6 +42,8 @@ export interface Product {
   isFeatured?: boolean;
   receiveComplements?: boolean;
   quantidadeComplementos?: number;
+  receiveFlavors?: boolean;
+  flavorCategories?: ProductFlavorCategory[];
   createdAt: string;
   images?: ProductImage[];
   options?: ProductOption[];
@@ -319,6 +327,26 @@ export interface ComplementCategory {
   id: number;
   name: string;
   complementsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Flavor types
+export interface Flavor {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  isActive: boolean;
+  categoryId?: number | null;
+  category?: FlavorCategory | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlavorCategory {
+  id: number;
+  name: string;
+  flavorsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

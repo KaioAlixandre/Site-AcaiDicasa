@@ -13,7 +13,8 @@ const getStatusInPortuguese = (status: string) => {
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout, X, ChefHat
+  LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, Plus, Truck, Sprout, X, ChefHat,
+  IceCream
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { Product, ProductCategory, User, Order } from '../../types';
@@ -25,6 +26,7 @@ import Clientes from './Clientes';
 import Configuracoes from './Configuracoes';
 import Entregadores from './Entregadores';
 import Complementos from './Complementos';
+import Sabores from './Sabores';
 import Cozinheiros from './Cozinheiros';
 import ModalSelecaoEntregador from './components/ModalSelecaoEntregador';
 
@@ -33,6 +35,7 @@ const pages = [
   { id: 'pedidos', label: 'Pedidos', icon: <ShoppingCart /> },
   { id: 'produtos', label: 'Produtos', icon: <Package /> },
   { id: 'complementos', label: 'Complementos', icon: <Plus /> },
+  { id: 'sabores', label: 'Sabores', icon: <IceCream /> },
   { id: 'clientes', label: 'Clientes', icon: <Users /> },
   { id: 'entregadores', label: 'Entregadores', icon: <Truck /> },
   { id: 'cozinheiros', label: 'Cozinheiros', icon: <ChefHat /> },
@@ -361,6 +364,9 @@ const performConfirmDelivery = async (): Promise<void> => {
 
         {/* Complementos */}
         {activePage === 'complementos' && <Complementos />}
+
+        {/* Sabores */}
+        {activePage === 'sabores' && <Sabores />}
 
         {/* Clientes */}
         {activePage === 'clientes' && <Clientes user={users} />}

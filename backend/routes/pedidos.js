@@ -125,7 +125,14 @@ router.post('/', authenticateToken, async (req, res) => {
         if (tipo === 'delivery' && taxa > 0) {
             const storeConfig = await prisma.configuracao_loja.findFirst();
             if (storeConfig && storeConfig.promocaoTaxaAtiva) {
-                const hoje = new Date().getDay().toString(); // 0 = domingo, 1 = segunda, etc.
+                // Função auxiliar para obter o dia da semana no fuso horário do Brasil
+                const getDayOfWeekInBrazil = () => {
+                    const brasilNow = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+                    const dateInBrazil = new Date(brasilNow);
+                    return dateInBrazil.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+                };
+                
+                const hoje = getDayOfWeekInBrazil().toString(); // 0 = domingo, 1 = segunda, etc. (horário do Brasil)
                 const diasPromo = storeConfig.promocaoDias ? storeConfig.promocaoDias.split(',') : [];
                 
                 // Verificar se hoje é um dia de promoção

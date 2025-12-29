@@ -21,6 +21,7 @@ const cartRoutes = require('./routes/cartRoutes'); // TODO: Organizar
 const insightsRoutes = require('./routes/insiths'); // TODO: Organizar
 const storeConfigRoutes = require('./routes/configuracao'); // TODO: Organizar
 const complementsRoutes = require('./routes/complementsRoutes'); // TODO: Organizar
+const flavorsRoutes = require('./routes/flavorsRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const cozinheirosRoutes = require('./routes/cozinheiros');
 
@@ -53,6 +54,8 @@ connectDB().then(() => {
     app.use('/api/store-config', storeConfigRoutes);
     app.use('/api/complements', complementsRoutes);
     app.use('/api/complement-categories', require('./routes/complementCategoriesRoutes'));
+    app.use('/api/flavors', flavorsRoutes);
+    app.use('/api/flavor-categories', require('./routes/flavorCategoriesRoutes'));
     app.use('/api/cozinheiros', cozinheirosRoutes);
     
     // Rota de debug temporária

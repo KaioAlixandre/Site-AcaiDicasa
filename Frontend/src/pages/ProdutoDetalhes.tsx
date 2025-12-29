@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, Check, Search, X, Clock } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import apiService from '../services/api';
-import { Product, Complement } from '../types';
+import { Product, Complement, Flavor } from '../types';
 import Loading from '../components/Loading';
 import { checkStoreStatus, StoreConfig } from '../utils/storeUtils';
 
@@ -17,14 +17,18 @@ const ProdutoDetalhes: React.FC = () => {
   
   const [product, setProduct] = useState<Product | null>(null);
   const [complements, setComplements] = useState<Complement[]>([]);
+  const [flavors, setFlavors] = useState<Flavor[]>([]);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [selectedComplements, setSelectedComplements] = useState<number[]>([]);
+  const [selectedFlavors, setSelectedFlavors] = useState<{ [categoryId: number]: number[] }>({});
   const lastNotifyRef = useRef<{ msg: string; ts: number }>({ msg: '', ts: 0 });
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [flavorSearchTerm, setFlavorSearchTerm] = useState('');
+  const [selectedFlavorCategory, setSelectedFlavorCategory] = useState<string>('all');
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [isStoreOpen, setIsStoreOpen] = useState(true);
 
@@ -33,13 +37,15 @@ const ProdutoDetalhes: React.FC = () => {
       if (!id) return;
       try {
         setLoading(true);
-        const [productData, complementsData, storeData] = await Promise.all([
+        const [productData, complementsData, flavorsData, storeData] = await Promise.all([
           apiService.getProductById(parseInt(id)),
           apiService.getComplements(),
+          apiService.getFlavors(),
           apiService.getStoreConfig()
         ]);
         setProduct(productData);
         setComplements(complementsData);
+        setFlavors(flavorsData);
         setStoreConfig(storeData);
         
         if (productData.images && productData.images.length > 0) {
@@ -95,6 +101,43 @@ const ProdutoDetalhes: React.FC = () => {
           return prev;
         }
         return [...prev, complementId];
+      }
+    });
+  };
+
+  const toggleFlavor = (flavorId: number, categoryId: number) => {
+    if (!product || !product.flavorCategories) return;
+    
+    // Encontrar a categoria e sua quantidade máxima
+    const flavorCategory = product.flavorCategories.find(fc => fc.categoryId === categoryId);
+    if (!flavorCategory) return;
+    
+    const maxQuantity = flavorCategory.quantity || 0;
+    
+    setSelectedFlavors((prev) => {
+      const categoryFlavors = prev[categoryId] || [];
+      
+      if (categoryFlavors.includes(flavorId)) {
+        // Remover sabor
+        return {
+          ...prev,
+          [categoryId]: categoryFlavors.filter((id) => id !== flavorId)
+        };
+      } else {
+        // Adicionar sabor, respeitando o limite
+        if (maxQuantity > 0 && categoryFlavors.length >= maxQuantity) {
+          const message = `Você pode escolher no máximo ${maxQuantity} sabor${maxQuantity > 1 ? 'es' : ''} da categoria ${flavorCategory.categoryName}.`;
+          const now = Date.now();
+          if (lastNotifyRef.current.msg !== message || now - lastNotifyRef.current.ts > 1000) {
+            lastNotifyRef.current = { msg: message, ts: now };
+            notify(message, 'warning');
+          }
+          return prev;
+        }
+        return {
+          ...prev,
+          [categoryId]: [...categoryFlavors, flavorId]
+        };
       }
     });
   };
@@ -285,6 +328,220 @@ const ProdutoDetalhes: React.FC = () => {
               </div>
             </div>
           </div>
+
+            {/* Sabores */}
+            {product.receiveFlavors && product.flavorCategories && product.flavorCategories.length > 0 && (() => {
+              // Filtrar sabores apenas das categorias permitidas pelo produto
+              const allowedCategoryIds = product.flavorCategories.map(fc => fc.categoryId);
+              const availableFlavors = flavors.filter(f => 
+                f.categoryId && allowedCategoryIds.includes(f.categoryId) && f.isActive
+              );
+              
+              if (availableFlavors.length === 0) return null;
+              
+              return (
+                <div className="mt-6 pt-4 border-t border-slate-200">
+                  <h2 className="text-base md:text-xl font-bold text-slate-900 mb-3 md:mb-5">
+                    Sabores Disponíveis
+                  </h2>
+                  
+                  {/* Informações sobre limites por categoria */}
+                  <div className="mb-3 md:mb-4 space-y-2">
+                    {product.flavorCategories.map((fc) => {
+                      const categoryFlavors = availableFlavors.filter(f => f.categoryId === fc.categoryId);
+                      if (categoryFlavors.length === 0) return null;
+                      return (
+                        <div key={fc.categoryId} className="text-xs md:text-sm text-pink-700 font-semibold">
+                          <span>{fc.categoryName}: você pode escolher até <span className="font-bold">{fc.quantity}</span> sabor{fc.quantity > 1 ? 'es' : ''}.</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Filtros de Busca para Sabores */}
+                  <div className="mb-4 md:mb-6 space-y-3">
+                    {/* Campo de Busca */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 md:w-5 md:h-5" />
+                      <input
+                        type="text"
+                        placeholder="Buscar sabor..."
+                        value={flavorSearchTerm}
+                        onChange={(e) => setFlavorSearchTerm(e.target.value)}
+                        className="w-full pl-9 md:pl-10 pr-10 py-2 md:py-3 text-sm md:text-base border-2 border-slate-200 rounded-lg md:rounded-xl focus:border-pink-500 focus:outline-none transition-colors"
+                      />
+                      {flavorSearchTerm && (
+                        <button
+                          onClick={() => setFlavorSearchTerm('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Filtro por Categoria */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                      <button
+                        onClick={() => setSelectedFlavorCategory('all')}
+                        className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition-all ${
+                          selectedFlavorCategory === 'all'
+                            ? 'bg-pink-600 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Todas
+                      </button>
+                      {product.flavorCategories.map((fc) => {
+                        const categoryFlavors = availableFlavors.filter(f => f.categoryId === fc.categoryId);
+                        if (categoryFlavors.length === 0) return null;
+                        return (
+                          <button
+                            key={fc.categoryId}
+                            onClick={() => setSelectedFlavorCategory(fc.categoryName)}
+                            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition-all ${
+                              selectedFlavorCategory === fc.categoryName
+                                ? 'bg-pink-600 text-white shadow-md'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {fc.categoryName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Agrupar sabores por categoria */}
+                  {(() => {
+                    // Filtrar sabores por busca e categoria
+                    const filteredFlavors = availableFlavors.filter((flavor) => {
+                      // Filtro por nome
+                      const matchesSearch = flavor.name.toLowerCase().includes(flavorSearchTerm.toLowerCase());
+                      
+                      // Filtro por categoria
+                      let matchesCategory = true;
+                      if (selectedFlavorCategory !== 'all') {
+                        const category = product.flavorCategories?.find(fc => fc.categoryName === selectedFlavorCategory);
+                        matchesCategory = category ? flavor.categoryId === category.categoryId : false;
+                      }
+                      
+                      return matchesSearch && matchesCategory;
+                    });
+
+                    // Separar sabores filtrados por categoria
+                    const flavorsByCategory: { [key: string]: Flavor[] } = {};
+                    
+                    filteredFlavors.forEach((flavor) => {
+                      if (flavor.category?.name) {
+                        const categoryName = flavor.category.name;
+                        if (!flavorsByCategory[categoryName]) {
+                          flavorsByCategory[categoryName] = [];
+                        }
+                        flavorsByCategory[categoryName].push(flavor);
+                      }
+                    });
+
+                    // Se não houver resultados
+                    if (filteredFlavors.length === 0) {
+                      return (
+                        <div className="text-center py-8 md:py-12">
+                          <div className="text-4xl md:text-6xl mb-3 md:mb-4">🔍</div>
+                          <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-1 md:mb-2">
+                            Nenhum sabor encontrado
+                          </h3>
+                          <p className="text-xs md:text-sm text-slate-500">
+                            Tente ajustar os filtros de busca
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-4 md:space-y-6">
+                        {/* Sabores por categoria */}
+                        {Object.entries(flavorsByCategory).map(([categoryName, categoryFlavors]) => {
+                          const flavorCategory = product.flavorCategories?.find(fc => fc.categoryName === categoryName);
+                          const maxQuantity = flavorCategory?.quantity || 0;
+                          const selectedInCategory = selectedFlavors[flavorCategory?.categoryId || 0] || [];
+                          
+                          return (
+                            <div key={categoryName} className="space-y-2 md:space-y-3">
+                              <h3 className="text-sm md:text-lg font-semibold text-pink-700 bg-pink-50 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-pink-200">
+                                {categoryName} {maxQuantity > 0 && `(máx. ${maxQuantity})`}
+                              </h3>
+                              <div className="space-y-1.5 md:space-y-3">
+                                {categoryFlavors.map((flavor) => {
+                                  const isSelected = selectedInCategory.includes(flavor.id);
+                                  const isDisabled = !isSelected && maxQuantity > 0 && selectedInCategory.length >= maxQuantity;
+                                  
+                                  return (
+                                    <button
+                                      key={flavor.id}
+                                      onClick={() => toggleFlavor(flavor.id, flavor.categoryId!)}
+                                      className={`w-full p-2.5 md:p-4 rounded-lg md:rounded-xl border-2 transition-all duration-200 text-left ${
+                                        isSelected
+                                          ? 'border-pink-600 bg-pink-50'
+                                          : 'border-slate-200 bg-white hover:border-slate-300'
+                                      } ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                      disabled={isDisabled}
+                                    >
+                                      <div className="flex items-center gap-2.5 md:gap-4">
+                                        {/* Imagem do sabor */}
+                                        {flavor.imageUrl ? (
+                                          <img
+                                            src={flavor.imageUrl.startsWith('http') ? flavor.imageUrl : flavor.imageUrl}
+                                            alt={flavor.name}
+                                            className="w-12 h-12 md:w-20 md:h-20 object-cover rounded-md md:rounded-lg flex-shrink-0 border border-slate-200"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              if (!target.dataset.errorHandled) {
+                                                target.dataset.errorHandled = 'true';
+                                                target.style.display = 'none';
+                                                const parent = target.parentElement;
+                                                if (parent) {
+                                                  parent.innerHTML = '<div class="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-2xl md:text-3xl">🍓</span></div>';
+                                                }
+                                              }
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-12 h-12 md:w-20 md:h-20 bg-slate-100 rounded-md md:rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span className="text-2xl md:text-3xl">🍓</span>
+                                          </div>
+                                        )}
+
+                                        {/* Nome do sabor */}
+                                        <div className="flex-1">
+                                          <h3 className="text-xs md:text-base font-semibold text-slate-900">
+                                            {flavor.name}
+                                          </h3>
+                                        </div>
+
+                                        {/* Checkbox */}
+                                        <div className={`w-4 h-4 md:w-6 md:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                          isSelected
+                                            ? 'bg-pink-600 border-pink-600'
+                                            : 'border-slate-300 bg-white'
+                                        }`}>
+                                          {isSelected && (
+                                            <Check className="w-2.5 h-2.5 md:w-4 md:h-4 text-white" />
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
 
             {/* Complementos */}
             {product.receiveComplements && complements.length > 0 && (

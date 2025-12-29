@@ -7,6 +7,14 @@ const { authenticateToken, authorize } = authModule;
 
 console.log('🚀 [StoreConfigRoutes] Módulo de rotas de configuração da loja carregado');
 
+// Função auxiliar para obter o dia da semana no fuso horário do Brasil (America/Sao_Paulo)
+function getDayOfWeekInBrazil() {
+  // Obter a data atual no fuso horário do Brasil
+  const brasilNow = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+  const dateInBrazil = new Date(brasilNow);
+  return dateInBrazil.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
+}
+
 // Buscar configuração da loja - Acessível para todos (não requer admin)
 router.get('/', async (req, res) => {
   console.log('🔍 [GET /api/store-config] Iniciando busca da configuração da loja');
@@ -139,7 +147,7 @@ router.get('/promo-frete-check', async (req, res) => {
       });
     }
     
-    const hoje = new Date().getDay().toString(); // 0 = domingo, 1 = segunda, etc.
+    const hoje = getDayOfWeekInBrazil().toString(); // 0 = domingo, 1 = segunda, etc. (horário do Brasil)
     const diasPromo = config.promocaoDias ? config.promocaoDias.split(',') : [];
     
     if (diasPromo.includes(hoje)) {

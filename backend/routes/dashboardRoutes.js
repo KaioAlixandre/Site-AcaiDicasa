@@ -6,30 +6,29 @@ const { authenticateToken, authorize } = require('./auth');
 
 // Função auxiliar para obter início e fim do dia (usando fuso horário do Brasil - America/Sao_Paulo)
 function getStartAndEndOfDay(date = new Date(), day = null, month = null, year = null) {
-  let targetDate = date;
+  let targetYear, targetMonth, targetDay;
   
-  // Se day, month e year foram fornecidos, usar esses valores, senão usar a data fornecida
+  // Se day, month e year foram fornecidos, usar esses valores
   if (day !== null && month !== null && year !== null) {
-    // month é 0-indexed (0 = Janeiro, 11 = Dezembro)
-    targetDate = new Date(year, month, day);
+    targetYear = year;
+    targetMonth = month; // month é 0-indexed (0 = Janeiro, 11 = Dezembro)
+    targetDay = day;
+  } else {
+    // Obter a data atual no fuso horário do Brasil
+    const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    targetYear = brasilNow.getFullYear();
+    targetMonth = brasilNow.getMonth();
+    targetDay = brasilNow.getDate();
   }
   
-  // Obter a data no fuso horário do Brasil
-  const brasilNow = new Date(targetDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  // Criar strings de data no formato ISO para o fuso horário do Brasil
+  const startBrasilISO = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}T00:00:00-03:00`;
+  const endBrasilISO = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}T23:59:59.999-03:00`;
   
-  // Criar início do dia (00:00:00) no fuso horário do Brasil
-  const startBrasil = new Date(brasilNow);
-  startBrasil.setHours(0, 0, 0, 0);
-  
-  // Criar fim do dia (23:59:59.999) no fuso horário do Brasil
-  const endBrasil = new Date(brasilNow);
-  endBrasil.setHours(23, 59, 59, 999);
-  
-  // Converter para UTC (MySQL armazena em UTC)
-  // O offset do Brasil é UTC-3, então precisamos adicionar 3 horas para converter para UTC
-  const offsetHours = 3; // UTC-3
-  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
-  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  // Criar objetos Date representando início e fim do dia em São Paulo (UTC-3)
+  // O JavaScript automaticamente converte para UTC ao criar o Date
+  const start = new Date(startBrasilISO);
+  const end = new Date(endBrasilISO);
   
   return { start, end };
 }
@@ -43,19 +42,20 @@ function getStartAndEndOfWeek(date = new Date()) {
   const day = brasilNow.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
   const diff = brasilNow.getDate() - day + (day === 0 ? -6 : 1); // Segunda-feira
   
-  const startBrasil = new Date(brasilNow);
-  startBrasil.setDate(diff);
-  startBrasil.setHours(0, 0, 0, 0);
+  const year = brasilNow.getFullYear();
+  const month = brasilNow.getMonth();
+  const mondayDate = new Date(year, month, diff);
+  const sundayDate = new Date(year, month, diff + 6);
   
-  // Criar fim da semana (domingo) no fuso horário do Brasil
-  const endBrasil = new Date(startBrasil);
-  endBrasil.setDate(startBrasil.getDate() + 6); // Domingo
-  endBrasil.setHours(23, 59, 59, 999);
+  // Criar início da semana (segunda-feira 00:00:00) no fuso horário do Brasil
+  const startBrasilISO = `${year}-${String(mondayDate.getMonth() + 1).padStart(2, '0')}-${String(mondayDate.getDate()).padStart(2, '0')}T00:00:00-03:00`;
   
-  // Converter para UTC (MySQL armazena em UTC)
-  const offsetHours = 3; // UTC-3
-  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
-  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  // Criar fim da semana (domingo 23:59:59.999) no fuso horário do Brasil
+  const endBrasilISO = `${year}-${String(sundayDate.getMonth() + 1).padStart(2, '0')}-${String(sundayDate.getDate()).padStart(2, '0')}T23:59:59.999-03:00`;
+  
+  // Converter para UTC
+  const start = new Date(startBrasilISO);
+  const end = new Date(endBrasilISO);
   
   return { start, end };
 }
@@ -76,17 +76,15 @@ function getStartAndEndOfMonth(date = new Date(), month = null, year = null) {
   }
   
   // Criar início do mês (dia 1, 00:00:00) no fuso horário do Brasil
-  const startBrasil = new Date(targetYear, targetMonth, 1);
-  startBrasil.setHours(0, 0, 0, 0);
+  const startBrasilISO = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-01T00:00:00-03:00`;
   
   // Criar fim do mês (último dia, 23:59:59.999) no fuso horário do Brasil
-  const endBrasil = new Date(targetYear, targetMonth + 1, 0);
-  endBrasil.setHours(23, 59, 59, 999);
+  const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const endBrasilISO = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59.999-03:00`;
   
-  // Converter para UTC (MySQL armazena em UTC)
-  const offsetHours = 3; // UTC-3
-  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
-  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  // Converter para UTC
+  const start = new Date(startBrasilISO);
+  const end = new Date(endBrasilISO);
   
   return { start, end };
 }
@@ -105,17 +103,14 @@ function getStartAndEndOfYear(date = new Date(), year = null) {
   }
   
   // Criar início do ano (1º de janeiro, 00:00:00) no fuso horário do Brasil
-  const startBrasil = new Date(targetYear, 0, 1);
-  startBrasil.setHours(0, 0, 0, 0);
+  const startBrasilISO = `${targetYear}-01-01T00:00:00-03:00`;
   
   // Criar fim do ano (31 de dezembro, 23:59:59.999) no fuso horário do Brasil
-  const endBrasil = new Date(targetYear, 11, 31);
-  endBrasil.setHours(23, 59, 59, 999);
+  const endBrasilISO = `${targetYear}-12-31T23:59:59.999-03:00`;
   
-  // Converter para UTC (MySQL armazena em UTC)
-  const offsetHours = 3; // UTC-3
-  const start = new Date(startBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
-  const end = new Date(endBrasil.getTime() + (offsetHours * 60 * 60 * 1000));
+  // Converter para UTC
+  const start = new Date(startBrasilISO);
+  const end = new Date(endBrasilISO);
   
   return { start, end };
 }

@@ -10,6 +10,39 @@ const streamifier = require('streamifier');
 // Usar armazenamento em memória para processar upload
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Função helper para transformar produto do Prisma para o formato do frontend
+const transformProduct = (product) => {
+    return {
+        id: product.id,
+        name: product.nome,
+        description: product.descricao || '',
+        price: product.preco,
+        categoryId: product.categoriaId,
+        isActive: product.ativo,
+        isFeatured: product.destaque || false,
+        receiveComplements: product.recebeComplementos || false,
+        quantidadeComplementos: product.quantidadeComplementos ?? 0,
+        receiveFlavors: product.recebeSabores || false,
+        flavorCategories: (product.categorias_sabor || []).map(pcs => ({
+            categoryId: pcs.categoriaSaborId,
+            categoryName: pcs.categoriaSabor?.nome || '',
+            quantity: pcs.quantidade
+        })),
+        createdAt: product.criadoEm || new Date(),
+        updatedAt: product.atualizadoEm || new Date(),
+        category: product.categoria ? {
+            id: product.categoria.id,
+            name: product.categoria.nome
+        } : null,
+        images: (product.imagens_produto || []).map(img => ({
+            id: img.id,
+            url: img.url,
+            productId: img.produtoId
+        })),
+        mainImage: product.imagens_produto?.[0]?.url || null
+    };
+};
+
 // ========== ROTAS ESPECÍFICAS (devem vir antes de rotas com parâmetros dinâmicos) ==========
 
 // Rota para listar todas as categorias
@@ -184,6 +217,11 @@ router.get('/category/:categoriaId', async (req, res) => {
                         valores_opcao: true,
                     },
                 },
+                categorias_sabor: {
+                    include: {
+                        categoriaSabor: true
+                    }
+                }
             },
         });
         if (products.length === 0) {
@@ -192,30 +230,14 @@ router.get('/category/:categoriaId', async (req, res) => {
         }
         
         // Transformar campos do português para inglês
-        const transformedProducts = products.map(product => ({
-            id: product.id,
-            name: product.nome,
-            description: product.descricao || '',
-            price: product.preco,
-            categoryId: product.categoriaId,
-            isActive: product.ativo,
-            isFeatured: product.destaque || false,
-            receiveComplements: product.recebeComplementos || false,
-            quantidadeComplementos: product.quantidadeComplementos ?? 0,
-            createdAt: product.criadoEm || new Date(),
-            updatedAt: product.atualizadoEm || new Date(),
-            category: product.categoria ? {
-                id: product.categoria.id,
-                name: product.categoria.nome
-            } : null,
-            images: (product.imagens_produto || []).map(img => ({
-                id: img.id,
-                url: img.url,
-                productId: img.produtoId
-            })),
-            mainImage: product.imagens_produto?.[0]?.url || null,
-            options: product.opcoes_produto || []
-        }));
+        const transformedProducts = products.map(product => {
+            const transformed = transformProduct(product);
+            // Adicionar opcoes se existirem
+            if (product.opcoes_produto) {
+                transformed.options = product.opcoes_produto;
+            }
+            return transformed;
+        });
         
         console.log(`✅ GET /api/products/category/${categoriaId}: Produtos da categoria ${categoriaId} listados com sucesso (${products.length} encontrados).`);
         res.status(200).json(transformedProducts);
@@ -227,10 +249,12 @@ router.get('/category/:categoriaId', async (req, res) => {
 
 // Rota para adicionar um novo produto (apenas para usuários administradores)
 router.post('/add', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
-    const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements, quantidadeComplementos } = req.body;
+    const { nome, preco, descricao, categoriaId, isFeatured, receiveComplements, quantidadeComplementos, receiveFlavors, flavorCategories } = req.body;
     console.log('Categoria recebida:', categoriaId);
     console.log('Destaque:', isFeatured);
     console.log('Recebe complementos:', receiveComplements);
+    console.log('Recebe sabores:', receiveFlavors);
+    console.log('Categorias de sabores:', flavorCategories);
     const imageFiles = req.files || [];
     console.log(`✨ POST /api/products/add: Requisição para adicionar novo produto: ${nome}.`);
     console.log('Arquivos recebidos:', imageFiles.length);
@@ -256,6 +280,23 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
             imagesData.push(uploadResult);
         }
         console.log('Imagens a serem criadas (Cloudinary):', imagesData);
+        
+        // Processar categorias de sabores
+        let flavorCategoriesData = [];
+        if (receiveFlavors === 'true' || receiveFlavors === true) {
+            try {
+                const parsedFlavorCategories = typeof flavorCategories === 'string' ? JSON.parse(flavorCategories) : flavorCategories;
+                if (Array.isArray(parsedFlavorCategories) && parsedFlavorCategories.length > 0) {
+                    flavorCategoriesData = parsedFlavorCategories.map(fc => ({
+                        categoriaSaborId: parseInt(fc.categoryId),
+                        quantidade: parseInt(fc.quantity) || 1
+                    })).filter(fc => !isNaN(fc.categoriaSaborId));
+                }
+            } catch (e) {
+                console.warn('⚠️ Erro ao processar categorias de sabores:', e.message);
+            }
+        }
+        
         const newProduct = await prisma.produto.create({
             data: {
                 nome,
@@ -265,15 +306,27 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
                 destaque: isFeatured === 'true' || isFeatured === true,
                 recebeComplementos: receiveComplements === 'true' || receiveComplements === true,
                 quantidadeComplementos: receiveComplements === 'true' || receiveComplements === true ? parseInt(quantidadeComplementos) || 0 : 0,
-                imagens_produto: imagesData.length > 0 ? { create: imagesData } : undefined
+                recebeSabores: receiveFlavors === 'true' || receiveFlavors === true,
+                imagens_produto: imagesData.length > 0 ? { create: imagesData } : undefined,
+                categorias_sabor: flavorCategoriesData.length > 0 ? { create: flavorCategoriesData } : undefined
             },
-            include: { imagens_produto: true }
+            include: { 
+                imagens_produto: true,
+                categorias_sabor: {
+                    include: {
+                        categoriaSabor: true
+                    }
+                },
+                categoria: true
+            }
         });
         console.log(`✅ POST /api/products/add: Novo produto adicionado com sucesso: ${newProduct.nome}.`);
         console.log('🖼️ Imagens criadas:', newProduct.imagens_produto);
+        console.log('🍓 Categorias de sabores:', newProduct.categorias_sabor);
+        
         res.status(201).json({ 
             message: 'Produto adicionado com sucesso.', 
-            product: newProduct 
+            product: transformProduct(newProduct)
         });
     } catch (err) {
         console.error('❌ POST /api/products/add: Erro ao adicionar produto:', err.message);
@@ -284,10 +337,12 @@ router.post('/add', authenticateToken, authorize('admin'), upload.array('images'
 // Rota para atualizar um produto existente (apenas para administradores)
 router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('images', 5), async (req, res) => {
     const { id } = req.params;
-    const { nome, preco, descricao, categoriaId, ativo, isFeatured, receiveComplements, quantidadeComplementos } = req.body;
+    const { nome, preco, descricao, categoriaId, ativo, isFeatured, receiveComplements, quantidadeComplementos, receiveFlavors, flavorCategories } = req.body;
     const imageFiles = req.files || [];
     console.log(`🔄 PUT /api/products/update/${id}: Requisição para atualizar produto.`);
     console.log('📝 Dados recebidos:', { nome, preco, descricao, categoriaId, ativo });
+    console.log('🍓 Recebe sabores:', receiveFlavors);
+    console.log('🍓 Categorias de sabores:', flavorCategories);
     console.log('🖼️ Arquivos de imagem recebidos:', imageFiles.length);
         if (imageFiles.length > 0) {
             console.log('🖼️ Detalhes das imagens:', imageFiles.map(f => ({ originalname: f.originalname, size: f.size })));
@@ -297,7 +352,10 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
         // Verificar se o produto existe
         const existingProduct = await prisma.produto.findUnique({
             where: { id: parseInt(id) },
-            include: { imagens_produto: true }
+            include: { 
+                imagens_produto: true,
+                categorias_sabor: true
+            }
         });
         
         if (!existingProduct) {
@@ -354,6 +412,10 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             updateData.quantidadeComplementos = 0;
         }
         
+        if (receiveFlavors !== undefined && receiveFlavors !== null) {
+            updateData.recebeSabores = receiveFlavors === 'true' || receiveFlavors === true;
+        }
+        
         // Se houver novas imagens, deletar as antigas do banco e enviar as novas para o Cloudinary
         if (imageFiles.length > 0) {
             console.log(`🗑️ Deletando ${existingProduct.imagens_produto.length} imagens antigas...`);
@@ -384,18 +446,86 @@ router.put('/update/:id', authenticateToken, authorize('admin'), upload.array('i
             console.log(`✨ ${imageFiles.length} novas imagens enviadas para o Cloudinary e adicionadas ao produto.`);
         }
         
-        // Atualizar o produto
-        const updatedProduct = await prisma.produto.update({
-            where: { id: parseInt(id) },
-            data: updateData,
-            include: { imagens_produto: true }
+        // Atualizar o produto e gerenciar categorias de sabores
+        const updatedProduct = await prisma.$transaction(async (tx) => {
+            // Deletar categorias de sabores antigas se necessário
+            if (receiveFlavors !== undefined) {
+                await tx.produto_categoria_sabor.deleteMany({
+                    where: { produtoId: parseInt(id) }
+                });
+            }
+            
+            // Atualizar o produto
+            const product = await tx.produto.update({
+                where: { id: parseInt(id) },
+                data: updateData,
+                include: { 
+                    imagens_produto: true,
+                    categorias_sabor: {
+                        include: {
+                            categoriaSabor: true
+                        }
+                    }
+                }
+            });
+            
+            // Adicionar novas categorias de sabores se necessário
+            if (receiveFlavors === 'true' || receiveFlavors === true) {
+                try {
+                    const parsedFlavorCategories = typeof flavorCategories === 'string' ? JSON.parse(flavorCategories) : flavorCategories;
+                    if (Array.isArray(parsedFlavorCategories) && parsedFlavorCategories.length > 0) {
+                        const flavorCategoriesData = parsedFlavorCategories.map(fc => ({
+                            produtoId: parseInt(id),
+                            categoriaSaborId: parseInt(fc.categoryId),
+                            quantidade: parseInt(fc.quantity) || 1
+                        })).filter(fc => !isNaN(fc.categoriaSaborId));
+                        
+                        if (flavorCategoriesData.length > 0) {
+                            await tx.produto_categoria_sabor.createMany({
+                                data: flavorCategoriesData
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao processar categorias de sabores:', e.message);
+                }
+            }
+            
+            // Retornar produto atualizado com categorias de sabores
+            return await tx.produto.findUnique({
+                where: { id: parseInt(id) },
+                include: { 
+                    imagens_produto: true,
+                    categorias_sabor: {
+                        include: {
+                            categoriaSabor: true
+                        }
+                    }
+                }
+            });
         });
         
         console.log(`✅ PUT /api/products/update/${id}: Produto atualizado com sucesso: ${updatedProduct.nome}.`);
+        console.log('🍓 Categorias de sabores atualizadas:', updatedProduct.categorias_sabor);
         console.log('🖼️ Imagens atuais:', updatedProduct.imagens_produto);
+        
+        // Buscar categoria para incluir na transformação
+        const completeProduct = await prisma.produto.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                imagens_produto: true,
+                categorias_sabor: {
+                    include: {
+                        categoriaSabor: true
+                    }
+                },
+                categoria: true
+            }
+        });
+        
         res.status(200).json({ 
             message: 'Produto atualizado com sucesso.', 
-            product: updatedProduct 
+            product: transformProduct(completeProduct)
         });
     } catch (err) {
         console.error(`❌ PUT /api/products/update/${id}: Erro ao atualizar produto:`, err.message);
@@ -428,35 +558,17 @@ router.get('/', async (req, res) => {
                 imagens_produto: {
                     orderBy: { id: 'asc' } // Primeira imagem inserida será a principal
                 }, 
-                categoria: true 
+                categoria: true,
+                categorias_sabor: {
+                    include: {
+                        categoriaSabor: true
+                    }
+                }
             }
         });
         
         // Transformar campos do português para inglês
-        const transformedProducts = products.map(product => ({
-            id: product.id,
-            name: product.nome,
-            description: product.descricao || '',
-            price: product.preco,
-            categoryId: product.categoriaId,
-            isActive: product.ativo,
-            isFeatured: product.destaque || false,
-            receiveComplements: product.recebeComplementos || false,
-            quantidadeComplementos: product.quantidadeComplementos ?? 0,
-            createdAt: product.criadoEm || new Date(),
-            updatedAt: product.atualizadoEm || new Date(),
-            category: product.categoria ? {
-                id: product.categoria.id,
-                name: product.categoria.nome
-            } : null,
-            images: (product.imagens_produto || []).map(img => ({
-                id: img.id,
-                url: img.url,
-                productId: img.produtoId
-            })),
-            // Adicionar campo para facilitar acesso à imagem principal
-            mainImage: product.imagens_produto?.[0]?.url || null
-        }));
+        const transformedProducts = products.map(product => transformProduct(product));
         
         console.log(`✅ Retornando ${transformedProducts.length} produtos com imagens`);
         if (transformedProducts.length > 0) {
@@ -486,7 +598,12 @@ router.get('/:id', async (req, res) => {
                 imagens_produto: {
                     orderBy: { id: 'asc' }
                 }, 
-                categoria: true 
+                categoria: true,
+                categorias_sabor: {
+                    include: {
+                        categoriaSabor: true
+                    }
+                }
             }
         });
 
@@ -496,29 +613,7 @@ router.get('/:id', async (req, res) => {
         }
 
         // Transformar campos do português para inglês
-        const transformedProduct = {
-            id: product.id,
-            name: product.nome,
-            description: product.descricao || '',
-            price: product.preco,
-            categoryId: product.categoriaId,
-            isActive: product.ativo,
-            isFeatured: product.destaque || false,
-            receiveComplements: product.recebeComplementos || false,
-            quantidadeComplementos: product.quantidadeComplementos ?? 0,
-            createdAt: product.criadoEm || new Date(),
-            updatedAt: product.atualizadoEm || new Date(),
-            category: product.categoria ? {
-                id: product.categoria.id,
-                name: product.categoria.nome
-            } : null,
-            images: (product.imagens_produto || []).map(img => ({
-                id: img.id,
-                url: img.url,
-                productId: img.produtoId
-            })),
-            mainImage: product.imagens_produto?.[0]?.url || null
-        };
+        const transformedProduct = transformProduct(product);
 
         console.log(`✅ Produto ${id} encontrado:`, transformedProduct.name);
         res.json(transformedProduct);

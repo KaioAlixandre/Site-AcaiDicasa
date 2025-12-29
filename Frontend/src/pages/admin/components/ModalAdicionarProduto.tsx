@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductCategory } from '../../../types';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Plus, Minus } from 'lucide-react';
+import apiService from '../../../services/api';
+
+interface FlavorCategory {
+  id: number;
+  name: string;
+}
+
+interface SelectedFlavorCategory {
+  categoryId: number;
+  categoryName: string;
+  quantity: number;
+}
 
 interface Props {
   categories: ProductCategory[];
@@ -17,10 +29,26 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     isFeatured: false,
     receiveComplements: false,
     quantidadeComplementos: '',
+    receiveFlavors: false,
     description: '',
     images: [] as File[]
   });
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [flavorCategories, setFlavorCategories] = useState<FlavorCategory[]>([]);
+  const [selectedFlavorCategories, setSelectedFlavorCategories] = useState<SelectedFlavorCategory[]>([]);
+
+  // Carregar categorias de sabores
+  useEffect(() => {
+    const loadFlavorCategories = async () => {
+      try {
+        const data = await apiService.getFlavorCategories();
+        setFlavorCategories(data);
+      } catch (error) {
+        console.error('Erro ao carregar categorias de sabores:', error);
+      }
+    };
+    loadFlavorCategories();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -50,9 +78,37 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
       if (name === 'receiveComplements' && !e.target.checked) {
         setForm(f => ({ ...f, quantidadeComplementos: '' }));
       }
+      // Se desmarcar receiveFlavors, limpa categorias de sabores selecionadas
+      if (name === 'receiveFlavors' && !e.target.checked) {
+        setSelectedFlavorCategories([]);
+      }
     } else {
       setForm({ ...form, [name]: value });
     }
+  };
+
+  // Adicionar categoria de sabor selecionada
+  const handleAddFlavorCategory = (categoryId: number) => {
+    const category = flavorCategories.find(c => c.id === categoryId);
+    if (category && !selectedFlavorCategories.find(sfc => sfc.categoryId === categoryId)) {
+      setSelectedFlavorCategories([...selectedFlavorCategories, {
+        categoryId: category.id,
+        categoryName: category.name,
+        quantity: 1
+      }]);
+    }
+  };
+
+  // Remover categoria de sabor selecionada
+  const handleRemoveFlavorCategory = (categoryId: number) => {
+    setSelectedFlavorCategories(selectedFlavorCategories.filter(sfc => sfc.categoryId !== categoryId));
+  };
+
+  // Atualizar quantidade de uma categoria de sabor
+  const handleUpdateFlavorCategoryQuantity = (categoryId: number, quantity: number) => {
+    setSelectedFlavorCategories(selectedFlavorCategories.map(sfc => 
+      sfc.categoryId === categoryId ? { ...sfc, quantity: Math.max(1, quantity) } : sfc
+    ));
   };
 
   const removeImage = (index: number) => {
@@ -75,6 +131,10 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
     formData.append('receiveComplements', String(form.receiveComplements));
     if (form.receiveComplements) {
       formData.append('quantidadeComplementos', form.quantidadeComplementos || '0');
+    }
+    formData.append('receiveFlavors', String(form.receiveFlavors));
+    if (form.receiveFlavors && selectedFlavorCategories.length > 0) {
+      formData.append('flavorCategories', JSON.stringify(selectedFlavorCategories));
     }
     // Adicionar todas as imagens
     form.images.forEach((image) => {
@@ -281,6 +341,91 @@ const AddProductModal: React.FC<Props> = ({ categories, onClose, onAdd }) => {
                     placeholder="Ex: 3"
                     title="Informe um valor maior ou igual a 1"
                   />
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 p-3 bg-pink-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  id="receiveFlavors"
+                  name="receiveFlavors" 
+                  checked={form.receiveFlavors} 
+                  onChange={handleChange}
+                  className="w-4 h-4 text-pink-600 border-pink-300 rounded focus:ring-2 focus:ring-pink-500"
+                />
+                <label htmlFor="receiveFlavors" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  Produto aceita sabores
+                </label>
+              </div>
+              {form.receiveFlavors && (
+                <div className="mt-2 space-y-3">
+                  {/* Selecionar categoria de sabor */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-2">Selecionar categoria de sabor:</label>
+                    <select
+                      onChange={(e) => {
+                        const categoryId = parseInt(e.target.value);
+                        if (categoryId) {
+                          handleAddFlavorCategory(categoryId);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm"
+                      defaultValue=""
+                    >
+                      <option value="">Selecione uma categoria...</option>
+                      {flavorCategories
+                        .filter(fc => !selectedFlavorCategories.find(sfc => sfc.categoryId === fc.id))
+                        .map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                  
+                  {/* Lista de categorias selecionadas */}
+                  {selectedFlavorCategories.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-700">Categorias selecionadas:</label>
+                      {selectedFlavorCategories.map((sfc) => (
+                        <div key={sfc.categoryId} className="flex items-center gap-2 p-2 bg-white border border-pink-200 rounded-lg">
+                          <span className="flex-1 text-sm font-medium text-slate-700">{sfc.categoryName}</span>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-slate-600">Quantidade:</label>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateFlavorCategoryQuantity(sfc.categoryId, sfc.quantity - 1)}
+                              className="w-6 h-6 flex items-center justify-center border border-slate-300 rounded hover:bg-slate-100"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="number"
+                              min={1}
+                              value={sfc.quantity}
+                              onChange={(e) => handleUpdateFlavorCategoryQuantity(sfc.categoryId, parseInt(e.target.value) || 1)}
+                              className="w-12 px-2 py-1 border border-slate-300 rounded text-sm text-center"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateFlavorCategoryQuantity(sfc.categoryId, sfc.quantity + 1)}
+                              className="w-6 h-6 flex items-center justify-center border border-slate-300 rounded hover:bg-slate-100"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFlavorCategory(sfc.categoryId)}
+                              className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Remover categoria"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
