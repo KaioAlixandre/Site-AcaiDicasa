@@ -149,6 +149,27 @@ const ProdutoDetalhes: React.FC = () => {
     return total;
   };
 
+  // Validar se todas as categorias de sabores obrigatórias têm pelo menos um sabor selecionado
+  const validateFlavors = (): { isValid: boolean; missingCategories: string[] } => {
+    if (!product || !product.receiveFlavors || !product.flavorCategories || product.flavorCategories.length === 0) {
+      return { isValid: true, missingCategories: [] };
+    }
+
+    const missingCategories: string[] = [];
+
+    product.flavorCategories.forEach((flavorCategory) => {
+      const selectedInCategory = selectedFlavors[flavorCategory.categoryId] || [];
+      if (selectedInCategory.length === 0) {
+        missingCategories.push(flavorCategory.categoryName);
+      }
+    });
+
+    return {
+      isValid: missingCategories.length === 0,
+      missingCategories,
+    };
+  };
+
   const handleAddToCart = async () => {
     if (!product) return;
     
@@ -159,10 +180,21 @@ const ProdutoDetalhes: React.FC = () => {
       notify(message, 'error');
       return;
     }
+
+    // Validar sabores obrigatórios
+    const flavorValidation = validateFlavors();
+    if (!flavorValidation.isValid) {
+      const categoriesList = flavorValidation.missingCategories.join(', ');
+      const message = `Por favor, selecione pelo menos um sabor da${flavorValidation.missingCategories.length > 1 ? 's categoria' : ' categoria'} ${categoriesList}.`;
+      notify(message, 'warning');
+      return;
+    }
     
     try {
       setAddingToCart(true);
-      await addItem(product.id, quantity, selectedComplements);
+      // Preparar sabores para envio (apenas se houver sabores selecionados)
+      const flavorsToSend = Object.keys(selectedFlavors).length > 0 ? selectedFlavors : undefined;
+      await addItem(product.id, quantity, selectedComplements, flavorsToSend);
       notify('Produto adicionado ao carrinho!', 'success');
       navigate('/cart');
     } catch (error) {
@@ -286,34 +318,47 @@ const ProdutoDetalhes: React.FC = () => {
               </div>
 
               {/* Botão Adicionar ao Carrinho */}
-              <button
-                onClick={handleAddToCart}
-                disabled={addingToCart || !isStoreOpen}
-                className={`w-full py-3 md:py-4 text-white font-bold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base ${
-                  !isStoreOpen
-                    ? 'bg-slate-400 cursor-not-allowed'
-                    : addingToCart
-                    ? 'bg-purple-400 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700 hover:shadow-xl'
-                }`}
-              >
-                {!isStoreOpen ? (
-                  <>
-                    <Clock className="w-4 h-4 md:w-5 md:h-5" />
-                    Loja Fechada
-                  </>
-                ) : addingToCart ? (
-                  <>
-                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                    Adicionando...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                    Adicionar ao Carrinho
-                  </>
-                )}
-              </button>
+              {(() => {
+                const flavorValidation = validateFlavors();
+                const isFlavorValidationFailed = !flavorValidation.isValid;
+                const isDisabled = addingToCart || !isStoreOpen || isFlavorValidationFailed;
+
+                return (
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={isDisabled}
+                    className={`w-full py-3 md:py-4 text-white font-bold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base ${
+                      !isStoreOpen || isFlavorValidationFailed
+                        ? 'bg-slate-400 cursor-not-allowed'
+                        : addingToCart
+                        ? 'bg-purple-400 cursor-not-allowed'
+                        : 'bg-purple-600 hover:bg-purple-700 hover:shadow-xl'
+                    }`}
+                  >
+                    {!isStoreOpen ? (
+                      <>
+                        <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                        Loja Fechada
+                      </>
+                    ) : isFlavorValidationFailed ? (
+                      <>
+                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                        Selecione os sabores obrigatórios
+                      </>
+                    ) : addingToCart ? (
+                      <>
+                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                        Adicionando...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                        Adicionar ao Carrinho
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
 
               {/* Total */}
               <div className="bg-slate-100 rounded-xl p-3 md:p-5 border border-slate-200">

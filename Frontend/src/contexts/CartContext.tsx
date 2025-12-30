@@ -36,16 +36,25 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   };
 
   const toCartItems = (guestItems: any[]): CartItem[] => {
-    return guestItems.map((g, idx) => ({
-      id: g.id ?? -(idx + 1),
-      quantity: g.quantity,
-      createdAt: g.createdAt ?? new Date().toISOString(),
-      cartId: g.cartId ?? 0,
-      productId: g.productId ?? 0,
-      product: g.product as Product,
-      complements: g.complements ?? [],
-      totalPrice: g.totalPrice ?? (g.product ? g.product.price * g.quantity : undefined),
-    }));
+    return guestItems.map((g, idx) => {
+      // Preparar selectedOptions com sabores se houver
+      const selectedOptions: any = {};
+      if (g.selectedFlavors && Object.keys(g.selectedFlavors).length > 0) {
+        selectedOptions.selectedFlavors = g.selectedFlavors;
+      }
+      
+      return {
+        id: g.id ?? -(idx + 1),
+        quantity: g.quantity,
+        createdAt: g.createdAt ?? new Date().toISOString(),
+        cartId: g.cartId ?? 0,
+        productId: g.productId ?? 0,
+        product: g.product as Product,
+        complements: g.complements ?? [],
+        selectedOptions: Object.keys(selectedOptions).length > 0 ? selectedOptions : undefined,
+        totalPrice: g.totalPrice ?? (g.product ? g.product.price * g.quantity : undefined),
+      };
+    });
   };
 
   const recalcGuestTotals = (guestItems: any[]) => {
@@ -109,11 +118,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  const addItem = async (productId: number, quantity: number, complementIds?: number[]) => {
+  const addItem = async (productId: number, quantity: number, complementIds?: number[], selectedFlavors?: { [categoryId: number]: number[] }) => {
     try {
       setLoading(true);
       if (user) {
-        await apiService.addToCart(productId, quantity, complementIds);
+        await apiService.addToCart(productId, quantity, complementIds, selectedFlavors);
         await loadCart(); // Recarregar carrinho após adicionar item
       } else {
         // Carrinho local para convidado
@@ -126,8 +135,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
          
         }
 
-        // tentar encontrar item igual (mesmo produto e complementos)
-        const match = guest.find((g) => g.productId === productId && JSON.stringify(g.complementIds || []) === JSON.stringify(complementIds || []));
+        // tentar encontrar item igual (mesmo produto, complementos e sabores)
+        const match = guest.find((g) => {
+          const sameProduct = g.productId === productId;
+          const sameComplements = JSON.stringify(g.complementIds || []) === JSON.stringify(complementIds || []);
+          const sameFlavors = JSON.stringify(g.selectedFlavors || {}) === JSON.stringify(selectedFlavors || {});
+          return sameProduct && sameComplements && sameFlavors;
+        });
         if (match) {
           match.quantity += quantity;
           match.totalPrice = (product?.price ?? match.totalPrice ?? 0) * match.quantity;
@@ -137,6 +151,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             productId,
             quantity,
             complementIds: complementIds || [],
+            selectedFlavors: selectedFlavors || {},
             product,
             complements: [],
             totalPrice: (product?.price ?? 0) * quantity,

@@ -7,9 +7,9 @@ const { authenticateToken } = require('./auth');
 // Rota para adicionar um produto ao carrinho
 router.post('/add', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { produtoId, quantity, complementIds } = req.body;
+    const { produtoId, quantity, complementIds, selectedFlavors } = req.body;
 
-    console.log(`➡️ [POST /api/cart/add] Requisição para adicionar item. Usuário ID: ${userId}, Produto ID: ${produtoId}, Quantidade: ${quantity}, Complementos: ${JSON.stringify(complementIds)}.`);
+    console.log(`➡️ [POST /api/cart/add] Requisição para adicionar item. Usuário ID: ${userId}, Produto ID: ${produtoId}, Quantidade: ${quantity}, Complementos: ${JSON.stringify(complementIds)}, Sabores: ${JSON.stringify(selectedFlavors)}.`);
 
     if (!produtoId || !quantity) {
         console.warn('⚠️ [POST /api/cart/add] Falha ao adicionar item: ID do produto ou quantidade ausente.');
@@ -31,8 +31,9 @@ router.post('/add', authenticateToken, async (req, res) => {
             });
         }
 
-        // Verificar se existe item idêntico (mesmo produto E mesmos complementos)
+        // Verificar se existe item idêntico (mesmo produto, mesmos complementos E mesmos sabores)
         const complementIdsArray = complementIds || [];
+        const selectedFlavorsObj = selectedFlavors || {};
         const existingCartItem = await prisma.item_carrinho.findFirst({
             where: {
                 carrinhoId: cart.id,
@@ -48,7 +49,19 @@ router.post('/add', authenticateToken, async (req, res) => {
             existingCartItem.complementos.length === complementIdsArray.length &&
             existingCartItem.complementos.every(c => complementIdsArray.includes(c.complementoId));
 
-        if (existingCartItem && hasSameComplements) {
+        // Verificar se os sabores são idênticos
+        const existingFlavors = existingCartItem?.opcoesSelecionadas?.selectedFlavors || {};
+        // Normalizar ambos objetos para comparação (converter chaves para strings)
+        const normalizeFlavors = (flavors) => {
+            const normalized = {};
+            Object.keys(flavors).forEach(key => {
+                normalized[String(key)] = flavors[key];
+            });
+            return normalized;
+        };
+        const hasSameFlavors = JSON.stringify(normalizeFlavors(existingFlavors)) === JSON.stringify(normalizeFlavors(selectedFlavorsObj));
+
+        if (existingCartItem && hasSameComplements && hasSameFlavors) {
             // Atualizar quantidade do item existente
             const updatedItem = await prisma.item_carrinho.update({
                 where: { id: existingCartItem.id },
@@ -57,12 +70,19 @@ router.post('/add', authenticateToken, async (req, res) => {
             console.log(`🔄 [POST /api/cart/add] Quantidade do item no carrinho atualizada. Item ID: ${updatedItem.id}`);
             return res.status(200).json({ message: 'Quantidade do item atualizada com sucesso.', cartItem: updatedItem });
         } else {
+            // Preparar opcoesSelecionadas com sabores, se houver
+            const opcoesSelecionadas = {};
+            if (selectedFlavors && Object.keys(selectedFlavors).length > 0) {
+                opcoesSelecionadas.selectedFlavors = selectedFlavors;
+            }
+
             // Criar novo item no carrinho
             const newCartItem = await prisma.item_carrinho.create({
                 data: {
                     carrinhoId: cart.id,
                     produtoId: produtoId,
                     quantidade: quantity,
+                    opcoesSelecionadas: Object.keys(opcoesSelecionadas).length > 0 ? opcoesSelecionadas : undefined,
                 },
             });
 

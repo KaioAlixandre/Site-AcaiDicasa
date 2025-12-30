@@ -1438,7 +1438,7 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
                 productId: item.produtoId,
                 quantity: item.quantidade,
                 priceAtOrder: item.precoNoPedido,
-                selectedOptionsSnapshot: item.opcoesSelecionadas,
+                selectedOptionsSnapshot: item.opcoesSelecionadasSnapshot,
                 complements: item.complementos ? item.complementos.map(comp => ({
                     id: comp.complemento.id,
                     name: comp.complemento.nome,

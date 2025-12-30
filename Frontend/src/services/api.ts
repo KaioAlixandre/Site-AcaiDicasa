@@ -273,11 +273,12 @@ class ApiService {
     return response.data;
   }
 
-  async addToCart(productId: number, quantity: number, complementIds?: number[]): Promise<ApiResponse<CartItem>> {
+  async addToCart(productId: number, quantity: number, complementIds?: number[], selectedFlavors?: { [categoryId: number]: number[] }): Promise<ApiResponse<CartItem>> {
     const response: AxiosResponse<ApiResponse<CartItem>> = await this.api.post('/cart/add', {
       produtoId: productId,
       quantity,
       complementIds: complementIds || [],
+      selectedFlavors: selectedFlavors || {},
     });
     return response.data;
   }

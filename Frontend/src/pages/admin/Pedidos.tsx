@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Printer, ArrowRightCircle, RotateCw, Truck, MapPin, Filter, Calendar, X, Eye, CreditCard, Smartphone, DollarSign, Edit, Trash2, Plus, Save, List, ChevronDown, ShoppingCart, TrendingUp, XCircle, Package } from 'lucide-react';
-import { Order, Product } from '../../types';
+import { Order, Product, Flavor } from '../../types';
 import { printOrderReceipt } from '../../utils/printOrderReceipt';
 import apiService from '../../services/api';
 
@@ -64,6 +64,7 @@ const Pedidos: React.FC<{
   const [newItemPrice, setNewItemPrice] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showComplementsModal, setShowComplementsModal] = useState<{ orderId: number, itemId: number, complements: any[] } | null>(null);
+  const [flavors, setFlavors] = useState<Flavor[]>([]);
 
   // Carregar produtos quando abrir modal de edição
   useEffect(() => {
@@ -72,6 +73,52 @@ const Pedidos: React.FC<{
       setEditedTotal(selectedOrder.totalPrice.toString());
     }
   }, [isEditing, selectedOrder]);
+
+  // Carregar sabores
+  useEffect(() => {
+    const loadFlavors = async () => {
+      try {
+        const flavorsData = await apiService.getFlavors();
+        setFlavors(flavorsData);
+      } catch (error) {
+        console.error('Erro ao carregar sabores:', error);
+      }
+    };
+    loadFlavors();
+  }, []);
+
+  // Função para obter sabores do item do pedido
+  const getItemFlavors = (item: any): Flavor[] => {
+    if (!item.selectedOptionsSnapshot || !flavors.length) return [];
+
+    // Tentar diferentes formatos de estrutura
+    let selectedFlavors: any = {};
+    
+    if (item.selectedOptionsSnapshot.selectedFlavors) {
+      selectedFlavors = item.selectedOptionsSnapshot.selectedFlavors;
+    } else if (item.selectedOptionsSnapshot.flavors) {
+      selectedFlavors = item.selectedOptionsSnapshot.flavors;
+    } else {
+      return [];
+    }
+
+    // Se selectedFlavors está vazio, retornar array vazio
+    if (Object.keys(selectedFlavors).length === 0) {
+      return [];
+    }
+
+    // Coletar todos os IDs de sabores selecionados
+    // As chaves podem vir como strings ou números do JSON
+    const flavorIds: number[] = [];
+    Object.values(selectedFlavors).forEach((ids: any) => {
+      if (Array.isArray(ids)) {
+        flavorIds.push(...ids.map((id: any) => Number(id)));
+      }
+    });
+
+    // Buscar os sabores pelos IDs
+    return flavors.filter(flavor => flavorIds.includes(flavor.id));
+  };
 
   // Polling automático para verificar novos pedidos a cada 5 segundos
   useEffect(() => {
@@ -642,6 +689,30 @@ const Pedidos: React.FC<{
                                   </button>
                                 </div>
                               )}
+
+                              {/* Sabores */}
+                              {(() => {
+                                const itemFlavors = getItemFlavors(item);
+                                if (itemFlavors.length > 0) {
+                                  return (
+                                    <div className="mt-0.5 sm:mt-1 flex items-center gap-1.5">
+                                      <span className="text-[9px] sm:text-[10px] text-slate-500">Sabores:</span>
+                                      <div className="inline-flex items-center gap-0.5 flex-wrap">
+                                        {itemFlavors.map((flavor) => (
+                                          <span
+                                            key={flavor.id}
+                                            className="inline-flex items-center px-1 py-0.5 rounded text-[8px] sm:text-[9px] bg-pink-50 text-pink-700 border border-pink-200"
+                                            title={flavor.name}
+                                          >
+                                            {flavor.name}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           );
                         })}
@@ -700,7 +771,8 @@ const Pedidos: React.FC<{
                                 nomeUsuario: order.user.username,
                                 telefone: (order.user as any).telefone || (order.user as any).phone,
                                 email: (order.user as any).email
-                              } : undefined
+                              } : undefined,
+                              flavors: flavors
                             });
                           }}
                           className="p-1.5 sm:p-2 text-slate-500 rounded-md hover:bg-slate-200 hover:text-blue-600"
@@ -953,6 +1025,31 @@ const Pedidos: React.FC<{
                             </div>
                           </div>
                         )}
+
+                        {/* Sabores */}
+                        {(() => {
+                          const itemFlavors = getItemFlavors(item);
+                          if (itemFlavors.length > 0) {
+                            return (
+                              <div className="mt-1 pt-1 border-t border-slate-200">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600">Sabores:</p>
+                                  <div className="inline-flex items-center gap-1 flex-wrap">
+                                    {itemFlavors.map((flavor) => (
+                                      <span
+                                        key={flavor.id}
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] bg-pink-50 text-pink-700 border border-pink-200"
+                                      >
+                                        {flavor.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                         {isEditing && (
                           <div className="mt-2 pt-2 border-t border-red-200">
                             <button
@@ -1125,7 +1222,8 @@ const Pedidos: React.FC<{
                             nomeUsuario: selectedOrder.user.username,
                             telefone: (selectedOrder.user as any).telefone || (selectedOrder.user as any).phone,
                             email: (selectedOrder.user as any).email
-                          } : undefined
+                          } : undefined,
+                          flavors: flavors
                         });
                       }}
                       className="flex-1 bg-blue-600 text-white px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm"

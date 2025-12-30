@@ -67,7 +67,7 @@ const Complementos: React.FC = () => {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [showInactive, setShowInactive] = useState(false);
+  const [showInactive, setShowInactive] = useState(true);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');

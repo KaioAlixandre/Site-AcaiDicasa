@@ -1,4 +1,4 @@
-import { Order } from '../types';
+import { Order, Flavor } from '../types';
 
 interface PrintOrderReceiptOptions {
   order: Order;
@@ -13,6 +13,7 @@ interface PrintOrderReceiptOptions {
     cnpj?: string;
     phone?: string;
   };
+  flavors?: Flavor[];
 }
 
 /**
@@ -56,7 +57,35 @@ const formatDeliveryType = (type?: string): string => {
  * Gera e imprime a nota do pedido
  */
 export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
-  const { order, user, storeInfo } = options;
+  const { order, user, storeInfo, flavors = [] } = options;
+
+  // Função auxiliar para obter sabores do item
+  const getItemFlavors = (item: any): Flavor[] => {
+    if (!item.selectedOptionsSnapshot || !flavors.length) return [];
+
+    let selectedFlavors: any = {};
+    
+    if (item.selectedOptionsSnapshot.selectedFlavors) {
+      selectedFlavors = item.selectedOptionsSnapshot.selectedFlavors;
+    } else if (item.selectedOptionsSnapshot.flavors) {
+      selectedFlavors = item.selectedOptionsSnapshot.flavors;
+    } else {
+      return [];
+    }
+
+    if (Object.keys(selectedFlavors).length === 0) {
+      return [];
+    }
+
+    const flavorIds: number[] = [];
+    Object.values(selectedFlavors).forEach((ids: any) => {
+      if (Array.isArray(ids)) {
+        flavorIds.push(...ids.map((id: any) => Number(id)));
+      }
+    });
+
+    return flavors.filter(flavor => flavorIds.includes(flavor.id));
+  };
 
   // Calcular subtotal
   const subtotal = (order.orderitem || []).reduce(
@@ -416,6 +445,10 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
                 if (customData?.complementNames && Array.isArray(customData.complementNames)) {
                   complementos.push(...customData.complementNames);
                 }
+
+                // Obter sabores do item
+                const itemFlavors = getItemFlavors(item);
+                const sabores = itemFlavors.map(f => f.name);
                 
                 return `
                   <tr>
@@ -423,6 +456,7 @@ export const printOrderReceipt = (options: PrintOrderReceiptOptions) => {
                       <div class="item-name">${item.product?.name || 'Produto'}</div>
                       ${customData ? '<div class="item-complements">(Personalizado)</div>' : ''}
                       ${complementos.length > 0 ? `<div class="item-complements">+ ${complementos.join(', ')}</div>` : ''}
+                      ${sabores.length > 0 ? `<div class="item-complements">Sabores: ${sabores.join(', ')}</div>` : ''}
                     </td>
                     <td class="text-center">${item.quantity}</td>
                     <td class="text-right">R$ ${Number(item.priceAtOrder ?? 0).toFixed(2)}</td>

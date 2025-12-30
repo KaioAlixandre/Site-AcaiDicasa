@@ -243,7 +243,7 @@ export interface AuthContextType {
 export interface CartContextType {
   items: CartItem[];
   total: number;
-  addItem: (productId: number, quantity: number, complementIds?: number[]) => Promise<void>;
+  addItem: (productId: number, quantity: number, complementIds?: number[], selectedFlavors?: { [categoryId: number]: number[] }) => Promise<void>;
   addCustomAcai: (customAcai: CustomAcai, quantity: number) => Promise<void>;
   addCustomProduct: (productName: string, selectedOptions: any, quantity: number) => Promise<void>;
   updateItem: (cartItemId: number, quantity: number) => Promise<void>;

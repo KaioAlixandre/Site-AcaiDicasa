@@ -16,6 +16,7 @@ import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/api';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
+import { Flavor } from '../types';
 
 const Cart: React.FC = () => {
   const { items, total, updateItem, removeItem, clearCart, loading } = useCart();
@@ -23,6 +24,7 @@ const Cart: React.FC = () => {
   const { notify } = useNotification();
   const navigate = useNavigate();
   const [storeStatus, setStoreStatus] = useState<any>(null);
+  const [flavors, setFlavors] = useState<Flavor[]>([]);
 
   useEffect(() => {
     const loadStoreConfig = async () => {
@@ -38,8 +40,51 @@ const Cart: React.FC = () => {
       }
     };
 
+    const loadFlavors = async () => {
+      try {
+        const flavorsData = await apiService.getFlavors();
+        setFlavors(flavorsData);
+      } catch (error) {
+       
+      }
+    };
+
     loadStoreConfig();
+    loadFlavors();
   }, []);
+
+  // Função para obter sabores do item do carrinho
+  const getItemFlavors = (item: any): Flavor[] => {
+    if (!item.selectedOptions || !flavors.length) return [];
+
+    // Tentar diferentes formatos de estrutura
+    let selectedFlavors: any = {};
+    
+    if (item.selectedOptions.selectedFlavors) {
+      selectedFlavors = item.selectedOptions.selectedFlavors;
+    } else if (item.selectedOptions.flavors) {
+      selectedFlavors = item.selectedOptions.flavors;
+    } else {
+      return [];
+    }
+
+    // Se selectedFlavors está vazio, retornar array vazio
+    if (Object.keys(selectedFlavors).length === 0) {
+      return [];
+    }
+
+    // Coletar todos os IDs de sabores selecionados
+    // As chaves podem vir como strings ou números do JSON
+    const flavorIds: number[] = [];
+    Object.values(selectedFlavors).forEach((ids: any) => {
+      if (Array.isArray(ids)) {
+        flavorIds.push(...ids.map((id: any) => Number(id)));
+      }
+    });
+
+    // Buscar os sabores pelos IDs
+    return flavors.filter(flavor => flavorIds.includes(flavor.id));
+  };
 
   const handleQuantityChange = async (cartItemId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -230,6 +275,29 @@ const Cart: React.FC = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Sabores */}
+                      {(() => {
+                        const itemFlavors = getItemFlavors(item);
+                        if (itemFlavors.length > 0) {
+                          return (
+                            <div className="mb-2 sm:mb-3">
+                              <p className="text-[10px] sm:text-xs text-slate-600 font-medium mb-1">Sabores:</p>
+                              <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                                {itemFlavors.map((flavor) => (
+                                  <span
+                                    key={flavor.id}
+                                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-pink-50 text-pink-700 rounded-md text-[9px] sm:text-xs font-medium border border-pink-200"
+                                  >
+                                    {flavor.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Controles de quantidade e preço total */}
                       <div className="flex items-center justify-between gap-2">
