@@ -156,18 +156,35 @@ function Deploy-Complete {
     Show-Loading "Iniciando Deploy Completo..."
     Write-Host "  ═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
     docker-compose down 2>$null
-    docker-compose up -d --build
+    
+    # Limpar cache do Docker para resolver problemas de snapshot
+    Write-Host ""
+    Write-Host "  🧹 Limpando cache do Docker..." -ForegroundColor Yellow
+    docker builder prune -f 2>$null
+    
+    # Remover imagens antigas do projeto
+    Write-Host "  🗑️  Removendo imagens antigas..." -ForegroundColor Yellow
+    docker rmi site-acaidicasa-backend:latest site-acaidicasa-frontend:latest 2>$null
+    
+    # Reconstruir sem cache
+    Write-Host "  🔨 Reconstruindo imagens..." -ForegroundColor Yellow
+    docker-compose build --no-cache --pull
     if ($LASTEXITCODE -eq 0) {
-        Show-Success "Deploy realizado com sucesso!"
-        Write-Host ""
-        Write-Host "  🌐 Frontend: " -NoNewline -ForegroundColor Cyan
-        Write-Host "http://localhost:80" -ForegroundColor White
-        Write-Host "  🔧 Backend:  " -NoNewline -ForegroundColor Cyan
-        Write-Host "http://localhost:3001" -ForegroundColor White
-        Write-Host "  🗄️  Database: " -NoNewline -ForegroundColor Cyan
-        Write-Host "localhost:3307" -ForegroundColor White
+        docker-compose up -d
+        if ($LASTEXITCODE -eq 0) {
+            Show-Success "Deploy realizado com sucesso!"
+            Write-Host ""
+            Write-Host "  🌐 Frontend: " -NoNewline -ForegroundColor Cyan
+            Write-Host "http://localhost:80" -ForegroundColor White
+            Write-Host "  🔧 Backend:  " -NoNewline -ForegroundColor Cyan
+            Write-Host "http://localhost:3001" -ForegroundColor White
+            Write-Host "  🗄️  Database: " -NoNewline -ForegroundColor Cyan
+            Write-Host "localhost:3307" -ForegroundColor White
+        } else {
+            Show-Error "Erro ao iniciar os containers!"
+        }
     } else {
-        Show-Error "Erro durante o deploy!"
+        Show-Error "Erro durante o build!"
     }
     Wait-ForKey
 }
