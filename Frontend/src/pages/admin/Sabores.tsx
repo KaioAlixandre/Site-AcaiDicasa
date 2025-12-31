@@ -185,9 +185,9 @@ const Sabores: React.FC = () => {
   const handleEdit = (flavor: Flavor) => {
     setEditingFlavor(flavor);
     setFormData({
-      name: Flavor.name,
-      isActive: Flavor.isActive,
-      categoryId: Flavor.categoryId || null
+      name: flavor.name,
+      isActive: flavor.isActive,
+      categoryId: flavor.categoryId || null
     });
     setImagePreview(flavor.imageUrl ? flavor.imageUrl : null);
     setShowModal(true);
