@@ -34,7 +34,9 @@ router.post('/add', authenticateToken, async (req, res) => {
         // Verificar se existe item idêntico (mesmo produto, mesmos complementos E mesmos sabores)
         const complementIdsArray = complementIds || [];
         const selectedFlavorsObj = selectedFlavors || {};
-        const existingCartItem = await prisma.item_carrinho.findFirst({
+        
+        // Buscar TODOS os itens do mesmo produto no carrinho
+        const existingCartItems = await prisma.item_carrinho.findMany({
             where: {
                 carrinhoId: cart.id,
                 produtoId: produtoId,
@@ -44,28 +46,49 @@ router.post('/add', authenticateToken, async (req, res) => {
             }
         });
 
-        // Verificar se os complementos são idênticos
-        const hasSameComplements = existingCartItem && 
-            existingCartItem.complementos.length === complementIdsArray.length &&
-            existingCartItem.complementos.every(c => complementIdsArray.includes(c.complementoId));
-
-        // Verificar se os sabores são idênticos
-        const existingFlavors = existingCartItem?.opcoesSelecionadas?.selectedFlavors || {};
-        // Normalizar ambos objetos para comparação (converter chaves para strings)
+        // Função para normalizar sabores para comparação
         const normalizeFlavors = (flavors) => {
+            if (!flavors || Object.keys(flavors).length === 0) return {};
             const normalized = {};
             Object.keys(flavors).forEach(key => {
-                normalized[String(key)] = flavors[key];
+                normalized[String(key)] = Array.isArray(flavors[key]) ? [...flavors[key]].sort() : flavors[key];
             });
             return normalized;
         };
-        const hasSameFlavors = JSON.stringify(normalizeFlavors(existingFlavors)) === JSON.stringify(normalizeFlavors(selectedFlavorsObj));
 
-        if (existingCartItem && hasSameComplements && hasSameFlavors) {
-            // Atualizar quantidade do item existente
+        // Função para verificar se dois arrays de complementos são iguais
+        const arraysEqual = (arr1, arr2) => {
+            if (arr1.length !== arr2.length) return false;
+            const sorted1 = [...arr1].sort();
+            const sorted2 = [...arr2].sort();
+            return sorted1.every((val, idx) => val === sorted2[idx]);
+        };
+
+        // Procurar um item existente com as mesmas configurações
+        let matchingItem = null;
+        for (const item of existingCartItems) {
+            // Verificar complementos
+            const itemComplementIds = item.complementos.map(c => c.complementoId).sort();
+            const newComplementIds = [...complementIdsArray].sort();
+            const hasSameComplements = arraysEqual(itemComplementIds, newComplementIds);
+
+            // Verificar sabores
+            const existingFlavors = item.opcoesSelecionadas?.selectedFlavors || {};
+            const normalizedExisting = normalizeFlavors(existingFlavors);
+            const normalizedNew = normalizeFlavors(selectedFlavorsObj);
+            const hasSameFlavors = JSON.stringify(normalizedExisting) === JSON.stringify(normalizedNew);
+
+            if (hasSameComplements && hasSameFlavors) {
+                matchingItem = item;
+                break;
+            }
+        }
+
+        if (matchingItem) {
+            // Se encontrou um item com as mesmas configurações, apenas atualizar quantidade
             const updatedItem = await prisma.item_carrinho.update({
-                where: { id: existingCartItem.id },
-                data: { quantidade: existingCartItem.quantidade + quantity },
+                where: { id: matchingItem.id },
+                data: { quantidade: matchingItem.quantidade + quantity },
             });
             console.log(`🔄 [POST /api/cart/add] Quantidade do item no carrinho atualizada. Item ID: ${updatedItem.id}`);
             return res.status(200).json({ message: 'Quantidade do item atualizada com sucesso.', cartItem: updatedItem });
