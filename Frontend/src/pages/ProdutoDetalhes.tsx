@@ -343,7 +343,6 @@ const ProdutoDetalhes: React.FC = () => {
                 {(() => {
                   const flavorValidation = validateFlavors();
                   const isFlavorValidationFailed = !flavorValidation.isValid;
-                  const isDisabled = addingToCart || !isStoreOpen || isFlavorValidationFailed;
 
                   return (
                     <button
@@ -926,7 +925,6 @@ const ProdutoDetalhes: React.FC = () => {
             {(() => {
               const flavorValidation = validateFlavors();
               const isFlavorValidationFailed = !flavorValidation.isValid;
-              const isDisabled = addingToCart || !isStoreOpen || isFlavorValidationFailed;
 
               return (
                 <button
