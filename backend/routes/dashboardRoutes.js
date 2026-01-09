@@ -39,21 +39,35 @@ function getStartAndEndOfWeek(date = new Date()) {
   const brasilNow = new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   
   // Calcular o início da semana (segunda-feira)
-  const day = brasilNow.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
-  const diff = brasilNow.getDate() - day + (day === 0 ? -6 : 1); // Segunda-feira
+  // getDay() retorna: 0 = domingo, 1 = segunda, ..., 6 = sábado
+  const day = brasilNow.getDay();
+  // Calcular diferença para chegar na segunda-feira
+  // Se for domingo (0), voltar 6 dias. Caso contrário, voltar (day - 1) dias
+  const diff = day === 0 ? -6 : -(day - 1);
   
-  const year = brasilNow.getFullYear();
-  const month = brasilNow.getMonth();
-  const mondayDate = new Date(year, month, diff);
-  const sundayDate = new Date(year, month, diff + 6);
+  // Criar data da segunda-feira (início da semana)
+  const mondayDate = new Date(brasilNow);
+  mondayDate.setDate(brasilNow.getDate() + diff);
+  mondayDate.setHours(0, 0, 0, 0);
   
-  // Criar início da semana (segunda-feira 00:00:00) no fuso horário do Brasil
-  const startBrasilISO = `${year}-${String(mondayDate.getMonth() + 1).padStart(2, '0')}-${String(mondayDate.getDate()).padStart(2, '0')}T00:00:00-03:00`;
+  // Criar data do domingo (fim da semana) - 6 dias depois da segunda-feira
+  const sundayDate = new Date(mondayDate);
+  sundayDate.setDate(mondayDate.getDate() + 6);
+  sundayDate.setHours(23, 59, 59, 999);
   
-  // Criar fim da semana (domingo 23:59:59.999) no fuso horário do Brasil
-  const endBrasilISO = `${year}-${String(sundayDate.getMonth() + 1).padStart(2, '0')}-${String(sundayDate.getDate()).padStart(2, '0')}T23:59:59.999-03:00`;
+  // Criar strings ISO no formato correto para o fuso horário do Brasil (UTC-3)
+  const startYear = mondayDate.getFullYear();
+  const startMonth = mondayDate.getMonth() + 1;
+  const startDay = mondayDate.getDate();
   
-  // Converter para UTC
+  const endYear = sundayDate.getFullYear();
+  const endMonth = sundayDate.getMonth() + 1;
+  const endDay = sundayDate.getDate();
+  
+  const startBrasilISO = `${startYear}-${String(startMonth).padStart(2, '0')}-${String(startDay).padStart(2, '0')}T00:00:00-03:00`;
+  const endBrasilISO = `${endYear}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}T23:59:59.999-03:00`;
+  
+  // Converter para Date objects (serão automaticamente convertidos para UTC)
   const start = new Date(startBrasilISO);
   const end = new Date(endBrasilISO);
   
@@ -444,6 +458,7 @@ router.get('/metrics/:period', authenticateToken, authorize('admin'), async (req
       case 'weekly':
         ({ start, end } = getStartAndEndOfWeek(today));
         periodName = 'Semana';
+        console.log(`[Dashboard] Calculando semana - Início: ${start.toISOString()}, Fim: ${end.toISOString()}`);
         break;
       case 'monthly':
         // Se month e year foram fornecidos, usar esses valores

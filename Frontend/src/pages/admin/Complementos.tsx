@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import apiService from '../../services/api';
 import ModalGerenciarCategoriasComplementos from './components/ModalGerenciarCategoriasComplementos';
+import { useNotification } from '../../components/NotificationProvider';
 
 interface Complement {
   id: number;
@@ -51,6 +52,7 @@ interface ComplementFormData {
 }
 
 const Complementos: React.FC = () => {
+  const { notify } = useNotification();
   const [complements, setComplements] = useState<Complement[]>([]);
   const [categories, setCategories] = useState<ComplementCategory[]>([]);
   const [filteredComplements, setFilteredComplements] = useState<Complement[]>([]);
@@ -224,7 +226,7 @@ const Complementos: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Nome do complemento é obrigatório!');
+      notify('Nome do complemento é obrigatório!', 'warning');
       return;
     }
     try {
@@ -238,16 +240,16 @@ const Complementos: React.FC = () => {
       
       if (editingComplement) {
         await apiService.updateComplement(editingComplement.id, dataToSend);
+        notify('Complemento atualizado com sucesso!', 'success');
       } else {
         await apiService.createComplement(dataToSend);
+        notify('Complemento criado com sucesso!', 'success');
       }
       await loadComplements();
       resetForm();
-      alert(`Complemento ${editingComplement ? 'atualizado' : 'criado'} com sucesso!`);
     } catch (error: any) {
-     
       const message = error?.response?.data?.message || 'Erro ao salvar complemento';
-      alert(message);
+      notify(message, 'error');
     } finally {
       setFormLoading(false);
     }
@@ -258,9 +260,10 @@ const Complementos: React.FC = () => {
     try {
       await apiService.toggleComplementStatus(complement.id);
       await loadComplements();
-    } catch (error) {
-     
-      alert('Erro ao alterar status do complemento');
+      notify(`Complemento ${complement.isActive ? 'desativado' : 'ativado'} com sucesso!`, 'success');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Erro ao alterar status do complemento';
+      notify(message, 'error');
     }
   };
 
@@ -273,10 +276,10 @@ const Complementos: React.FC = () => {
     try {
       await apiService.deleteComplement(complement.id);
       await loadComplements();
-      alert('Complemento deletado com sucesso!');
-    } catch (error) {
-     
-      alert('Erro ao deletar complemento');
+      notify('Complemento deletado com sucesso!', 'success');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Erro ao deletar complemento';
+      notify(message, 'error');
     }
   };
 
@@ -285,7 +288,7 @@ const Complementos: React.FC = () => {
     e.preventDefault();
     
     if (!newCategoryName.trim()) {
-      alert('Nome da categoria é obrigatório!');
+      notify('Nome da categoria é obrigatório!', 'warning');
       return;
     }
 
@@ -295,11 +298,10 @@ const Complementos: React.FC = () => {
       setNewCategoryName('');
       setShowCategoryModal(false);
       setShowModal(true);
-      alert('Categoria criada com sucesso!');
+      notify('Categoria criada com sucesso!', 'success');
     } catch (error: any) {
-     
       const message = error.response?.data?.message || 'Erro ao criar categoria';
-      alert(message);
+      notify(message, 'error');
     }
   };
 
