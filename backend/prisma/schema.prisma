@@ -44,6 +44,7 @@ model item_carrinho {
   produto         produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade, map: "CartItem_productId_fkey")
   complementos    item_carrinho_complemento[]
 
+  @@unique([carrinhoId, produtoId], map: "CartItem_cartId_productId_key")
   @@index([produtoId], map: "CartItem_productId_fkey")
   @@map("itens_carrinho")
 }

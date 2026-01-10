@@ -8,9 +8,7 @@ import {
   ArrowLeft, 
   Clock, 
   Star, 
-  Heart,
-  ShoppingCart,
-  Package
+  Heart
 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,18 +16,15 @@ import { useNotification } from '../components/NotificationProvider';
 import { apiService } from '../services/api';
 import { checkStoreStatus } from '../utils/storeUtils';
 import Loading from '../components/Loading';
-import { Flavor, Product, ProductCategory } from '../types';
+import { Flavor } from '../types';
 
 const Cart: React.FC = () => {
-  const { items, total, updateItem, removeItem, clearCart, loading, addItem } = useCart();
+  const { items, total, updateItem, removeItem, clearCart, loading } = useCart();
   const { user } = useAuth();
   const { notify } = useNotification();
   const navigate = useNavigate();
   const [storeStatus, setStoreStatus] = useState<any>(null);
   const [flavors, setFlavors] = useState<Flavor[]>([]);
-  const [beverageProducts, setBeverageProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [addingProductId, setAddingProductId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadStoreConfig = async () => {
@@ -54,51 +49,9 @@ const Cart: React.FC = () => {
       }
     };
 
-    const loadCategories = async () => {
-      try {
-        const categoriesData = await apiService.getCategories();
-        setCategories(categoriesData);
-      } catch (error) {
-       
-      }
-    };
-
     loadStoreConfig();
     loadFlavors();
-    loadCategories();
   }, []);
-
-  // Carregar produtos de bebidas quando houver itens no carrinho
-  useEffect(() => {
-    const loadBeverageProducts = async () => {
-      if (items.length === 0) {
-        setBeverageProducts([]);
-        return;
-      }
-
-      try {
-        // Encontrar a categoria "bebidas" (case-insensitive)
-        const beverageCategory = categories.find(
-          cat => cat.name.toLowerCase() === 'bebidas' || cat.name.toLowerCase() === 'bebida'
-        );
-
-        if (beverageCategory) {
-          const products = await apiService.getProductsByCategory(beverageCategory.id);
-          // Filtrar apenas produtos ativos
-          const activeProducts = products.filter(p => p.isActive);
-          setBeverageProducts(activeProducts);
-        } else {
-          setBeverageProducts([]);
-        }
-      } catch (error) {
-        setBeverageProducts([]);
-      }
-    };
-
-    if (categories.length > 0) {
-      loadBeverageProducts();
-    }
-  }, [items.length, categories]);
 
   // Função para obter sabores do item do carrinho
   const getItemFlavors = (item: any): Flavor[] => {
@@ -156,23 +109,6 @@ const Cart: React.FC = () => {
 
     // Vai direto para o checkout - a verificação de endereço será feita lá
     navigate('/checkout');
-  };
-
-  const handleAddBeverage = async (productId: number) => {
-    if (storeStatus && !storeStatus.isOpen) {
-      notify('A loja está fechada no momento', 'error');
-      return;
-    }
-
-    try {
-      setAddingProductId(productId);
-      await addItem(productId, 1);
-      notify('Bebida adicionada ao carrinho!', 'success');
-    } catch (error: any) {
-      notify(error.message || 'Erro ao adicionar bebida ao carrinho', 'error');
-    } finally {
-      setAddingProductId(null);
-    }
   };
 
   if (loading) {
@@ -407,82 +343,6 @@ const Cart: React.FC = () => {
                 Limpar Carrinho
               </button>
             </div>
-
-            {/* Seção de Bebidas */}
-            {beverageProducts.length > 0 && (
-              <div className="mt-4 md:mt-6">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 sm:p-4 md:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4 md:mb-6">
-                    <h2 className="text-sm sm:text-base md:text-xl font-bold text-slate-900">
-                      Que tal adicionar uma bebida?
-                    </h2>
-                    <span className="text-[10px] sm:text-xs md:text-sm font-medium text-slate-500 bg-slate-100 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                      {beverageProducts.length} {beverageProducts.length === 1 ? 'item' : 'itens'}
-                    </span>
-                  </div>
-                  <div className="overflow-x-auto -mx-2 sm:-mx-4 md:-mx-6 px-2 sm:px-4 md:px-6">
-                    <div className="flex gap-2 sm:gap-3 md:gap-4 min-w-max">
-                      {beverageProducts.map((product) => {
-                        const productImage = product.images?.[0]?.url;
-                        const isAdding = addingProductId === product.id;
-                        const isDisabled = (storeStatus && !storeStatus.isOpen) || isAdding;
-
-                        return (
-                          <div
-                            key={product.id}
-                            className="bg-slate-50 rounded-lg sm:rounded-xl border border-slate-200 p-2 sm:p-3 md:p-4 flex flex-col transition-all duration-200 hover:shadow-sm w-32 sm:w-36 md:w-40 flex-shrink-0"
-                          >
-                          <div className="w-full h-24 sm:h-28 md:h-32 rounded-md sm:rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center mb-2 sm:mb-3">
-                            {productImage ? (
-                              <img
-                                src={productImage}
-                                alt={product.name}
-                                className="w-full h-full object-contain"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <Package className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-slate-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 flex flex-col min-h-0">
-                            <h3 className="font-bold text-[11px] sm:text-xs md:text-sm text-slate-900 mb-0.5 sm:mb-1 leading-tight line-clamp-2">
-                              {product.name}
-                            </h3>
-                            <p className="hidden sm:block text-[10px] md:text-xs text-slate-600 line-clamp-1 mb-1 sm:mb-2 md:mb-3 leading-relaxed">
-                              {product.description || 'Bebida refrescante'}
-                            </p>
-                            <div className="flex items-center justify-between gap-1 sm:gap-2 mt-auto">
-                              <span className="font-bold text-xs sm:text-sm md:text-base text-purple-600">
-                                R$ {Number(product.price ?? 0).toFixed(2).replace('.', ',')}
-                              </span>
-                              <button
-                                onClick={() => handleAddBeverage(product.id)}
-                                disabled={isDisabled}
-                                className={`w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-md sm:rounded-lg text-white font-semibold transition-all duration-200 flex items-center justify-center flex-shrink-0 ${
-                                  isDisabled
-                                    ? 'bg-slate-300 cursor-not-allowed'
-                                    : 'bg-purple-600 hover:bg-purple-700 active:scale-95 cursor-pointer'
-                                }`}
-                                title={storeStatus && !storeStatus.isOpen ? 'Loja fechada' : isAdding ? 'Adicionando...' : 'Adicionar ao carrinho'}
-                              >
-                                {isAdding ? (
-                                  <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Resumo do Pedido */}
