@@ -1,8 +1,16 @@
+// Carregar variáveis de ambiente
+require('dotenv').config();
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function removeUniqueConstraintAdvanced() {
   try {
+    // Verificar conexão com o banco de dados
+    console.log('🔌 Verificando conexão com o banco de dados...');
+    await prisma.$connect();
+    console.log('✅ Conectado ao banco de dados com sucesso!');
+    
     console.log('🔄 Removendo foreign key temporariamente...');
     
     // Passo 1: Remover a foreign key (se existir)
@@ -56,10 +64,23 @@ async function removeUniqueConstraintAdvanced() {
     console.log('✅ Processo concluído com sucesso!');
   } catch (error) {
     console.error('❌ Erro ao remover constraint:', error.message);
-    console.error('💡 Você pode precisar executar manualmente no MySQL:');
-    console.error('   1. ALTER TABLE `itens_carrinho` DROP FOREIGN KEY `CartItem_cartId_fkey`;');
-    console.error('   2. ALTER TABLE `itens_carrinho` DROP INDEX `CartItem_cartId_productId_key`;');
-    console.error('   3. ALTER TABLE `itens_carrinho` ADD CONSTRAINT `CartItem_cartId_fkey` FOREIGN KEY (`carrinhoId`) REFERENCES `carrinhos`(`id`) ON DELETE CASCADE;');
+    
+    // Verificar se é erro de conexão
+    if (error.message.includes('Can\'t reach database') || 
+        error.message.includes('P1001') ||
+        error.message.includes('connection')) {
+      console.error('💡 Erro de conexão com o banco de dados.');
+      console.error('   Verifique se:');
+      console.error('   - A variável DATABASE_URL está configurada no arquivo .env');
+      console.error('   - O banco de dados está acessível');
+      console.error('   - As credenciais estão corretas');
+    } else {
+      console.error('💡 Você pode precisar executar manualmente no MySQL:');
+      console.error('   1. ALTER TABLE `itens_carrinho` DROP FOREIGN KEY `CartItem_cartId_fkey`;');
+      console.error('   2. ALTER TABLE `itens_carrinho` DROP INDEX `CartItem_cartId_productId_key`;');
+      console.error('   3. ALTER TABLE `itens_carrinho` ADD CONSTRAINT `CartItem_cartId_fkey` FOREIGN KEY (`carrinhoId`) REFERENCES `carrinhos`(`id`) ON DELETE CASCADE;');
+    }
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
