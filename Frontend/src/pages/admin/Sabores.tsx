@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import apiService from '../../services/api';
 import ModalGerenciarCategoriasSabores from './components/ModalGerenciarCategoriasSabores';
-import { useNotification } from '../../components/NotificationProvider';
 
 interface Flavor {
   id: number;
@@ -52,7 +51,6 @@ interface FlavorFormData {
 }
 
 const Sabores: React.FC = () => {
-  const { notify } = useNotification();
   const [flavors, setFlavors] = useState<Flavor[]>([]);
   const [categories, setCategories] = useState<FlavorCategory[]>([]);
   const [filteredFlavors, setFilteredFlavors] = useState<Flavor[]>([]);
@@ -226,7 +224,7 @@ const Sabores: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      notify('Nome do Sabor é obrigatório!', 'warning');
+      alert('Nome do Sabor é obrigatório!');
       return;
     }
     try {
@@ -240,16 +238,16 @@ const Sabores: React.FC = () => {
       
       if (editingFlavor) {
         await apiService.updateFlavor(editingFlavor.id, dataToSend);
-        notify('Sabor atualizado com sucesso!', 'success');
       } else {
         await apiService.createFlavor(dataToSend);
-        notify('Sabor criado com sucesso!', 'success');
       }
       await loadFlavors();
       resetForm();
+      alert(`Sabor ${editingFlavor ? 'atualizado' : 'criado'} com sucesso!`);
     } catch (error: any) {
+     
       const message = error?.response?.data?.message || 'Erro ao salvar Sabor';
-      notify(message, 'error');
+      alert(message);
     } finally {
       setFormLoading(false);
     }
@@ -260,10 +258,9 @@ const Sabores: React.FC = () => {
     try {
       await apiService.toggleFlavorStatus(flavor.id);
       await loadFlavors();
-      notify(`Sabor ${flavor.isActive ? 'desativado' : 'ativado'} com sucesso!`, 'success');
-    } catch (error: any) {
-      const message = error?.response?.data?.message || 'Erro ao alterar status do Sabor';
-      notify(message, 'error');
+    } catch (error) {
+     
+      alert('Erro ao alterar status do Sabor');
     }
   };
 
@@ -276,10 +273,10 @@ const Sabores: React.FC = () => {
     try {
       await apiService.deleteFlavor(flavor.id);
       await loadFlavors();
-      notify('Sabor deletado com sucesso!', 'success');
-    } catch (error: any) {
-      const message = error?.response?.data?.message || 'Erro ao deletar Sabor';
-      notify(message, 'error');
+      alert('Sabor deletado com sucesso!');
+    } catch (error) {
+     
+      alert('Erro ao deletar Sabor');
     }
   };
 
@@ -288,7 +285,7 @@ const Sabores: React.FC = () => {
     e.preventDefault();
     
     if (!newCategoryName.trim()) {
-      notify('Nome da categoria é obrigatório!', 'warning');
+      alert('Nome da categoria é obrigatório!');
       return;
     }
 
@@ -298,10 +295,11 @@ const Sabores: React.FC = () => {
       setNewCategoryName('');
       setShowCategoryModal(false);
       setShowModal(true);
-      notify('Categoria criada com sucesso!', 'success');
+      alert('Categoria criada com sucesso!');
     } catch (error: any) {
+     
       const message = error.response?.data?.message || 'Erro ao criar categoria';
-      notify(message, 'error');
+      alert(message);
     }
   };
 
