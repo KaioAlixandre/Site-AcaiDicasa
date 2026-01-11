@@ -23,6 +23,7 @@ const ProdutoDetalhes: React.FC = () => {
   const [selectedComplements, setSelectedComplements] = useState<number[]>([]);
   const [selectedFlavors, setSelectedFlavors] = useState<{ [categoryId: number]: number[] }>({});
   const lastNotifyRef = useRef<{ msg: string; ts: number }>({ msg: '', ts: 0 });
+  const flavorsSectionRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -187,6 +188,25 @@ const ProdutoDetalhes: React.FC = () => {
       const categoriesList = flavorValidation.missingCategories.join(', ');
       const message = `Por favor, selecione pelo menos um sabor da${flavorValidation.missingCategories.length > 1 ? 's categoria' : ' categoria'} ${categoriesList}.`;
       notify(message, 'warning');
+      
+      // Fazer scroll para a seção de sabores
+      if (flavorsSectionRef.current) {
+        // Adicionar offset para não ficar colado no topo
+        const offset = 100;
+        const elementPosition = flavorsSectionRef.current.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        // Destacar a seção brevemente com animação
+        flavorsSectionRef.current.classList.add('ring-4', 'ring-pink-500', 'ring-opacity-75', 'rounded-xl');
+        setTimeout(() => {
+          flavorsSectionRef.current?.classList.remove('ring-4', 'ring-pink-500', 'ring-opacity-75');
+        }, 2500);
+      }
       return;
     }
     
@@ -226,7 +246,8 @@ const ProdutoDetalhes: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+    <div className="min-h-screen bg-white pb-24 md:pb-0">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* Coluna Esquerda - Imagens */}
@@ -292,8 +313,8 @@ const ProdutoDetalhes: React.FC = () => {
                 </p>
               </div>
 
-              {/* Quantidade */}
-              <div>
+              {/* Quantidade - Desktop */}
+              <div className="hidden md:block">
                 <label className="block text-xs md:text-sm font-semibold text-slate-900 mb-2">
                   Quantidade
                 </label>
@@ -317,51 +338,54 @@ const ProdutoDetalhes: React.FC = () => {
                 </div>
               </div>
 
-              {/* Botão Adicionar ao Carrinho */}
-              {(() => {
-                const flavorValidation = validateFlavors();
-                const isFlavorValidationFailed = !flavorValidation.isValid;
-                const isDisabled = addingToCart || !isStoreOpen || isFlavorValidationFailed;
+              {/* Botão Adicionar ao Carrinho - Desktop */}
+              <div className="hidden md:block">
+                {(() => {
+                  const flavorValidation = validateFlavors();
+                  const isFlavorValidationFailed = !flavorValidation.isValid;
 
-                return (
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={isDisabled}
-                    className={`w-full py-3 md:py-4 text-white font-bold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base ${
-                      !isStoreOpen || isFlavorValidationFailed
-                        ? 'bg-slate-400 cursor-not-allowed'
-                        : addingToCart
-                        ? 'bg-purple-400 cursor-not-allowed'
-                        : 'bg-purple-600 hover:bg-purple-700 hover:shadow-xl'
-                    }`}
-                  >
-                    {!isStoreOpen ? (
-                      <>
-                        <Clock className="w-4 h-4 md:w-5 md:h-5" />
-                        Loja Fechada
-                      </>
-                    ) : isFlavorValidationFailed ? (
-                      <>
-                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                        Selecione os sabores obrigatórios
-                      </>
-                    ) : addingToCart ? (
-                      <>
-                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                        Adicionando...
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                        Adicionar ao Carrinho
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
+                  return (
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={addingToCart || !isStoreOpen}
+                      className={`w-full py-3 md:py-4 text-white font-bold rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base ${
+                        !isStoreOpen
+                          ? 'bg-slate-400 cursor-not-allowed'
+                          : isFlavorValidationFailed
+                          ? 'bg-slate-400 hover:bg-slate-500 cursor-pointer'
+                          : addingToCart
+                          ? 'bg-purple-400 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700 hover:shadow-xl'
+                      }`}
+                    >
+                      {!isStoreOpen ? (
+                        <>
+                          <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                          Loja Fechada
+                        </>
+                      ) : isFlavorValidationFailed ? (
+                        <>
+                          <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                          Selecione os sabores obrigatórios
+                        </>
+                      ) : addingToCart ? (
+                        <>
+                          <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                          Adicionando...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                          Adicionar ao Carrinho
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
+              </div>
 
-              {/* Total */}
-              <div className="bg-slate-100 rounded-xl p-3 md:p-5 border border-slate-200">
+              {/* Total - Desktop */}
+              <div className="hidden md:block bg-slate-100 rounded-xl p-3 md:p-5 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <span className="text-sm md:text-base font-semibold text-slate-700">
                     Total
@@ -371,6 +395,7 @@ const ProdutoDetalhes: React.FC = () => {
                   </span>
                 </div>
               </div>
+
             </div>
           </div>
 
@@ -385,7 +410,7 @@ const ProdutoDetalhes: React.FC = () => {
               if (availableFlavors.length === 0) return null;
               
               return (
-                <div className="mt-6 pt-4 border-t border-slate-200">
+                <div ref={flavorsSectionRef} className="mt-6 pt-4 border-t border-slate-200 transition-all duration-500">
                   <h2 className="text-base md:text-xl font-bold text-slate-900 mb-3 md:mb-5">
                     Sabores Disponíveis
                   </h2>
@@ -859,9 +884,92 @@ const ProdutoDetalhes: React.FC = () => {
                 })()}
               </div>
             )}
+      </div>
+    </div>
+
+    {/* Footer Fixo - Controles de Quantidade e Adicionar ao Carrinho (estilo iFood) */}
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-[100] md:hidden">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+        <div className="flex items-center justify-between gap-3">
+          {/* Controle de Quantidade */}
+          <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => handleQuantityChange(-1)}
+              className="w-8 h-8 rounded-md bg-white hover:bg-slate-50 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={quantity <= 1}
+            >
+              <Minus className="w-4 h-4 text-slate-700" />
+            </button>
+            <span className="text-base font-bold text-slate-900 min-w-[2rem] text-center">
+              {quantity}
+            </span>
+            <button
+              onClick={() => handleQuantityChange(1)}
+              className="w-8 h-8 rounded-md bg-white hover:bg-slate-50 flex items-center justify-center transition-colors"
+            >
+              <Plus className="w-4 h-4 text-slate-700" />
+            </button>
+          </div>
+
+          {/* Total e Botão */}
+          <div className="flex items-center gap-3 flex-1">
+            {/* Total */}
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Total</p>
+              <p className="text-lg font-bold text-purple-600">
+                R$ {calculateTotal().toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+
+            {/* Botão Adicionar ao Carrinho */}
+            {(() => {
+              const flavorValidation = validateFlavors();
+              const isFlavorValidationFailed = !flavorValidation.isValid;
+
+              return (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart || !isStoreOpen}
+                  className={`flex-1 py-3 px-4 text-white font-bold rounded-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2 text-sm ${
+                    !isStoreOpen
+                      ? 'bg-slate-400 cursor-not-allowed'
+                      : isFlavorValidationFailed
+                      ? 'bg-slate-400 hover:bg-slate-500 cursor-pointer active:scale-95'
+                      : addingToCart
+                      ? 'bg-purple-400 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700 active:scale-95'
+                  }`}
+                >
+                  {!isStoreOpen ? (
+                    <>
+                      <Clock className="w-4 h-4" />
+                      <span className="hidden sm:inline">Loja Fechada</span>
+                    </>
+                  ) : isFlavorValidationFailed ? (
+                    <>
+                      <ShoppingCart className="w-4 h-4" />
+                      <span className="hidden sm:inline">Selecione os sabores</span>
+                      <span className="sm:hidden">Sabores</span>
+                    </>
+                  ) : addingToCart ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Adicionando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Adicionar</span>
+                    </>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         </div>
-    
+      </div>
+    </div>
+    </>
   );
 };
 
