@@ -12,8 +12,7 @@ const Entregadores: React.FC = () => {
   const [editingDeliverer, setEditingDeliverer] = useState<Deliverer | null>(null);
   const [form, setForm] = useState({
     name: '',
-    phone: '',
-    email: ''
+    phone: ''
   });
   const [validatingPhone, setValidatingPhone] = useState(false);
 
@@ -40,12 +39,11 @@ const Entregadores: React.FC = () => {
       setEditingDeliverer(deliverer);
       setForm({
         name: deliverer.name,
-        phone: deliverer.phone,
-        email: deliverer.email || ''
+        phone: deliverer.phone
       });
     } else {
       setEditingDeliverer(null);
-      setForm({ name: '', phone: '', email: '' });
+      setForm({ name: '', phone: '' });
     }
     setShowModal(true);
   };
@@ -53,7 +51,7 @@ const Entregadores: React.FC = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingDeliverer(null);
-    setForm({ name: '', phone: '', email: '' });
+    setForm({ name: '', phone: '' });
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +178,6 @@ const Entregadores: React.FC = () => {
                   <tr>
                     <th className="p-3">Nome</th>
                     <th className="p-3">Telefone</th>
-                    <th className="p-3">Email</th>
                     <th className="p-3">Status</th>
                     <th className="p-3">Entregas</th>
                     <th className="p-3">Data de Cadastro</th>
@@ -198,16 +195,6 @@ const Entregadores: React.FC = () => {
                           <Phone className="w-4 h-4 text-slate-400" />
                           <span className="text-slate-600">{deliverer.phone}</span>
                         </div>
-                      </td>
-                      <td className="p-3">
-                        {deliverer.email ? (
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-600">{deliverer.email}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
                       </td>
                       <td className="p-3">
                         <button
@@ -274,12 +261,6 @@ const Entregadores: React.FC = () => {
                           <Phone className="w-3.5 h-3.5 text-slate-400" />
                           <span>{deliverer.phone}</span>
                         </div>
-                        {deliverer.email && (
-                          <div className="flex items-center gap-2 text-xs text-slate-600">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="truncate">{deliverer.email}</span>
-                          </div>
-                        )}
                         <div className="flex items-center gap-2 text-xs text-slate-600">
                           <Truck className="w-3.5 h-3.5 text-slate-400" />
                           <span>{deliverer.deliveriesCount || 0} entregas</span>
@@ -380,20 +361,6 @@ const Entregadores: React.FC = () => {
                   className="w-full p-2 sm:p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="(00) 00000-0000"
                   required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleFormChange}
-                  className="w-full p-2 sm:p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="email@exemplo.com"
                 />
               </div>
               

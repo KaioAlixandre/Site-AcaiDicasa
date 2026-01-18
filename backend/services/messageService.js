@@ -1,6 +1,111 @@
 
 // Serviço para envio de mensagens (WhatsApp/SMS)
 const axios = require('axios');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Função auxiliar para parsear opcoesSelecionadasSnapshot
+function parseOptionsSnapshot(snapshot) {
+    if (!snapshot) {
+        return null;
+    }
+    
+    if (typeof snapshot === 'object' && snapshot !== null) {
+        return snapshot;
+    }
+    
+    if (typeof snapshot === 'string') {
+        try {
+            return JSON.parse(snapshot);
+        } catch (err) {
+            console.warn('⚠️ Erro ao fazer parse do opcoesSelecionadasSnapshot:', err.message);
+            return null;
+        }
+    }
+    
+    return null;
+}
+
+// Função auxiliar para formatar item com sabores e complementos
+async function formatOrderItem(item, allFlavors = []) {
+    try {
+        const productName = item.produto?.nome || item.product?.name || 'Produto';
+        const quantity = item.quantidade || item.quantity || 1;
+        
+        // Buscar complementos (pode estar em diferentes estruturas)
+        const complementosList = [];
+        if (item.complementos) {
+            item.complementos.forEach(ic => {
+                const complementName = ic.complemento?.nome || ic.complemento?.name || ic.nome || ic.name;
+                if (complementName) {
+                    complementosList.push(complementName);
+                }
+            });
+        }
+        if (item.item_pedido_complementos) {
+            item.item_pedido_complementos.forEach(ic => {
+                const complementName = ic.complemento?.nome || ic.complemento?.name;
+                if (complementName) {
+                    complementosList.push(complementName);
+                }
+            });
+        }
+        
+        // Buscar sabores do opcoesSelecionadasSnapshot
+        const saboresList = [];
+        const optionsSnapshot = item.opcoesSelecionadasSnapshot || item.selectedOptionsSnapshot;
+        const parsedSnapshot = parseOptionsSnapshot(optionsSnapshot);
+        
+        if (parsedSnapshot && allFlavors.length > 0) {
+            let selectedFlavors = {};
+            
+            if (parsedSnapshot.selectedFlavors) {
+                selectedFlavors = parsedSnapshot.selectedFlavors;
+            } else if (parsedSnapshot.flavors) {
+                selectedFlavors = parsedSnapshot.flavors;
+            }
+            
+            if (Object.keys(selectedFlavors).length > 0) {
+                const flavorIds = [];
+                Object.values(selectedFlavors).forEach((ids) => {
+                    if (Array.isArray(ids)) {
+                        flavorIds.push(...ids.map(id => Number(id)));
+                    }
+                });
+                
+                // Mapear IDs para nomes dos sabores
+                const flavors = allFlavors.filter(flavor => 
+                    flavorIds.includes(flavor.id) || flavorIds.includes(Number(flavor.id))
+                );
+                
+                flavors.forEach(flavor => {
+                    const flavorName = flavor.nome || flavor.name;
+                    if (flavorName) {
+                        saboresList.push(flavorName);
+                    }
+                });
+            }
+        }
+        
+        // Formatar string do item
+        let itemText = `• ${quantity}x ${productName}`;
+        
+        if (saboresList.length > 0) {
+            itemText += `\n  Sabores: ${saboresList.join(', ')}`;
+        }
+        
+        if (complementosList.length > 0) {
+            itemText += `\n  Complementos: ${complementosList.join(', ')}`;
+        }
+        
+        return itemText;
+    } catch (error) {
+        console.error('❌ Erro ao formatar item:', error);
+        const productName = item.produto?.nome || item.product?.name || 'Produto';
+        const quantity = item.quantidade || item.quantity || 1;
+        return `• ${quantity}x ${productName}`;
+    }
+}
 
 // Função para verificar se um número possui WhatsApp usando a Z-API
 async function checkPhoneExistsWhatsApp(phone) {
@@ -86,13 +191,16 @@ async function sendWhatsAppMessageZApi(phone, message) {
 const sendDeliveredConfirmationNotification = async (order) => {
   try {
     console.log('📦 [MessageService] Enviando confirmação de entrega ao cliente');
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     const customerMessage = `*Seu pedido #${order.id} foi entregue com sucesso!* 💜\n\nAgradecemos por escolher o melhor açaí! Esperamos que você saboreie cada colher.`;
 
@@ -139,14 +247,15 @@ const sendPickupNotification = async (order) => {
       deliveryType: order.deliveryType
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.item_pedido_complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     // Construir endereço da loja (pode vir de configurações)
     const storeAddress = "Rua da Loja, 123 - Centro"; // TODO: Pegar das configurações da loja
@@ -161,7 +270,8 @@ const sendPickupNotification = async (order) => {
  *Seu pedido #${order.id} está pronto para retirada!*
 
  💰 *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}${trocoInfo}
- *Itens:* ${itemsList}
+ *Itens:*
+ ${itemsListText}
 
  ${order.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pagamento na retirada' : 'Pedido já pago'}
 
@@ -216,14 +326,15 @@ const sendDeliveryNotifications = async (order, deliverer) => {
       itemsCount: order.orderItems?.length
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.item_pedido_complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     // Construir endereço
     const addressParts = [
@@ -267,7 +378,8 @@ const sendDeliveryNotifications = async (order, deliverer) => {
 
 *📍 Endereço:* ${address || 'Endereço não informado'}
 
-*Itens:* ${itemsList}
+*Itens:*
+${itemsListText}
 
 💰 *Valor:* R$ ${parseFloat(order.totalPrice || 0).toFixed(2)}${trocoInfo}
 ${paymentInfo ? `\n${paymentInfo}` : ''}
@@ -364,13 +476,15 @@ const sendPaymentConfirmationNotification = async (order) => {
       tipoEntrega: order.tipoEntrega
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     // Verificar se precisa de troco
     const trocoInfo = order.precisaTroco && order.valorTroco 
@@ -383,7 +497,8 @@ const sendPaymentConfirmationNotification = async (order) => {
 *Pedido #${order.id}*
 💰 *Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}${trocoInfo}
 
-*Itens:* ${itemsList}
+*Itens:*
+${itemsListText}
 
 *Seu pedido já está em preparo!*
 
@@ -439,14 +554,15 @@ const sendCookNotification = async (order, cook) => {
       itemsCount: order.itens_pedido?.length
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.item_pedido_complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     // Verificar se precisa de troco
     const trocoInfo = order.precisaTroco && order.valorTroco 
@@ -463,7 +579,7 @@ ${order.tipoEntrega === 'delivery' ? '🚚 ENTREGA' : '🏪 RETIRADA NO LOCAL'}
 💰 *Valor:* R$ ${parseFloat(order.precoTotal || 0).toFixed(2)}${trocoInfo}
 
 *🍽️ ITENS DO PEDIDO:*
-${itemsList}
+${itemsListText}
 
 ${order.observacoes ? ` *OBSERVAÇÕES DO CLIENTE:*\n${order.observacoes}\n` : ''}
     `.trim();
@@ -514,13 +630,15 @@ const sendOrderCancellationNotification = async (order, reason) => {
       usuario: order.usuario?.nomeUsuario || order.user?.username
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     const totalPrice = order.precoTotal || order.totalPrice || 0;
     
@@ -531,7 +649,8 @@ const sendOrderCancellationNotification = async (order, reason) => {
 *Seu pedido #${order.id} foi cancelado* ❌
 
 💰 *Valor do pedido:* R$ ${parseFloat(totalPrice).toFixed(2)}
-*Itens:* ${itemsList}
+*Itens:*
+${itemsListText}
 
 ${paymentMethod === 'PIX' ? 
   '*Informe sua chave pix para reembolso, ou realize outro pedido.*' : 
@@ -583,13 +702,15 @@ const sendOrderEditNotification = async (order, oldTotal, newTotal, editReason) 
       usuario: order.usuario?.nomeUsuario || order.user?.username
     });
 
-    // Construir lista de itens
-    const itemsList = order.itens_pedido?.map(item => {
-      const complementos = item.complementos?.map(ic => 
-        ic.complemento?.nome
-      ).filter(Boolean).join(', ');
-      return `• ${item.quantidade}x ${item.produto?.nome || 'Produto'}${complementos ? ` (${complementos})` : ''}`;
-    }).join('\n') || 'Itens não disponíveis';
+    // Buscar todos os sabores para mapear IDs para nomes
+    const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+    
+    // Construir lista de itens com sabores e complementos
+    const itemsList = order.itens_pedido?.length > 0
+      ? await Promise.all(order.itens_pedido.map(item => formatOrderItem(item, allFlavors)))
+      : ['Itens não disponíveis'];
+    
+    const itemsListText = Array.isArray(itemsList) ? itemsList.join('\n') : itemsList;
 
     const difference = parseFloat(newTotal) - parseFloat(oldTotal);
     const differenceText = difference > 0 
@@ -606,7 +727,7 @@ const sendOrderEditNotification = async (order, oldTotal, newTotal, editReason) 
 ${editReason ? `*Motivo da alteração:*\n${editReason}\n` : ''}
 
 *Itens do pedido:*
-${itemsList}
+${itemsListText}
 
 *Se tiver alguma dúvida, entre em contato conosco!* 💜
     `.trim();

@@ -6,6 +6,31 @@ const { authenticateToken, authorize } = require('./auth');
 const { sendDeliveryNotifications, sendPickupNotification, sendPaymentConfirmationNotification, sendCookNotification, sendDeliveredConfirmationNotification, sendOrderCancellationNotification, sendOrderEditNotification } = require('../services/messageService');
 const axios = require('axios');
 
+// Função auxiliar para parsear opcoesSelecionadasSnapshot corretamente
+// Garante que o JSON seja sempre parseado, mesmo quando vem como string do MySQL/Prisma
+function parseOptionsSnapshot(snapshot) {
+    if (!snapshot) {
+        return null;
+    }
+    
+    // Se já é um objeto, retornar diretamente
+    if (typeof snapshot === 'object' && snapshot !== null) {
+        return snapshot;
+    }
+    
+    // Se é uma string, tentar fazer parse
+    if (typeof snapshot === 'string') {
+        try {
+            return JSON.parse(snapshot);
+        } catch (err) {
+            console.warn('⚠️ Erro ao fazer parse do opcoesSelecionadasSnapshot:', err.message, 'Snapshot:', snapshot);
+            return null;
+        }
+    }
+    
+    return null;
+}
+
 // Função para enviar mensagem via WhatsApp usando a Z-API (com client-token no header)
 async function sendWhatsAppMessageZApi(phone, message) {
   const cleanPhone = phone.replace(/\D/g, '');
@@ -26,6 +51,79 @@ async function sendWhatsAppMessageZApi(phone, message) {
       }
     }
   );
+}
+
+// Função auxiliar para formatar item do carrinho com sabores e complementos
+async function formatCartItemForMessage(item, allFlavors = []) {
+    try {
+        const productName = item.produto?.nome || 'Produto';
+        const quantity = item.quantidade || 1;
+        
+        // Buscar complementos
+        const complementosList = [];
+        if (item.complementos && item.complementos.length > 0) {
+            item.complementos.forEach(ic => {
+                const complementName = ic.complemento?.nome;
+                if (complementName) {
+                    complementosList.push(complementName);
+                }
+            });
+        }
+        
+        // Buscar sabores do opcoesSelecionadas
+        const saboresList = [];
+        const optionsSnapshot = item.opcoesSelecionadas;
+        const parsedSnapshot = parseOptionsSnapshot(optionsSnapshot);
+        
+        if (parsedSnapshot && allFlavors.length > 0) {
+            let selectedFlavors = {};
+            
+            if (parsedSnapshot.selectedFlavors) {
+                selectedFlavors = parsedSnapshot.selectedFlavors;
+            } else if (parsedSnapshot.flavors) {
+                selectedFlavors = parsedSnapshot.flavors;
+            }
+            
+            if (Object.keys(selectedFlavors).length > 0) {
+                const flavorIds = [];
+                Object.values(selectedFlavors).forEach((ids) => {
+                    if (Array.isArray(ids)) {
+                        flavorIds.push(...ids.map(id => Number(id)));
+                    }
+                });
+                
+                // Mapear IDs para nomes dos sabores
+                const flavors = allFlavors.filter(flavor => 
+                    flavorIds.includes(flavor.id) || flavorIds.includes(Number(flavor.id))
+                );
+                
+                flavors.forEach(flavor => {
+                    const flavorName = flavor.nome || flavor.name;
+                    if (flavorName) {
+                        saboresList.push(flavorName);
+                    }
+                });
+            }
+        }
+        
+        // Formatar string do item
+        let itemText = `• ${quantity}x ${productName}`;
+        
+        if (saboresList.length > 0) {
+            itemText += `\n  Sabores: ${saboresList.join(', ')}`;
+        }
+        
+        if (complementosList.length > 0) {
+            itemText += `\n  Complementos: ${complementosList.join(', ')}`;
+        }
+        
+        return itemText;
+    } catch (error) {
+        console.error('❌ Erro ao formatar item do carrinho:', error);
+        const productName = item.produto?.nome || 'Produto';
+        const quantity = item.quantidade || 1;
+        return `• ${quantity}x ${productName}`;
+    }
 }
 
 // Rota para criar um pedido a partir do carrinho
@@ -197,13 +295,32 @@ router.post('/', authenticateToken, async (req, res) => {
                 }
 
                 // Criar item do pedido
+                // Garantir que opcoesSelecionadas seja um objeto JSON válido
+                let optionsSnapshot = item.opcoesSelecionadas || null;
+                if (optionsSnapshot) {
+                    // Log para debug: verificar estrutura dos sabores antes de salvar
+                    if (optionsSnapshot.selectedFlavors) {
+                        console.log(`🍧 [POST /api/orders] Salvando sabores para item do pedido ${item.produtoId}:`, JSON.stringify(optionsSnapshot.selectedFlavors));
+                    }
+                    // Garantir que seja um objeto válido (não string)
+                    if (typeof optionsSnapshot === 'string') {
+                        console.warn(`⚠️ [POST /api/orders] opcoesSelecionadas veio como string no item ${item.produtoId}, fazendo parse...`);
+                        try {
+                            optionsSnapshot = JSON.parse(optionsSnapshot);
+                        } catch (err) {
+                            console.error(`❌ [POST /api/orders] Erro ao fazer parse de opcoesSelecionadas:`, err.message);
+                            optionsSnapshot = null;
+                        }
+                    }
+                }
+                
                 const orderItem = await tx.item_pedido.create({
                     data: {
                         pedidoId: order.id,
                         produtoId: item.produtoId,
                         quantidade: item.quantidade,
                         precoNoPedido: itemPrice,
-                        opcoesSelecionadasSnapshot: item.opcoesSelecionadas
+                        opcoesSelecionadasSnapshot: optionsSnapshot
                     }
                 });
 
@@ -245,13 +362,29 @@ router.post('/', authenticateToken, async (req, res) => {
 
         console.log(`[POST /api/orders] Pedido ID ${newOrder.id} criado com sucesso para o usuário ${userId}.`);
         
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar (se houver itens)
+        const newOrderWithParsedOptions = newOrder.itens_pedido && newOrder.itens_pedido.length > 0
+            ? {
+                ...newOrder,
+                itens_pedido: newOrder.itens_pedido.map(item => ({
+                    ...item,
+                    opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+                }))
+            }
+            : newOrder;
+        
         // Enviar mensagem via WhatsApp para PIX, Cartão de Crédito ou Dinheiro na Entrega
         const userData = await prisma.usuario.findUnique({ where: { id: req.user.id } });
 
         if ((paymentMethod === 'PIX' || paymentMethod === 'CREDIT_CARD' || paymentMethod === 'CASH_ON_DELIVERY') && userData.telefone) {
-            const itens = cart.itens.map(item =>
-                `• ${item.produto.nome} x ${item.quantidade}`
-            ).join('\n');
+            // Buscar todos os sabores para mapear IDs para nomes
+            const allFlavors = await prisma.sabor.findMany({ where: { ativo: true } });
+            
+            // Formatar itens com sabores e complementos
+            const itens = await Promise.all(
+                cart.itens.map(item => formatCartItemForMessage(item, allFlavors))
+            );
+            const itensText = itens.join('\n');
             
             // Informações de entrega/retirada
             const deliveryInfo = tipo === 'pickup' 
@@ -268,7 +401,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 message =
                     ` *Pedido Confirmado!* 🎉\n\n` +
                     ` *Pedido Nº:* ${newOrder.id}\n\n` +
-                    ` *Itens:*\n${itens}\n\n` +
+                    ` *Itens:*\n${itensText}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💳 *Forma de pagamento:* Cartão de Crédito\n\n` +
                     `${deliveryInfo}` +
@@ -285,7 +418,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 message =
                     ` *Pedido Confirmado!* 🎉\n\n` +
                     ` *Pedido Nº:* ${newOrder.id}\n\n` +
-                    ` *Itens:*\n${itens}\n\n` +
+                    ` *Itens:*\n${itensText}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}${trocoInfo}\n` +
                     `💵 *Forma de pagamento:* Dinheiro ${tipo === 'pickup' ? 'na Retirada' : 'na Entrega'}\n\n` +
                     `${deliveryInfo}` +
@@ -297,7 +430,7 @@ router.post('/', authenticateToken, async (req, res) => {
                 message =
                     ` *Pedido Confirmado!* 🎉\n\n` +
                     ` *Pedido Nº:* ${newOrder.id}\n\n` +
-                    ` *Itens:*\n${itens}\n\n` +
+                    ` *Itens:*\n${itensText}\n\n` +
                     `💰 *Total:* R$ ${Number(newOrder.precoTotal).toFixed(2)}\n` +
                     `💸 *Forma de pagamento:* PIX\n` +
                     `🔑 *Chave PIX:* 99984959718\n\n` +
@@ -353,7 +486,7 @@ router.post('/', authenticateToken, async (req, res) => {
             }
         }
 
-        res.status(201).json({ message: 'Pedido criado com sucesso!', order: newOrder });
+        res.status(201).json({ message: 'Pedido criado com sucesso!', order: newOrderWithParsedOptions });
     } catch (err) {
         console.error(`[POST /api/orders] Erro ao criar o pedido para o usuário ${userId}:`, err.message);
         res.status(500).json({ message: 'Erro ao criar o pedido.', error: err.message });
@@ -407,19 +540,23 @@ router.get('/history', authenticateToken, async (req, res) => {
             notes: order.observacoes,
             precisaTroco: order.precisaTroco || false,
             valorTroco: order.valorTroco ? Number(order.valorTroco) : null,
-            orderitem: order.itens_pedido.map(item => ({
-                id: item.id,
-                orderId: item.pedidoId,
-                productId: item.produtoId,
-                quantity: item.quantidade,
-                priceAtOrder: item.precoNoPedido,
-                selectedOptionsSnapshot: item.opcoesSelecionadasSnapshot,
-                complements: item.complementos ? item.complementos.map(c => ({
-                    id: c.complemento.id,
-                    name: c.complemento.nome,
-                    imageUrl: c.complemento.imagemUrl,
-                    isActive: c.complemento.ativo
-                })) : [],
+            orderitem: order.itens_pedido.map(item => {
+                // Parsear opcoesSelecionadasSnapshot para garantir que seja sempre um objeto
+                const parsedSnapshot = parseOptionsSnapshot(item.opcoesSelecionadasSnapshot);
+                
+                return {
+                    id: item.id,
+                    orderId: item.pedidoId,
+                    productId: item.produtoId,
+                    quantity: item.quantidade,
+                    priceAtOrder: item.precoNoPedido,
+                    selectedOptionsSnapshot: parsedSnapshot,
+                    complements: item.complementos ? item.complementos.map(c => ({
+                        id: c.complemento.id,
+                        name: c.complemento.nome,
+                        imageUrl: c.complemento.imagemUrl,
+                        isActive: c.complemento.ativo
+                    })) : [],
                 product: {
                     id: item.produto.id,
                     name: item.produto.nome,
@@ -430,12 +567,13 @@ router.get('/history', authenticateToken, async (req, res) => {
                     categoryId: item.produto.categoriaId,
                     images: item.produto.imagens_produto?.map(img => ({
                         id: img.id,
-                        url: img.urlImagem,
-                        altText: img.textoAlternativo,
+                        url: img.url,
+                        altText: img.textoAlt,
                         productId: img.produtoId
                     })) || []
                 }
-            })),
+                };
+            }),
             payment: order.pagamento ? {
                 id: order.pagamento.id,
                 amount: order.pagamento.valor,
@@ -637,8 +775,17 @@ router.put('/status/:orderId', authenticateToken, authorize('admin'), async (req
             }
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...updatedOrder,
+            itens_pedido: updatedOrder.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[PUT /api/orders/status/${orderId}] Status do pedido atualizado com sucesso para "${updatedOrder.status}".`);
-        res.status(200).json({ message: 'Status do pedido atualizado com sucesso!', order: updatedOrder });
+        res.status(200).json({ message: 'Status do pedido atualizado com sucesso!', order: orderWithParsedOptions });
     } catch (err) {
         if (err.code === 'P2025') { // Erro de registro não encontrado
             console.error(`[PUT /api/orders/status/${orderId}] Erro: Pedido não encontrado.`);
@@ -750,8 +897,17 @@ router.put('/:orderId/update-total', authenticateToken, authorize('admin'), asyn
             }
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...updatedOrder,
+            itens_pedido: updatedOrder.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[PUT /api/orders/${orderId}/update-total] Valor atualizado com sucesso`);
-        res.status(200).json({ message: 'Valor do pedido atualizado com sucesso!', data: updatedOrder });
+        res.status(200).json({ message: 'Valor do pedido atualizado com sucesso!', data: orderWithParsedOptions });
     } catch (error) {
         console.error(`[PUT /api/orders/${orderId}/update-total] Erro:`, error.message);
         res.status(500).json({ message: 'Erro ao atualizar valor do pedido', error: error.message });
@@ -880,8 +1036,17 @@ router.post('/:orderId/add-item', authenticateToken, authorize('admin'), async (
             }
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...updatedOrder,
+            itens_pedido: updatedOrder.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[POST /api/orders/${orderId}/add-item] Item adicionado com sucesso`);
-        res.status(200).json({ message: 'Item adicionado ao pedido com sucesso!', data: updatedOrder });
+        res.status(200).json({ message: 'Item adicionado ao pedido com sucesso!', data: orderWithParsedOptions });
     } catch (error) {
         console.error(`[POST /api/orders/${orderId}/add-item] Erro:`, error.message);
         res.status(500).json({ message: 'Erro ao adicionar item ao pedido', error: error.message });
@@ -987,8 +1152,17 @@ router.delete('/:orderId/remove-item/:itemId', authenticateToken, authorize('adm
             }
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...updatedOrder,
+            itens_pedido: updatedOrder.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[DELETE /api/orders/${orderId}/remove-item/${itemId}] Item removido com sucesso`);
-        res.status(200).json({ message: 'Item removido do pedido com sucesso!', data: updatedOrder });
+        res.status(200).json({ message: 'Item removido do pedido com sucesso!', data: orderWithParsedOptions });
     } catch (error) {
         console.error(`[DELETE /api/orders/${orderId}/remove-item/${itemId}] Erro:`, error.message);
         res.status(500).json({ message: 'Erro ao remover item do pedido', error: error.message });
@@ -1252,8 +1426,17 @@ router.put('/:orderId', authenticateToken, authorize('admin'), async (req, res) 
                         }
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...order,
+            itens_pedido: order.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[PUT /api/orders/${orderId}] Pedido atualizado com sucesso.`);
-        res.json(order);
+        res.json(orderWithParsedOptions);
     } catch (error) {
         console.error(`[PUT /api/orders/${orderId}] Erro ao atualizar pedido:`, error);
         res.status(500).json({ message: 'Erro interno do servidor' });
@@ -1338,8 +1521,17 @@ router.put('/cancel/:orderId', authenticateToken, async (req, res) => {
             // Não falha a operação se a notificação falhar
         }
 
+        // Garantir que opcoesSelecionadasSnapshot seja parseado em todos os itens antes de retornar
+        const orderWithParsedOptions = {
+            ...updatedOrder,
+            itens_pedido: updatedOrder.itens_pedido.map(item => ({
+                ...item,
+                opcoesSelecionadasSnapshot: parseOptionsSnapshot(item.opcoesSelecionadasSnapshot)
+            }))
+        };
+        
         console.log(`[PUT /api/orders/cancel/${orderId}] Pedido cancelado com sucesso. Pedido ID: ${updatedOrder.id}`);
-        res.status(200).json({ message: 'Pedido cancelado com sucesso!', order: updatedOrder });
+        res.status(200).json({ message: 'Pedido cancelado com sucesso!', order: orderWithParsedOptions });
     } catch (err) {
         console.error(`[PUT /api/orders/cancel/${orderId}] Erro ao cancelar o pedido:`, err.message);
         res.status(500).json({ message: 'Erro ao cancelar o pedido.', error: err.message });
@@ -1432,18 +1624,27 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
                     isDefault: addr.padrao
                 })) : []
             } : null,
-            orderitem: order.itens_pedido.map(item => ({
-                id: item.id,
-                orderId: item.pedidoId,
-                productId: item.produtoId,
-                quantity: item.quantidade,
-                priceAtOrder: item.precoNoPedido,
-                selectedOptionsSnapshot: item.opcoesSelecionadasSnapshot,
-                complements: item.complementos ? item.complementos.map(comp => ({
-                    id: comp.complemento.id,
-                    name: comp.complemento.nome,
-                    imageUrl: comp.complemento.imagemUrl
-                })) : [],
+            orderitem: order.itens_pedido.map(item => {
+                // Parsear opcoesSelecionadasSnapshot para garantir que seja sempre um objeto
+                const parsedSnapshot = parseOptionsSnapshot(item.opcoesSelecionadasSnapshot);
+                
+                // Log de debug para identificar problemas (apenas se houver sabores)
+                if (parsedSnapshot && parsedSnapshot.selectedFlavors) {
+                    console.log(`🔍 [GET /api/orders/orders] Pedido ${order.id}, Item ${item.id}: opcoesSelecionadasSnapshot parseado com sucesso. Tipo original: ${typeof item.opcoesSelecionadasSnapshot}, Sabores:`, JSON.stringify(parsedSnapshot.selectedFlavors));
+                }
+                
+                return {
+                    id: item.id,
+                    orderId: item.pedidoId,
+                    productId: item.produtoId,
+                    quantity: item.quantidade,
+                    priceAtOrder: item.precoNoPedido,
+                    selectedOptionsSnapshot: parsedSnapshot,
+                    complements: item.complementos ? item.complementos.map(comp => ({
+                        id: comp.complemento.id,
+                        name: comp.complemento.nome,
+                        imageUrl: comp.complemento.imagemUrl
+                    })) : [],
                 product: item.produto ? {
                     id: item.produto.id,
                     name: item.produto.nome,
@@ -1458,7 +1659,8 @@ router.get('/orders', authenticateToken, authorize('admin'), async (req, res) =>
                         isPrimary: img.principal
                     })) : []
                 } : null
-            })),
+                };
+            }),
             payment: order.pagamento ? {
                 id: order.pagamento.id,
                 orderId: order.pagamento.pedidoId,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MapPin, Home, Hash, Building2, Navigation2 } from 'lucide-react';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../components/NotificationProvider';
@@ -52,43 +53,169 @@ const AddAddress: React.FC = () => {
     setLoading(false);
   };
 
-  
-
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow">
-      <h2 className="text-2xl font-bold mb-6 text-center">Cadastrar Endereço</h2>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <input name="street" value={form.street} onChange={handleChange} placeholder="Rua" required className="w-full px-3 py-2 border rounded" />
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="checkbox"
-              id="hasNumber"
-              checked={hasNumber}
-              onChange={handleHasNumberChange}
-              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-            />
-            <label htmlFor="hasNumber" className="text-sm text-gray-700 cursor-pointer">
-              Endereço possui número?
-            </label>
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white py-8 md:py-12 px-4">
+      <div className="max-w-md mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          {/* Header com ícone */}
+          <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
+              <MapPin className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              Cadastrar Endereço
+            </h2>
+            <p className="text-purple-100 text-sm">
+              Preencha os dados do seu endereço
+            </p>
           </div>
-          <input
-            name="number"
-            value={form.number}
-            onChange={handleChange}
-            placeholder="Número"
-            required={hasNumber}
-            disabled={!hasNumber}
-            className={`w-full px-3 py-2 border rounded ${!hasNumber ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-          />
+
+          {/* Formulário */}
+          <form className="px-6 py-8 space-y-5" onSubmit={handleSubmit}>
+            {/* Rua */}
+            <div>
+              <label htmlFor="street" className="block text-sm font-semibold text-slate-700 mb-2">
+                Rua *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Home className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  id="street"
+                  name="street"
+                  type="text"
+                  value={form.street}
+                  onChange={handleChange}
+                  placeholder="Nome da rua"
+                  required
+                  className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Número */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="hasNumber"
+                  checked={hasNumber}
+                  onChange={handleHasNumberChange}
+                  className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500 focus:ring-2"
+                />
+                <label htmlFor="hasNumber" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  Endereço possui número?
+                </label>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Hash className={`h-5 w-5 ${hasNumber ? 'text-slate-400' : 'text-slate-300'}`} />
+                </div>
+                <input
+                  id="number"
+                  name="number"
+                  type="text"
+                  value={form.number}
+                  onChange={handleChange}
+                  placeholder="Número"
+                  required={hasNumber}
+                  disabled={!hasNumber}
+                  className={`appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all ${
+                    !hasNumber ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Complemento */}
+            <div>
+              <label htmlFor="complement" className="block text-sm font-semibold text-slate-700 mb-2">
+                Complemento
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Building2 className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  id="complement"
+                  name="complement"
+                  type="text"
+                  value={form.complement}
+                  onChange={handleChange}
+                  placeholder="Apartamento, casa, etc."
+                  className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Bairro */}
+            <div>
+              <label htmlFor="neighborhood" className="block text-sm font-semibold text-slate-700 mb-2">
+                Bairro *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Navigation2 className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  id="neighborhood"
+                  name="neighborhood"
+                  type="text"
+                  value={form.neighborhood}
+                  onChange={handleChange}
+                  placeholder="Nome do bairro"
+                  required
+                  className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Ponto de Referência */}
+            <div>
+              <label htmlFor="reference" className="block text-sm font-semibold text-slate-700 mb-2">
+                Ponto de Referência
+                <span className="text-slate-400 font-normal ml-1">(opcional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  id="reference"
+                  name="reference"
+                  type="text"
+                  value={form.reference}
+                  onChange={handleChange}
+                  placeholder="Ex: Próximo ao mercado, em frente à praça"
+                  className="appearance-none block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Botão Submit */}
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-5 h-5" />
+                    <span>Salvar Endereço</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-        <input name="complement" value={form.complement} onChange={handleChange} placeholder="Complemento" className="w-full px-3 py-2 border rounded" />
-        <input name="neighborhood" value={form.neighborhood} onChange={handleChange} placeholder="Bairro" required className="w-full px-3 py-2 border rounded" />
-        <input name="reference" value={form.reference} onChange={handleChange} placeholder="Ponto de Referência (opcional)" className="w-full px-3 py-2 border rounded" />
-        <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded font-semibold hover:bg-indigo-700 transition-colors" disabled={loading}>
-          {loading ? 'Salvando...' : 'Salvar Endereço'}
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

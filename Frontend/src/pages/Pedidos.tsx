@@ -586,10 +586,19 @@ const Orders: React.FC = () => {
                             return (
                               <div key={item.id} className="flex items-start justify-between p-2 md:p-3 bg-slate-50 rounded-lg border border-slate-200">
                                 <div className="flex items-start gap-2 md:gap-3 flex-1">
-                                  <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                                    <span className="text-base md:text-xl">
-                                      
-                                    </span>
+                                  <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-100 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden">
+                                    {item.product.images && item.product.images.length > 0 && item.product.images[0]?.url ? (
+                                      <img
+                                        src={item.product.images[0].url}
+                                        alt={item.product.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      <Package className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
