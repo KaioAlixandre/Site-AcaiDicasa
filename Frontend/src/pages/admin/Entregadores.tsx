@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNotification } from '../../components/NotificationProvider';
 import apiService from '../../services/api';
 import { Deliverer } from '../../types';
-import { Plus, Edit, Trash2, User, Phone, Mail, ToggleLeft, ToggleRight, X, Truck } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Phone, ToggleLeft, ToggleRight, X, Truck } from 'lucide-react';
 import { applyPhoneMask, validatePhoneWithAPI, removePhoneMask } from '../../utils/phoneValidation';
 
 const Entregadores: React.FC = () => {
